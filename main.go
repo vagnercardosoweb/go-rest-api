@@ -84,6 +84,8 @@ func startServer() *http.Server {
 		),
 	)
 
+	// Press Cmd+C / Ctrl+C to stop.
+
 	return httpServer
 }
 

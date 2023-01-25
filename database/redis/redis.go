@@ -1,4 +1,4 @@
-package database
+package redis
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"rest-api/shared"
 	"strconv"
 
-	"github.com/go-redis/redis/v9"
+	libRedis "github.com/go-redis/redis/v9"
 )
 
 var (
@@ -19,13 +19,13 @@ var (
 	password = shared.EnvRequiredByName("REDIS_PASSWORD")
 )
 
-func NewRedisClient(ctx context.Context) *redis.Client {
+func NewRedisClient(ctx context.Context) *libRedis.Client {
 	redisDb, _ := strconv.Atoi(database)
-	options := &redis.Options{
+	options := &libRedis.Options{
 		Addr:     addr,
 		Password: password,
 		DB:       redisDb,
 	}
-	redisClient := redis.NewClient(options)
-	return redisClient
+	client := libRedis.NewClient(options)
+	return client
 }
