@@ -1,0 +1,60 @@
+version: '3'
+
+networks:
+  go-structure.network:
+    driver: bridge
+
+volumes:
+  go-structure.redis:
+  go-structure.postgres:
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    container_name: go-structure.server
+    tty: true
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - .:/app
+    networks:
+      - go-structure.network
+    ports:
+      - "${LOCAL_PORT:-3301}:3333"
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+
+  postgres:
+    image: bitnami/postgresql:14
+    container_name: go-structure.postgres
+    tty: true
+    env_file: .env
+    volumes:
+      - go-structure.postgres:/bitnami/postgresql
+    networks:
+      - go-structure.network
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      - POSTGRESQL_USERNAME=${DB_USERNAME:-root}
+      - POSTGRESQL_PASSWORD=${DB_PASSWORD:-root}
+      - POSTGRESQL_DATABASE=${DB_NAME:-powpay}
+
+  redis:
+    image: bitnami/redis:latest
+    container_name: go-structure.redis
+    tty: true
+    env_file: .env
+    volumes:
+      - go-structure.redis:/bitnami/redis/data
+    networks:
+      - go-structure.network
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis}
+      - ALLOW_EMPTY_PASSWORD=no
