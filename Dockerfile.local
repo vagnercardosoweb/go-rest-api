@@ -11,4 +11,3 @@ RUN go mod download all
 EXPOSE 3333
 
 CMD ["nodemon", "--exec", "go", "run", "/app/main.go", "--signal", "SIGTERM"]
-
