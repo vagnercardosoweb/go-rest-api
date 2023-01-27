@@ -2,30 +2,37 @@ package redis
 
 import (
 	"context"
-	"fmt"
 	"rest-api/shared"
-	"strconv"
 
 	libRedis "github.com/go-redis/redis/v9"
 )
 
-var (
-	addr = fmt.Sprintf(
-		"%s:%s",
-		shared.EnvRequiredByName("REDIS_HOST"),
-		shared.EnvRequiredByName("REDIS_PORT"),
-	)
-	database = shared.EnvRequiredByName("REDIS_DATABASE")
-	password = shared.EnvRequiredByName("REDIS_PASSWORD")
-)
+type Connection struct {
+	ctx    context.Context
+	client *libRedis.Client
+	logger *shared.Logger
+}
 
-func NewRedisClient(ctx context.Context) *libRedis.Client {
-	redisDb, _ := strconv.Atoi(database)
-	options := &libRedis.Options{
-		Addr:     addr,
-		Password: password,
-		DB:       redisDb,
+func NewConnection(ctx context.Context) *Connection {
+	client := libRedis.NewClient(NewConfig())
+	return &Connection{
+		ctx:    ctx,
+		client: client,
+		logger: shared.NewLogger(shared.Logger{Id: "REDIS"}),
 	}
-	client := libRedis.NewClient(options)
-	return client
+}
+
+func (c *Connection) Ping() error {
+	c.logger.Debug("Ping connection")
+	result := c.client.Ping(c.ctx)
+	return result.Err()
+}
+
+func (c *Connection) Close() error {
+	c.logger.Debug("Closing connection")
+	return c.client.Close()
+}
+
+func (c *Connection) GetClient() *libRedis.Client {
+	return c.client
 }

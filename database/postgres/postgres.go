@@ -2,210 +2,130 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
-	"reflect"
-	"strconv"
-	"strings"
-	"time"
-
 	"rest-api/shared"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
-func NewConnection(ctx context.Context) *Connection {
-	port, _ := strconv.Atoi(shared.EnvRequiredByName("DB_PORT"))
-	logging := shared.EnvGetByName("DB_LOGGING", "false") == "true"
-	name := shared.EnvRequiredByName("DB_NAME")
-	host := shared.EnvRequiredByName("DB_HOST")
-	username := shared.EnvRequiredByName("DB_USERNAME")
-	password := shared.EnvRequiredByName("DB_PASSWORD")
-	timezone := shared.EnvRequiredByName("DB_TIMEZONE")
+type Connection struct {
+	client        *sqlx.DB
+	lastQueryTime time.Time
+	context       context.Context
+	history       []History
+	config        *Config
+	logger        *shared.Logger
+}
 
+func NewConnection(ctx context.Context) *Connection {
+	config := NewConfig()
 	db, err := sqlx.ConnectContext(
 		ctx,
 		"postgres",
 		fmt.Sprintf(
-			"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable TimeZone=%s",
-			host, port, username, password, name, timezone,
+			"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable TimeZone=%s application_name=%s",
+			config.Host, config.Port, config.Username, config.Password, config.Database, config.Timezone, config.AppName,
 		),
 	)
+
 	if err != nil {
 		log.Println("Database connection error")
 		panic(err)
 	}
 
-	dbPoolMaxConnection, err := strconv.Atoi(shared.EnvGetByName("DB_POOL_MAX"))
-	if err == nil && dbPoolMaxConnection > 0 {
-		db.SetMaxOpenConns(dbPoolMaxConnection)
-	}
+	db.SetMaxOpenConns(config.getMaxPoolConnection())
 
-	connection := &Connection{
+	return &Connection{
 		client:  db,
 		context: ctx,
 		history: make([]History, 0),
-		logging: logging,
+		logger:  shared.NewLogger(shared.Logger{Id: "POSTGRES"}),
+		config:  config,
 	}
-
-	queryTimeout, _ := strconv.Atoi(shared.EnvGetByName("DB_QUERY_TIMEOUT", "0"))
-	if queryTimeout > 0 {
-		connection.queryTimeout = time.Second * time.Duration(queryTimeout)
-	}
-
-	return connection
 }
 
-func (connection *Connection) withQueryTimeoutCtx() (context.Context, context.CancelFunc) {
-	if connection.queryTimeout > 0 {
-		return context.WithTimeout(context.Background(), connection.queryTimeout)
-	}
-	return context.Background(), func() {}
-}
-
-func (connection *Connection) Exec(query string, args ...interface{}) (*Result, error) {
-	ctx, cancel := connection.withQueryTimeoutCtx()
-	defer cancel()
-
-	queryStart := time.Now()
-	res, err := connection.client.ExecContext(ctx, query, args...)
-	queryFinish := time.Now()
-	if err != nil {
-		return nil, err
-	}
-
-	affected, err := res.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-
-	result := Result{
-		Rows:    []Row{{"result": affected}},
-		Columns: []string{"result"},
-		Stats: &Stats{
-			RowsCount:       1,
-			ColumnsCount:    1,
-			QueryStartTime:  queryStart.UTC(),
-			QueryFinishTime: queryFinish.UTC(),
-			QueryDuration:   queryFinish.Sub(queryStart).Milliseconds(),
-		},
-	}
-
-	return &result, nil
-}
-
-func (connection *Connection) Sqlx() *sqlx.DB {
+func (connection *Connection) GetClient() *sqlx.DB {
 	return connection.client
 }
 
-func (connection *Connection) Query(query string, args ...interface{}) (*Result, error) {
-	if connection.client == nil {
-		return nil, nil
+func (connection *Connection) withQueryTimeoutCtx() (context.Context, context.CancelFunc) {
+	queryTimeout := connection.config.getQueryTimeout()
+	if queryTimeout > 0 {
+		return context.WithTimeout(connection.context, queryTimeout)
 	}
+	return connection.context, func() {}
+}
 
-	defer func() {
-		connection.lastQueryTime = time.Now().UTC()
-		connection.addHistoryRecord(query)
-	}()
-
-	action := strings.ToLower(strings.Split(query, " ")[0])
-	hasReturnValues := strings.Contains(strings.ToLower(query), " returning ")
-	if (action == "update" || action == "delete") && !hasReturnValues {
-		return connection.Exec(query, args...)
-	}
-
+func (connection *Connection) Exec(query string, args ...interface{}) (sql.Result, error) {
 	ctx, cancel := connection.withQueryTimeoutCtx()
 	defer cancel()
 
-	queryStart := time.Now()
-	rows, err := connection.client.QueryxContext(ctx, query, args...)
-	queryFinish := time.Now()
+	result, err := connection.client.ExecContext(ctx, query, args...)
+
 	if err != nil {
-		log.Println("Failed query:", query, "\nArgs:", args)
+		connection.logger.
+			AddMetadata("query", query).
+			AddMetadata("arguments", args).
+			Error(err.Error())
+
 		return nil, err
 	}
-	defer rows.Close()
 
-	result := Result{
-		Columns: []string{},
-		Rows:    []Row{},
-	}
-
-	for rows.Next() {
-		var row = Row{}
-		rows.MapScan(row)
-		for column, value := range row {
-			result.Columns = append(result.Columns, column)
-			if value == nil {
-				row[column] = nil
-			} else {
-				if typeOf := reflect.TypeOf(value).Kind().String(); typeOf == "slice" {
-					row[column] = string(value.([]byte))
-				}
-			}
-		}
-		result.Rows = append(result.Rows, row)
-	}
-
-	result.Stats = &Stats{
-		RowsCount:       len(result.Rows),
-		ColumnsCount:    len(result.Columns),
-		QueryStartTime:  queryStart.UTC(),
-		QueryFinishTime: queryFinish.UTC(),
-		QueryDuration:   queryFinish.Sub(queryStart).Milliseconds(),
-	}
-
-	return &result, nil
+	return result, nil
 }
 
-// Close database connection
-func (connection *Connection) Close() error {
-	if connection.closed {
-		return nil
-	}
+func (connection *Connection) Query(dest interface{}, query string, args ...interface{}) error {
+	ctx, cancel := connection.withQueryTimeoutCtx()
+	defer cancel()
+
+	history := History{Query: query, Arguments: args, CreatedAt: time.Now()}
 
 	defer func() {
-		connection.closed = true
+		connection.lastQueryTime = time.Now().UTC()
+
+		history.LatencyMs = history.FinishedAt.Sub(history.StartedAt).Milliseconds()
+		connection.addHistory(history)
+
+		if history.ErrorMessage != "" {
+			connection.logger.
+				AddMetadata("query", query).
+				AddMetadata("arguments", args).
+				Error(history.ErrorMessage)
+		}
 	}()
 
-	if connection.client != nil {
-		return connection.client.Close()
+	if connection.config.Logging {
+		connection.logger.
+			AddMetadata("query", query).
+			AddMetadata("arguments", args).
+			Debug("Executing query")
 	}
 
-	return nil
+	history.StartedAt = time.Now()
+	err := connection.client.SelectContext(ctx, dest, query, args...)
+	history.FinishedAt = time.Now()
+
+	if err != nil {
+		history.ErrorMessage = err.Error()
+	}
+
+	return err
 }
 
-func (connection *Connection) IsClosed() bool {
-	return connection.closed
+func (connection *Connection) Close() error {
+	connection.logger.Debug("Closing connection")
+	return connection.client.Close()
 }
 
 func (connection *Connection) LastQueryTime() time.Time {
 	return connection.lastQueryTime
 }
 
-func (connection *Connection) Test() error {
-	return connection.client.Ping()
-}
-
-func (connection *Connection) addHistoryRecord(query string) {
-	if !connection.hasHistoryRecord(query) {
-		connection.history = append(connection.history, History{
-			Query:     query,
-			Timestamp: time.Now().String(),
-		})
-	}
-}
-
-func (connection *Connection) hasHistoryRecord(query string) bool {
-	result := false
-
-	for _, record := range connection.history {
-		if record.Query == query {
-			result = true
-			break
-		}
-	}
-
-	return result
+func (connection *Connection) Ping() error {
+	connection.logger.Debug("Ping connection")
+	return connection.client.PingContext(connection.context)
 }

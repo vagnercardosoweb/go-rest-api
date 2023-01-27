@@ -28,9 +28,9 @@ func Error(c *gin.Context) {
 	}
 
 	statusText := http.StatusText(statusCode)
-	logger := shared.GetLogger()
+	logger := c.MustGet(config.LoggerContextKey).(*shared.Logger)
 
-	var responseError = errors.New(&errors.AppError{
+	var responseError = errors.New(errors.AppError{
 		Code:        statusText,
 		StatusCode:  statusCode,
 		Message:     statusText,
@@ -41,9 +41,11 @@ func Error(c *gin.Context) {
 	if hasError {
 		if _, ok := requestErrors[0].Err.(*errors.AppError); !ok {
 			responseError.Message = requestErrors[0].Error()
+
 			if config.IsLocal {
 				responseError.AddMetadata("errors", requestErrors.Errors())
 			}
+
 			logger.AddMetadata("errors", requestErrors.Errors())
 		} else {
 			responseError = requestErrors[0].Err.(*errors.AppError)
@@ -57,7 +59,7 @@ func Error(c *gin.Context) {
 		AddMetadata("body", c.Request.Form).
 		AddMetadata("headers", c.Request.Header).
 		AddMetadata("error", responseError).
-		Error("Error to Json")
+		Error("error")
 
 	c.JSON(responseError.StatusCode, responseError)
 	return

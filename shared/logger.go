@@ -22,7 +22,8 @@ var pid = os.Getpid()
 var hostname, _ = os.Hostname()
 
 func GetLogger() *Logger {
-	return NewLogger(Logger{Id: "APP"})
+	logger := NewLogger(Logger{Id: "APP"})
+	return logger
 }
 
 func NewLogger(input Logger) *Logger {
@@ -38,21 +39,22 @@ func NewLogger(input Logger) *Logger {
 	if input.Level == "" {
 		input.Level = "INFO"
 	}
-	if input.Metadata == nil {
-		input.Metadata = make(map[string]interface{})
-	}
 	return &input
 }
 
 func (l *Logger) Log(level string, message string) {
+	l.Time = time.Now().UTC()
 	l.Level = strings.ToUpper(level)
 	l.Message = message
-	l.Time = time.Now().UTC()
 	structToJson, _ := json.Marshal(l)
 	log.New(os.Stdout, "", 0).Printf(string(structToJson))
+	l.Metadata = nil
 }
 
 func (l *Logger) AddMetadata(name string, value interface{}) *Logger {
+	if l.Metadata == nil {
+		l.Metadata = make(map[string]interface{})
+	}
 	l.Metadata[name] = value
 	return l
 }

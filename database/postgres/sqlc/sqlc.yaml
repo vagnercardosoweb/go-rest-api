@@ -1,12 +1,12 @@
 version: "2"
 sql:
   - engine: "postgresql"
-    schema: "migrations/"
-    queries: "queries/"
+    schema: "schema.sql"
+    queries: "queries.sql"
     gen:
       go:
-        package: "datastore"
-        out: "datastore"
+        package: "store"
+        out: "store"
         sql_package: "database/sql"
         emit_db_tags: true
         emit_empty_slices: true

@@ -9,11 +9,15 @@ var hostname, _ = os.Hostname()
 var appEnv = shared.EnvGetByName("APP_ENV", "local")
 
 var (
-	Pid          = os.Getpid()
-	IsDebug      = shared.EnvGetByName("DEBUG", "false") == "true"
+	Pid      = os.Getpid()
+	AppEnv   = appEnv
+	Hostname = hostname
+
 	IsLocal      = appEnv == "local"
 	IsStaging    = appEnv == "staging"
 	IsProduction = appEnv == "production"
-	AppEnv       = appEnv
-	Hostname     = hostname
+	IsDebug      = shared.EnvGetByName("DEBUG", "false") == "true"
+
+	LoggerContextKey    = "logger"
+	RequestIdContextKey = "requestId"
 )

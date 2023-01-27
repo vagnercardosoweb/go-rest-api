@@ -13,19 +13,21 @@ import (
 
 func Logger(c *gin.Context) {
 	start := time.Now()
-
 	path := c.Request.URL.Path
 	method := c.Request.Method
-
-	requestId := c.Writer.Header().Get("X-Request-Id")
+	requestId := c.GetString(config.RequestIdContextKey)
 	logger := shared.NewLogger(shared.Logger{Id: fmt.Sprintf("REQ:%s", requestId)})
 
-	logger.AddMetadata("ip", c.ClientIP())
-	logger.AddMetadata("method", method)
-	logger.AddMetadata("path", path)
-	logger.AddMetadata("version", c.Request.Proto)
-	logger.AddMetadata("referer", c.GetHeader("referer"))
-	logger.AddMetadata("agent", c.Request.UserAgent())
+	// Set logger context
+	c.Set(config.LoggerContextKey, logger)
+
+	logger.
+		AddMetadata("ip", c.ClientIP()).
+		AddMetadata("method", method).
+		AddMetadata("path", path).
+		AddMetadata("version", c.Request.Proto).
+		AddMetadata("referer", c.GetHeader("referer")).
+		AddMetadata("agent", c.Request.UserAgent())
 
 	if config.IsDebug {
 		if forwardedUser := c.GetHeader("X-Forwarded-User"); forwardedUser != "" {
@@ -41,14 +43,15 @@ func Logger(c *gin.Context) {
 	// Process request
 	c.Next()
 
-	status := c.Writer.Status()
 	end := time.Now()
 	latency := end.Sub(start)
+	status := c.Writer.Status()
 
-	logger.AddMetadata("time", latency.String())
-	logger.AddMetadata("time_ms", latency.Milliseconds())
-	logger.AddMetadata("status", status)
-	logger.AddMetadata("length", c.Writer.Size())
+	logger.
+		AddMetadata("time", latency.String()).
+		AddMetadata("time_ms", latency.Milliseconds()).
+		AddMetadata("status", status).
+		AddMetadata("length", c.Writer.Size())
 
 	if config.IsDebug {
 		logger.AddMetadata("raw_query", c.Request.URL.RawQuery)

@@ -16,12 +16,13 @@ func runProfiler() {
 	for {
 		runtime.ReadMemStats(m)
 
-		logger.AddMetadata("NumGoroutine", runtime.NumGoroutine())
-		logger.AddMetadata("MemoryUsed", m.Alloc)
-		logger.AddMetadata("MemoryUsedInMb", fmt.Sprintf("%v mb", m.Alloc/MEGABYTE))
-		logger.AddMetadata("MemoryAcquired", m.Sys)
-		logger.AddMetadata("MemoryAcquiredInMb", fmt.Sprintf("%v mb", m.Sys/MEGABYTE))
-		logger.Debug("Running profiler")
+		logger.
+			AddMetadata("NumGoroutine", runtime.NumGoroutine()).
+			AddMetadata("MemoryUsed", m.Alloc).
+			AddMetadata("MemoryUsedInMb", fmt.Sprintf("%v mb", m.Alloc/MEGABYTE)).
+			AddMetadata("MemoryAcquired", m.Sys).
+			AddMetadata("MemoryAcquiredInMb", fmt.Sprintf("%v mb", m.Sys/MEGABYTE)).
+			Debug("Running profiler")
 
 		time.Sleep(time.Second * 30)
 	}

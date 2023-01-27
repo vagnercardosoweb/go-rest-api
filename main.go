@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -25,7 +24,6 @@ func init() {
 	ctx = context.Background()
 	logger = shared.GetLogger()
 	shared.EnvLoadFromFile()
-
 }
 
 func handleSignals(httpServer *http.Server) {
@@ -51,23 +49,32 @@ func handleSignals(httpServer *http.Server) {
 	logger.Error("Server exiting")
 }
 
-func startServer() *http.Server {
+func createHandlerHttp() *gin.Engine {
 	router := gin.New()
 
-	log.Println(shared.JwtGenerateBySubject("aaa"))
+	router.Use(func(c *gin.Context) {
+		c.Request = c.Request.WithContext(ctx)
+		c.Next()
+	})
 
 	router.Use(gin.Recovery())
 	router.Use(handlers.Cors)
 	router.Use(handlers.RequestId)
 	router.Use(handlers.Logger)
 	router.Use(handlers.Error)
-	router.NoRoute(handlers.NotFound)
-	router.NoMethod(handlers.NotAllowed)
+
 	router.GET("/", handlers.Healthy)
 
+	router.NoRoute(handlers.NotFound)
+	router.NoMethod(handlers.NotAllowed)
+
+	return router
+}
+
+func runHttpServer() *http.Server {
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%s", shared.EnvGetByName("PORT", "3333")),
-		Handler: router,
+		Handler: createHandlerHttp(),
 	}
 
 	go func() {
@@ -93,6 +100,6 @@ func main() {
 	if config.IsDebug {
 		shared.StartProfiler()
 	}
-	httpServer := startServer()
+	httpServer := runHttpServer()
 	handleSignals(httpServer)
 }
