@@ -3,6 +3,7 @@ package secure
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"math/big"
 )
 
 // RandomGenerator produces cryptographically secure random data
@@ -19,7 +20,6 @@ func (g RandomGenerator) RandomBytes(n int) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return b, nil
 }
 
@@ -30,8 +30,12 @@ func (g RandomGenerator) RandomBytes(n int) ([]byte, error) {
 // secure.
 func (g RandomGenerator) RandomString(n int) (string, error) {
 	b, err := g.RandomBytes(n)
-	if err != nil {
-		return "", err
-	}
 	return base64.URLEncoding.EncodeToString(b), err
+}
+
+// RandomInt generates a random integer between min and max
+func (g RandomGenerator) RandomInt(min, max int64) (int64, error) {
+	bg := big.NewInt(max - min + 1)
+	n, err := rand.Int(rand.Reader, bg)
+	return n.Int64() + min, err
 }
