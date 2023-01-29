@@ -1,4 +1,4 @@
-module rest-api
+module github.com/vagnercardosoweb/go-rest-api
 
 go 1.19
 

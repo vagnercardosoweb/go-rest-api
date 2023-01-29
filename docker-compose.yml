@@ -42,7 +42,7 @@ services:
     environment:
       - POSTGRESQL_USERNAME=${DB_USERNAME:-root}
       - POSTGRESQL_PASSWORD=${DB_PASSWORD:-root}
-      - POSTGRESQL_DATABASE=${DB_NAME:-powpay}
+      - POSTGRESQL_DATABASE=${DB_NAME:-development}
 
   redis:
     image: bitnami/redis:latest

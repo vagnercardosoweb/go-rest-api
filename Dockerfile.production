@@ -6,7 +6,7 @@ RUN apt-get update -y
 WORKDIR /app
 COPY . /app
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o server main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o server /app/api/server/main.go
 
 # final image
 FROM gcr.io/distroless/base-debian11
