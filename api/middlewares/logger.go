@@ -14,6 +14,7 @@ import (
 func loggerHandler(c *gin.Context) {
 	start := time.Now()
 	path := c.Request.URL.Path
+	routePath := c.FullPath()
 	method := c.Request.Method
 	requestId := c.GetString(config.RequestIdContextKey)
 	logger := logger.New(logger.Input{Id: fmt.Sprintf("REQ:%s", requestId)})
@@ -23,22 +24,14 @@ func loggerHandler(c *gin.Context) {
 
 	logger.
 		AddMetadata("ip", c.ClientIP()).
-		AddMetadata("method", method).
 		AddMetadata("path", path).
+		AddMetadata("route_path", routePath).
+		AddMetadata("method", method).
+		AddMetadata("query", c.Request.URL.Query()).
 		AddMetadata("version", c.Request.Proto).
 		AddMetadata("referer", c.GetHeader("referer")).
-		AddMetadata("agent", c.Request.UserAgent())
-
-	if config.IsDebug {
-		if forwardedUser := c.GetHeader("X-Forwarded-User"); forwardedUser != "" {
-			logger.AddMetadata("forwarded_user", forwardedUser)
-		}
-		if forwardedEmail := c.GetHeader("X-Forwarded-Email"); forwardedEmail != "" {
-			logger.AddMetadata("forwarded_email", forwardedEmail)
-		}
-	}
-
-	logger.Info("started")
+		AddMetadata("agent", c.Request.UserAgent()).
+		Info("started")
 
 	// Process request
 	c.Next()
@@ -53,12 +46,8 @@ func loggerHandler(c *gin.Context) {
 		AddMetadata("status", status).
 		AddMetadata("length", c.Writer.Size())
 
-	if config.IsDebug {
-		logger.AddMetadata("raw_query", c.Request.URL.RawQuery)
-
-		if c.Request.Method != http.MethodGet {
-			logger.AddMetadata("raw_form", c.Request.Form)
-		}
+	if config.IsDebug && c.Request.Method != http.MethodGet {
+		logger.AddMetadata("body", c.Request.Form)
 	}
 
 	logLevel := "INFO"
