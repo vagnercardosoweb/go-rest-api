@@ -19,24 +19,31 @@ func Healthy(c *gin.Context) {
 	return
 }
 
+func Favicon(c *gin.Context) {
+	c.Writer.WriteHeader(http.StatusOK)
+	return
+}
+
 func NotAllowed(ctx *gin.Context) {
-	notAllowedError := errors.NewMethodNotAllowed(
-		"Method not allowed",
-		map[string]interface{}{
+	notAllowedError := errors.NewMethodNotAllowed(errors.Input{
+		Message: "Method not allowed",
+		Metadata: errors.Metadata{
 			"path":   ctx.Request.URL.Path,
 			"method": ctx.Request.Method,
-		})
+		},
+	})
 	ctx.JSON(http.StatusMethodNotAllowed, notAllowedError)
 	return
 }
 
 func NotFound(ctx *gin.Context) {
-	notFoundError := errors.NewNotFound(
-		"Page not found",
-		map[string]interface{}{
+	notFoundError := errors.NewNotFound(errors.Input{
+		Message: "Page not found",
+		Metadata: errors.Metadata{
 			"path":   ctx.Request.URL.Path,
 			"method": ctx.Request.Method,
-		})
+		},
+	})
 	ctx.JSON(notFoundError.StatusCode, notFoundError)
 	return
 }

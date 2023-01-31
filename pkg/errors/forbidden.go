@@ -2,10 +2,13 @@ package errors
 
 import "net/http"
 
-func NewForbidden(message string) *AppError {
-	return New(AppError{
-		Code:       "ForbiddenError",
-		StatusCode: http.StatusForbidden,
-		Message:    message,
+func NewForbidden(input Input) *Input {
+	return New(Input{
+		Code:        "ForbiddenError",
+		StatusCode:  http.StatusForbidden,
+		Message:     input.Message,
+		SendToSlack: input.SendToSlack,
+		Metadata:    input.Metadata,
+		Logging:     input.Logging,
 	})
 }

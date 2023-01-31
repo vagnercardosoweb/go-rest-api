@@ -1,8 +1,6 @@
 package middlewares
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,10 +15,5 @@ func corsHandler(c *gin.Context) {
 	c.Header("Access-Control-Allow-Methods", methods)
 	c.Header("Access-Control-Allow-Headers", headers)
 	c.Header("Access-Control-Allow-Credentials", "true")
-
-	if c.Request.Method == http.MethodOptions {
-		return
-	}
-
 	c.Next()
 }

@@ -12,7 +12,7 @@ import (
 
 func Auth(c *gin.Context) {
 	token := c.GetString(config.AuthTokenContextKey)
-	unauthorizedError := errors.NewUnauthorized("Missing token in request.")
+	unauthorizedError := errors.NewUnauthorized(errors.Input{Message: "Missing token in request."})
 
 	if token == "" {
 		c.AbortWithError(unauthorizedError.StatusCode, unauthorizedError)
@@ -25,7 +25,7 @@ func Auth(c *gin.Context) {
 	}
 
 	if len(strings.Split(token, ".")) != 3 {
-		unauthorizedError.Message = "The token is mal formatado."
+		unauthorizedError.Message = "The token is badly formatted."
 		c.AbortWithError(unauthorizedError.StatusCode, unauthorizedError)
 		return
 	}

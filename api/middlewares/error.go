@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
@@ -13,8 +14,8 @@ import (
 func errorHandler(c *gin.Context) {
 	c.Next()
 
-	requestErrors := c.Errors
-	hasError := len(requestErrors) > 0
+	reqErrors := c.Errors
+	hasError := len(reqErrors) > 0
 	isAborted := c.IsAborted()
 
 	if !hasError && !isAborted {
@@ -27,10 +28,11 @@ func errorHandler(c *gin.Context) {
 		statusCode = http.StatusInternalServerError
 	}
 
+	var metadata = make(logger.Metadata, 0)
 	statusText := http.StatusText(statusCode)
-	logger := c.MustGet(config.LoggerContextKey).(*logger.Input)
+	requestId := c.MustGet(config.RequestIdContextKey)
 
-	var responseError = errors.New(errors.AppError{
+	var resError = errors.New(errors.Input{
 		Code:        statusText,
 		StatusCode:  statusCode,
 		Message:     statusText,
@@ -39,41 +41,42 @@ func errorHandler(c *gin.Context) {
 	})
 
 	if hasError {
-		if _, ok := requestErrors[0].Err.(*errors.AppError); !ok {
-			responseError.Message = requestErrors[0].Error()
-			if config.IsLocal {
-				responseError.AddMetadata("errors", requestErrors.Errors())
-			}
-			logger.AddMetadata("errors", requestErrors.Errors())
+		if _, ok := reqErrors[0].Err.(*errors.Input); !ok {
+			metadata["errors"] = reqErrors.Errors()
+			resError.Message = reqErrors[0].Error()
 		} else {
-			responseError = requestErrors[0].Err.(*errors.AppError)
+			resError = reqErrors[0].Err.(*errors.Input)
 		}
 	}
 
-	logger.
-		AddMetadata("ip", c.ClientIP()).
-		AddMetadata("path", c.Request.URL.Path).
-		AddMetadata("route_path", c.FullPath()).
-		AddMetadata("method", c.Request.Method).
-		AddMetadata("query", c.Request.URL.Query()).
-		AddMetadata("version", c.Request.Proto).
-		AddMetadata("referer", c.GetHeader("referer")).
-		AddMetadata("agent", c.Request.UserAgent()).
-		AddMetadata("body", c.Request.Form).
-		AddMetadata("headers", c.Request.Header).
-		AddMetadata("error", responseError)
+	metadata["ip"] = c.ClientIP()
+	metadata["path"] = c.Request.URL.Path
+	metadata["route_path"] = c.FullPath()
+	metadata["method"] = c.Request.Method
+	metadata["query"] = c.Request.URL.Query()
+	metadata["version"] = c.Request.Proto
+	metadata["referer"] = c.GetHeader("referer")
+	metadata["agent"] = c.Request.UserAgent()
+	metadata["body"] = c.Request.Form
+	metadata["headers"] = c.Request.Header
+	metadata["error"] = resError
 
 	if config.IsDebug {
 		if forwardedUser := c.GetHeader("X-Forwarded-User"); forwardedUser != "" {
-			logger.AddMetadata("forwarded_user", forwardedUser)
+			metadata["forwarded_user"] = forwardedUser
 		}
 		if forwardedEmail := c.GetHeader("X-Forwarded-Email"); forwardedEmail != "" {
-			logger.AddMetadata("forwarded_email", forwardedEmail)
+			metadata["forwarded_email"] = forwardedEmail
 		}
 	}
 
-	logger.Error("error")
+	logger.Log(logger.Input{
+		Id:       fmt.Sprintf("REQ:%s", requestId),
+		Level:    logger.LevelError,
+		Message:  "error",
+		Metadata: metadata,
+	})
 
-	c.JSON(responseError.StatusCode, responseError)
+	c.JSON(resError.StatusCode, resError)
 	return
 }

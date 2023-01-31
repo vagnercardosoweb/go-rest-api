@@ -25,13 +25,11 @@ var (
 	httpServer      *http.Server
 	dbConnection    *postgres.Connection
 	redisConnection *redis.Connection
-	log             *logger.Input
 )
 
 func init() {
 	env.LoadFromFile()
 
-	log = logger.Get()
 	ctx = context.Background()
 
 	dbConnection = postgres.NewConnection(ctx)
@@ -51,23 +49,23 @@ func shutdown() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-quit
 
-	log.Error("Shutting down server")
+	logger.Error("Shutting down server")
 
 	timeout := config.GetShutdownTimeout() * time.Second
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	if err := httpServer.Shutdown(ctx); err != nil {
-		log.Error("Server forced to shutdown: %v", err.Error())
+		logger.Error("Server forced to shutdown: %v", err.Error())
 		os.Exit(1)
 	}
 
 	select {
 	case <-ctx.Done():
-		log.Warning("Timeout shutdown of %v seconds.", timeout)
+		logger.Warn("Timeout shutdown of %v seconds.", timeout)
 	}
 
-	log.Error("Server exiting")
+	logger.Error("Server exiting")
 }
 
 func handler() *gin.Engine {
@@ -101,12 +99,12 @@ func main() {
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Error("Server listen error: %v", err.Error())
+			logger.Error("Server listen error: %v", err.Error())
 			os.Exit(1)
 		}
 	}()
 
-	log.Info(
+	logger.Info(
 		fmt.Sprintf(
 			"Server running on http://0.0.0.0:%s",
 			env.Get("LOCAL_PORT", "3301"),

@@ -21,7 +21,6 @@ var (
 )
 
 const (
-	LoggerContextKey          = "LoggerContextKey"
 	RequestIdContextKey       = "RequestIdContextKey"
 	DbConnectionContextKey    = "DbConnectionContextKey"
 	RedisConnectionContextKey = "RedisConnectionContextKey"

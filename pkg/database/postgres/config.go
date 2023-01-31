@@ -36,18 +36,33 @@ func newConfig() *Config {
 	}
 }
 
-func (c *Config) getMaxPoolConnection() int {
-	max, err := strconv.Atoi(env.Get("DB_POOL_MAX", "5"))
-	if err != nil || max <= 0 {
-		return 5
+func getValueFromEnvToInt(key string, defaultValue int) int {
+	value, err := strconv.Atoi(env.Get(key))
+	if err != nil {
+		return defaultValue
 	}
-	return max
+	return value
+}
+
+func (c *Config) getMaxOpenConns() int {
+	return getValueFromEnvToInt("DB_POOL_MAX", 50)
+}
+
+func (c *Config) getMaxIdleConns() int {
+	return getValueFromEnvToInt("DB_MAX_IDLE_CONN", 30)
 }
 
 func (c *Config) getQueryTimeout() time.Duration {
-	timeout, err := strconv.Atoi(env.Get("DB_QUERY_TIMEOUT", "0"))
-	if err == nil && timeout > 0 {
-		return time.Second * time.Duration(timeout)
-	}
-	return 0
+	timeout := getValueFromEnvToInt("DB_QUERY_TIMEOUT", 15)
+	return time.Second * time.Duration(timeout)
+}
+
+func (c *Config) getConnMaxLifetime() time.Duration {
+	lifetime := getValueFromEnvToInt("DB_MAX_LIFETIME_CONN", 60)
+	return time.Second * time.Duration(lifetime)
+}
+
+func (c *Config) getConnMaxIdleTime() time.Duration {
+	idleTime := getValueFromEnvToInt("DB_MAX_IDLE_TIME_CONN", 1)
+	return time.Second * time.Duration(idleTime)
 }

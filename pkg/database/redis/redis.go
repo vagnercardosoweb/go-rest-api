@@ -4,22 +4,24 @@ import (
 	"context"
 
 	"github.com/go-redis/redis/v9"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 )
 
 type Connection struct {
 	ctx    context.Context
 	client *redis.Client
-	logger *logger.Input
 }
 
 func NewConnection(ctx context.Context) *Connection {
 	client := redis.NewClient(newConfig())
-	return &Connection{
+	connection := &Connection{
 		ctx:    ctx,
 		client: client,
-		logger: logger.New(logger.Input{Id: "REDIS"}),
 	}
+	err := connection.Ping()
+	if err != nil {
+		panic(err)
+	}
+	return connection
 }
 
 func (c *Connection) Get() {
@@ -27,13 +29,11 @@ func (c *Connection) Get() {
 }
 
 func (c *Connection) Ping() error {
-	c.logger.Debug("Ping connection")
 	result := c.client.Ping(c.ctx)
 	return result.Err()
 }
 
 func (c *Connection) Close() error {
-	c.logger.Debug("Closing connection")
 	return c.client.Close()
 }
 

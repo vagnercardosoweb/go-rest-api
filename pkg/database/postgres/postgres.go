@@ -6,25 +6,23 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 
 type Connection struct {
+	tx            *sqlx.Tx
 	client        *sqlx.DB
 	lastQueryTime time.Time
 	context       context.Context
 	history       []History
 	config        *Config
-	logger        *logger.Input
 }
 
 func NewConnection(ctx context.Context) *Connection {
 	config := newConfig()
-	logger := logger.New(logger.Input{Id: "POSTGRES"})
-
 	db, err := sqlx.ConnectContext(
 		ctx,
 		"postgres",
@@ -35,80 +33,95 @@ func NewConnection(ctx context.Context) *Connection {
 	)
 
 	if err != nil {
-		logger.Error("It was not possible to establish a connection")
 		panic(err)
 	}
 
-	db.SetMaxOpenConns(config.getMaxPoolConnection())
+	db.SetMaxOpenConns(config.getMaxOpenConns())
+	db.SetConnMaxIdleTime(config.getConnMaxIdleTime())
+	db.SetConnMaxLifetime(config.getConnMaxLifetime())
+	db.SetMaxIdleConns(config.getMaxIdleConns())
 
 	return &Connection{
+		tx:      nil,
 		client:  db,
 		context: ctx,
 		history: make([]History, 0),
-		logger:  logger,
 		config:  config,
 	}
 }
 
-func (connection *Connection) GetClient() *sqlx.DB {
-	return connection.client
+func (c *Connection) GetClient() *sqlx.DB {
+	return c.client
 }
 
-func (connection *Connection) withQueryTimeoutCtx() (context.Context, context.CancelFunc) {
-	queryTimeout := connection.config.getQueryTimeout()
+func (c *Connection) withQueryTimeoutCtx() (context.Context, context.CancelFunc) {
+	queryTimeout := c.config.getQueryTimeout()
 	if queryTimeout > 0 {
-		return context.WithTimeout(connection.context, queryTimeout)
+		return context.WithTimeout(c.context, queryTimeout)
 	}
-	return connection.context, func() {}
+	return c.context, func() {}
 }
 
-func (connection *Connection) Exec(query string, args ...interface{}) (sql.Result, error) {
-	ctx, cancel := connection.withQueryTimeoutCtx()
+func (c *Connection) Exec(query string, args ...interface{}) (sql.Result, error) {
+	ctx, cancel := c.withQueryTimeoutCtx()
 	defer cancel()
 
-	result, err := connection.client.ExecContext(ctx, query, args...)
-
-	if err != nil {
-		connection.logger.
-			AddMetadata("query", query).
-			AddMetadata("arguments", args).
-			Error(err.Error())
-
-		return nil, err
+	var err error
+	var result sql.Result
+	history := History{
+		Query:     query,
+		Arguments: args,
+		CreatedAt: time.Now(),
 	}
-
-	return result, nil
-}
-
-func (connection *Connection) Query(dest interface{}, query string, args ...interface{}) error {
-	ctx, cancel := connection.withQueryTimeoutCtx()
-	defer cancel()
-
-	history := History{Query: query, Arguments: args, CreatedAt: time.Now()}
 
 	defer func() {
-		connection.lastQueryTime = time.Now().UTC()
-
+		c.lastQueryTime = time.Now().UTC()
 		history.LatencyMs = history.FinishedAt.Sub(history.StartedAt).Milliseconds()
-		connection.addHistory(history)
-
-		if history.ErrorMessage != "" {
-			connection.logger.
-				AddMetadata("query", query).
-				AddMetadata("arguments", args).
-				Error(history.ErrorMessage)
-		}
+		c.addHistory(history)
 	}()
 
-	if connection.config.Logging {
-		connection.logger.
-			AddMetadata("query", query).
-			AddMetadata("arguments", args).
-			Debug("Executing query")
+	if c.config.Logging {
+		//
 	}
 
 	history.StartedAt = time.Now()
-	err := connection.client.SelectContext(ctx, dest, query, args...)
+	if c.tx != nil {
+		result, err = c.tx.ExecContext(ctx, query, args...)
+	} else {
+		result, err = c.client.ExecContext(ctx, query, args...)
+	}
+	history.FinishedAt = time.Now()
+
+	if err != nil {
+		history.ErrorMessage = err.Error()
+	}
+
+	return result, err
+}
+
+func (c *Connection) Query(dest interface{}, query string, args ...interface{}) error {
+	ctx, cancel := c.withQueryTimeoutCtx()
+	defer cancel()
+
+	var err error
+	history := History{Query: query, Arguments: args, CreatedAt: time.Now()}
+
+	defer func() {
+		c.lastQueryTime = time.Now().UTC()
+		history.LatencyMs = history.FinishedAt.Sub(history.StartedAt).Milliseconds()
+		c.addHistory(history)
+	}()
+
+	if c.config.Logging {
+		//
+	}
+
+	history.StartedAt = time.Now()
+	if c.tx != nil {
+		err = c.tx.SelectContext(ctx, dest, query, args...)
+	} else {
+		err = c.client.SelectContext(ctx, dest, query, args...)
+	}
 	history.FinishedAt = time.Now()
 
 	if err != nil {
@@ -118,16 +131,45 @@ func (connection *Connection) Query(dest interface{}, query string, args ...inte
 	return err
 }
 
-func (connection *Connection) Close() error {
-	connection.logger.Debug("Closing connection")
-	return connection.client.Close()
+func (c *Connection) WithTx(fn func(Connection) error) error {
+	tx, err := c.client.BeginTxx(c.context, nil)
+	if err != nil {
+		return err
+	}
+
+	err = fn(Connection{
+		tx:      tx,
+		client:  c.client,
+		context: c.context,
+		history: make([]History, 0),
+		config:  c.config,
+	})
+
+	if err != nil {
+		if txError := tx.Rollback(); txError != nil {
+			return errors.NewInternalServer(errors.Input{
+				Message: "Rollback Transaction Error",
+				Metadata: errors.Metadata{
+					"fn_error": err.Error(),
+					"tx_error": txError.Error(),
+				}},
+			)
+		}
+
+		return err
+	}
+
+	return tx.Commit()
 }
 
-func (connection *Connection) LastQueryTime() time.Time {
-	return connection.lastQueryTime
+func (c *Connection) Close() error {
+	return c.client.Close()
 }
 
-func (connection *Connection) Ping() error {
-	connection.logger.Debug("Ping connection")
-	return connection.client.PingContext(connection.context)
+func (c *Connection) LastQueryTime() time.Time {
+	return c.lastQueryTime
+}
+
+func (c *Connection) Ping() error {
+	return c.client.PingContext(c.context)
 }

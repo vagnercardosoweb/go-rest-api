@@ -2,10 +2,13 @@ package errors
 
 import "net/http"
 
-func NewUnauthorized(message string) *AppError {
-	return New(AppError{
-		Code:       "UnauthorizedError",
-		StatusCode: http.StatusUnauthorized,
-		Message:    message,
+func NewUnauthorized(input Input) *Input {
+	return New(Input{
+		Code:        "UnauthorizedError",
+		StatusCode:  http.StatusUnauthorized,
+		Message:     input.Message,
+		SendToSlack: input.SendToSlack,
+		Metadata:    input.Metadata,
+		Logging:     input.Logging,
 	})
 }

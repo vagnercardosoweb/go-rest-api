@@ -8,36 +8,39 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 )
 
-type AppError struct {
-	Code        string                 `json:"code"`
-	Message     string                 `json:"message"`
-	ErrorId     string                 `json:"errorId"`
-	StatusCode  int                    `json:"statusCode"`
-	Metadata    map[string]interface{} `json:"metadata"`
-	SendToSlack bool                   `json:"-"`
-	Logging     bool                   `json:"-"`
-}
+type (
+	Metadata map[string]any
+	Input    struct {
+		Code        string   `json:"code"`
+		ErrorId     string   `json:"errorId"`
+		Message     string   `json:"message"`
+		StatusCode  int      `json:"statusCode"`
+		Metadata    Metadata `json:"metadata"`
+		Logging     bool     `json:"-"`
+		SendToSlack bool     `json:"-"`
+	}
+)
 
-func New(input AppError) *AppError {
-	input.checkAndMakeDefaultValues()
+func New(input Input) *Input {
 	input.AddMetadata("pid", config.Pid)
 	input.AddMetadata("hostname", config.Hostname)
+	input.checkAndMakeDefaultValues()
 	return &input
 }
 
-func (e *AppError) Error() string {
+func (e *Input) Error() string {
 	return e.Message
 }
 
-func (e *AppError) AddMetadata(name string, value interface{}) *AppError {
+func (e *Input) AddMetadata(name string, value any) *Input {
 	if e.Metadata == nil {
-		e.Metadata = make(map[string]interface{})
+		e.Metadata = make(Metadata)
 	}
 	e.Metadata[name] = value
 	return e
 }
 
-func (e *AppError) checkAndMakeDefaultValues() {
+func (e *Input) checkAndMakeDefaultValues() {
 	if e.Code == "" {
 		e.Code = "InternalServerError"
 	}

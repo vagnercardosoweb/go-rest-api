@@ -6,8 +6,9 @@ import (
 )
 
 func setupCommon(router *gin.Engine) {
+	router.GET("/", handlers.Healthy)
+	router.GET("/favicon.ico", handlers.Favicon)
+
 	router.NoRoute(handlers.NotFound)
 	router.NoMethod(handlers.NotAllowed)
-
-	router.GET("/", handlers.Healthy)
 }
