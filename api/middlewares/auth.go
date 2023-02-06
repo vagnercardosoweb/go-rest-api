@@ -38,11 +38,6 @@ func Auth(c *gin.Context) {
 		return
 	}
 
-	// userId := payload.Sub
-	// dbConnection := c.MustGet(config.DbConnectionContextKey).(*postgres.Connection)
-	// var user map[string]any
-	// dbConnection.Query(user, "select * from users where id = $1", userId)
-
 	c.Set(config.JwtPayloadContextKey, payload)
 	c.Next()
 }

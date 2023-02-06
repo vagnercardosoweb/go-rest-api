@@ -23,11 +23,11 @@ type (
 
 var logger = log.New(os.Stdout, "", 0)
 var (
-	LevelInfo     = "INFO"
-	LevelWarn     = "WARN"
-	LevelCritical = "CRITICAL"
-	LevelError    = "ERROR"
-	LevelDebug    = "DEBUG"
+	INFO     = "INFO"
+	WARN     = "WARN"
+	CRITICAL = "CRITICAL"
+	ERROR    = "ERROR"
+	DEBUG    = "DEBUG"
 )
 
 func Log(input Input) {
@@ -36,7 +36,7 @@ func Log(input Input) {
 	}
 
 	if input.Level == "" {
-		input.Level = LevelInfo
+		input.Level = INFO
 	}
 
 	logJson, _ := json.Marshal(struct {
@@ -62,7 +62,7 @@ func Log(input Input) {
 
 func Info(message string, arguments ...any) {
 	Log(Input{
-		Level:     LevelInfo,
+		Level:     INFO,
 		Arguments: arguments,
 		Message:   message,
 	})
@@ -70,7 +70,7 @@ func Info(message string, arguments ...any) {
 
 func Warn(message string, arguments ...any) {
 	Log(Input{
-		Level:     LevelWarn,
+		Level:     WARN,
 		Arguments: arguments,
 		Message:   message,
 	})
@@ -78,7 +78,7 @@ func Warn(message string, arguments ...any) {
 
 func Error(message string, arguments ...any) {
 	Log(Input{
-		Level:     LevelError,
+		Level:     ERROR,
 		Arguments: arguments,
 		Message:   message,
 	})
@@ -86,7 +86,7 @@ func Error(message string, arguments ...any) {
 
 func Critical(message string, arguments ...any) {
 	Log(Input{
-		Level:     LevelCritical,
+		Level:     CRITICAL,
 		Arguments: arguments,
 		Message:   message,
 	})
@@ -94,7 +94,7 @@ func Critical(message string, arguments ...any) {
 
 func Debug(message string, arguments ...any) {
 	Log(Input{
-		Level:     LevelInfo,
+		Level:     INFO,
 		Arguments: arguments,
 		Message:   message,
 	})

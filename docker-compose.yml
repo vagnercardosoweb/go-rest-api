@@ -14,6 +14,7 @@ services:
       context: .
       dockerfile: Dockerfile.local
     container_name: go-structure.server
+    restart: always
     tty: true
     env_file: .env
     depends_on:

@@ -9,6 +9,9 @@ import (
 func requestIdHandler(c *gin.Context) {
 	requestId := c.GetHeader("x-amzn-trace-id")
 	if requestId == "" {
+		requestId = c.GetHeader("x-amzn-requestid")
+	}
+	if requestId == "" {
 		requestId = uuid.NewV4().String()
 	}
 	c.Set(config.RequestIdContextKey, requestId)

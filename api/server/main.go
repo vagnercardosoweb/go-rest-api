@@ -60,10 +60,8 @@ func shutdown() {
 		os.Exit(1)
 	}
 
-	select {
-	case <-ctx.Done():
-		logger.Warn("Timeout shutdown of %v seconds.", timeout)
-	}
+	<-ctx.Done()
+	logger.Warn("Timeout shutdown of %v seconds.", timeout)
 
 	logger.Error("Server exiting")
 }

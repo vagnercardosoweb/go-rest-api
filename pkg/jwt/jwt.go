@@ -47,7 +47,7 @@ func Verify(externalToken string) (*Payload, error) {
 
 	token, err := jwt.Parse(externalToken, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", t.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 		return getSecretKey(), nil
 	})
@@ -58,7 +58,7 @@ func Verify(externalToken string) (*Payload, error) {
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return payload, errors.New("Parse jwt claims error")
+		return payload, errors.New("parse jwt claims error")
 	}
 
 	payload.Sub = claims["sub"].(string)

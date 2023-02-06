@@ -72,11 +72,10 @@ func errorHandler(c *gin.Context) {
 
 	logger.Log(logger.Input{
 		Id:       fmt.Sprintf("REQ:%s", requestId),
-		Level:    logger.LevelError,
+		Level:    logger.ERROR,
 		Message:  "error",
 		Metadata: metadata,
 	})
 
 	c.JSON(resError.StatusCode, resError)
-	return
 }

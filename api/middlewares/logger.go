@@ -20,7 +20,7 @@ func loggerHandler(c *gin.Context) {
 	levelId := fmt.Sprintf("REQ:%s", requestId)
 	logger.Log(logger.Input{
 		Id:    levelId,
-		Level: logger.LevelDebug,
+		Level: logger.DEBUG,
 		Metadata: logger.Metadata{
 			"ip":         c.ClientIP(),
 			"path":       path,
@@ -50,14 +50,14 @@ func loggerHandler(c *gin.Context) {
 		metadata["body"] = c.Request.Form
 	}
 
-	logLevel := logger.LevelDebug
+	level := logger.DEBUG
 	if status >= http.StatusInternalServerError {
-		logLevel = logger.LevelError
+		level = logger.ERROR
 	}
 
 	logger.Log(logger.Input{
 		Id:       levelId,
-		Level:    logLevel,
+		Level:    level,
 		Message:  "completed",
 		Metadata: metadata,
 	})

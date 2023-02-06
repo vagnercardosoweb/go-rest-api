@@ -18,7 +18,7 @@ func runProfiler() {
 
 		logger.Log(logger.Input{
 			Id:      "MONITORING",
-			Level:   logger.LevelDebug,
+			Level:   logger.DEBUG,
 			Message: "Run profiler",
 			Metadata: logger.Metadata{
 				"memory_used":        m.Alloc,

@@ -83,13 +83,11 @@ func ParseEncryptionKey(s string) (*[32]byte, error) {
 		return nil, err
 	}
 	if len(key) != 32 {
-		return nil, errors.New("Encryption key byte length must be exactly 32 bytes")
+		return nil, errors.New("encryption key byte length must be exactly 32 bytes")
 	}
 	// loop through each byte and add it to the 32 byte encryption key array (ek)
 	ek := [32]byte{}
-	for i, bite := range key {
-		ek[i] = bite
-	}
+	copy(ek[:], key)
 	return &ek, nil
 }
 
@@ -135,7 +133,7 @@ func Decrypt(ciphertext []byte, key *[32]byte) (plaintext []byte, err error) {
 	}
 
 	if len(ciphertext) < gcm.NonceSize() {
-		return nil, errors.New("Malformed ciphertext")
+		return nil, errors.New("malformed ciphertext")
 	}
 
 	plaintext, err = gcm.Open(nil,

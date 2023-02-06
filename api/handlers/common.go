@@ -16,12 +16,10 @@ func Healthy(c *gin.Context) {
 		"ipAddress": c.RemoteIP(),
 		"userAgent": c.Request.UserAgent(),
 	})
-	return
 }
 
 func Favicon(c *gin.Context) {
 	c.Writer.WriteHeader(http.StatusOK)
-	return
 }
 
 func NotAllowed(ctx *gin.Context) {
@@ -33,7 +31,6 @@ func NotAllowed(ctx *gin.Context) {
 		},
 	})
 	ctx.JSON(http.StatusMethodNotAllowed, notAllowedError)
-	return
 }
 
 func NotFound(ctx *gin.Context) {
@@ -45,5 +42,4 @@ func NotFound(ctx *gin.Context) {
 		},
 	})
 	ctx.JSON(notFoundError.StatusCode, notFoundError)
-	return
 }
