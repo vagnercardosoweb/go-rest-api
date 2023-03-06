@@ -10,8 +10,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vagnercardosoweb/go-rest-api/api/middlewares"
-	"github.com/vagnercardosoweb/go-rest-api/api/routes"
+
+	"github.com/vagnercardosoweb/go-rest-api/cmd/api/middlewares"
+	"github.com/vagnercardosoweb/go-rest-api/cmd/api/routes"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/database/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/database/redis"
@@ -21,23 +22,19 @@ import (
 )
 
 var (
-	ctx             context.Context
-	httpServer      *http.Server
-	dbConnection    *postgres.Connection
-	redisConnection *redis.Connection
+	ctx          context.Context
+	httpServer   *http.Server
+	postgresConn *postgres.Connection
+	redisConn    *redis.Connection
 )
 
 func init() {
 	env.LoadFromFile()
-
 	ctx = context.Background()
-
-	dbConnection = postgres.NewConnection(ctx)
-	ctx = context.WithValue(ctx, config.DbConnectionContextKey, dbConnection)
-
-	redisConnection = redis.NewConnection(ctx)
-	ctx = context.WithValue(ctx, config.RedisConnectionContextKey, redisConnection)
-
+	postgresConn = postgres.Connect(ctx)
+	ctx = context.WithValue(ctx, config.PgConnectCtxKey, postgresConn)
+	redisConn = redis.Connect(ctx)
+	ctx = context.WithValue(ctx, config.RedisConnectCtxKey, redisConn)
 	httpServer = &http.Server{
 		Addr:    fmt.Sprintf(":%s", env.Get("PORT", "3333")),
 		Handler: handler(),
@@ -61,8 +58,8 @@ func shutdown() {
 	}
 
 	<-ctx.Done()
-	logger.Warn("Timeout shutdown of %v seconds.", timeout)
 
+	logger.Warn("Timeout shutdown of %v seconds.", timeout)
 	logger.Error("Server exiting")
 }
 
@@ -72,18 +69,16 @@ func handler() *gin.Engine {
 	}
 
 	router := gin.New()
-
 	router.RemoveExtraSlash = true
 	router.RedirectTrailingSlash = true
 
+	router.Use(gin.Recovery())
 	router.Use(func(c *gin.Context) {
-		c.Set(config.DbConnectionContextKey, ctx.Value(config.DbConnectionContextKey))
-		c.Set(config.RedisConnectionContextKey, ctx.Value(config.RedisConnectionContextKey))
+		c.Set(config.PgConnectCtxKey, ctx.Value(config.PgConnectCtxKey))
+		c.Set(config.RedisConnectCtxKey, ctx.Value(config.RedisConnectCtxKey))
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})
-
-	router.Use(gin.Recovery())
 
 	middlewares.Setup(router)
 	routes.Setup(router)
@@ -92,8 +87,8 @@ func handler() *gin.Engine {
 }
 
 func main() {
-	defer dbConnection.Close()
-	defer redisConnection.Close()
+	defer redisConn.Close()
+	defer postgresConn.Close()
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -103,10 +98,8 @@ func main() {
 	}()
 
 	logger.Info(
-		fmt.Sprintf(
-			"Server running on http://0.0.0.0:%s",
-			env.Get("LOCAL_PORT", "3301"),
-		),
+		"Server running on http://0.0.0.0:%s",
+		env.Get("LOCAL_PORT", "3301"),
 	)
 
 	if config.IsDebug {

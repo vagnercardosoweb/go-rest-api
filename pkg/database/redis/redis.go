@@ -11,7 +11,7 @@ type Connection struct {
 	client *redis.Client
 }
 
-func NewConnection(ctx context.Context) *Connection {
+func Connect(ctx context.Context) *Connection {
 	client := redis.NewClient(newConfig())
 	connection := &Connection{
 		ctx:    ctx,
@@ -24,10 +24,6 @@ func NewConnection(ctx context.Context) *Connection {
 	return connection
 }
 
-func (c *Connection) Get() {
-
-}
-
 func (c *Connection) Ping() error {
 	result := c.client.Ping(c.ctx)
 	return result.Err()
@@ -35,8 +31,4 @@ func (c *Connection) Ping() error {
 
 func (c *Connection) Close() error {
 	return c.client.Close()
-}
-
-func (c *Connection) GetClient() *redis.Client {
-	return c.client
 }

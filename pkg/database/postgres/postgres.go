@@ -21,7 +21,7 @@ type Connection struct {
 	config        *Config
 }
 
-func NewConnection(ctx context.Context) *Connection {
+func Connect(ctx context.Context) *Connection {
 	config := newConfig()
 	db, err := sqlx.ConnectContext(
 		ctx,
@@ -50,10 +50,6 @@ func NewConnection(ctx context.Context) *Connection {
 	}
 }
 
-func (c *Connection) GetClient() *sqlx.DB {
-	return c.client
-}
-
 func (c *Connection) withQueryTimeoutCtx() (context.Context, context.CancelFunc) {
 	queryTimeout := c.config.getQueryTimeout()
 	if queryTimeout > 0 {
@@ -70,8 +66,8 @@ func (c *Connection) Exec(query string, args ...interface{}) (sql.Result, error)
 	var result sql.Result
 	history := History{
 		Query:     query,
-		Arguments: args,
 		CreatedAt: time.Now(),
+		Arguments: args,
 	}
 
 	defer func() {
@@ -99,7 +95,7 @@ func (c *Connection) Exec(query string, args ...interface{}) (sql.Result, error)
 	return result, err
 }
 
-func (c *Connection) Query(dest interface{}, query string, args ...interface{}) error {
+func (c *Connection) Query(dest any, query string, args ...any) error {
 	ctx, cancel := c.withQueryTimeoutCtx()
 	defer cancel()
 

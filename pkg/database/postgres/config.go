@@ -53,7 +53,7 @@ func (c *Config) getMaxIdleConns() int {
 }
 
 func (c *Config) getQueryTimeout() time.Duration {
-	timeout := getValueFromEnvToInt("DB_QUERY_TIMEOUT", 15)
+	timeout := getValueFromEnvToInt("DB_QUERY_TIMEOUT", 3)
 	return time.Second * time.Duration(timeout)
 }
 
@@ -63,6 +63,6 @@ func (c *Config) getConnMaxLifetime() time.Duration {
 }
 
 func (c *Config) getConnMaxIdleTime() time.Duration {
-	idleTime := getValueFromEnvToInt("DB_MAX_IDLE_TIME_CONN", 1)
+	idleTime := getValueFromEnvToInt("DB_MAX_IDLE_TIME_CONN", 15)
 	return time.Second * time.Duration(idleTime)
 }

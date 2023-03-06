@@ -12,21 +12,29 @@ type History struct {
 	CreatedAt    time.Time     `json:"created_at"`
 }
 
-func (connection *Connection) GetHistory() []History {
-	return connection.history
+func (c *Connection) GetHistory() []History {
+	return c.history
 }
 
-func (connection *Connection) addHistory(history History) {
-	if connection.hasHistory(history.Query) {
+func (c *Connection) addHistory(history History) {
+	if c.hasHistory(history.Query) {
 		return
 	}
-	connection.history = append(connection.history, history)
+	c.history = append(c.history, history)
 }
 
-func (connection *Connection) hasHistory(query string) bool {
+func (c *Connection) GetLastHistory() History {
+	if len(c.history) == 0 {
+		return History{}
+	}
+	return c.history[len(c.history)-1]
+
+}
+
+func (c *Connection) hasHistory(query string) bool {
 	result := false
 
-	for _, record := range connection.history {
+	for _, record := range c.history {
 		if record.Query == query {
 			result = true
 			break

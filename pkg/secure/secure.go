@@ -132,13 +132,14 @@ func Decrypt(ciphertext []byte, key *[32]byte) (plaintext []byte, err error) {
 		return nil, err
 	}
 
-	if len(ciphertext) < gcm.NonceSize() {
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
 		return nil, errors.New("malformed ciphertext")
 	}
 
 	plaintext, err = gcm.Open(nil,
-		ciphertext[:gcm.NonceSize()],
-		ciphertext[gcm.NonceSize():],
+		ciphertext[:nonceSize],
+		ciphertext[nonceSize:],
 		nil,
 	)
 	if err != nil {

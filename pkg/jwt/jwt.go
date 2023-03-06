@@ -61,6 +61,11 @@ func Verify(externalToken string) (*Payload, error) {
 		return payload, errors.New("parse jwt claims error")
 	}
 
+	err = claims.Valid()
+	if err != nil {
+		return payload, err
+	}
+
 	payload.Sub = claims["sub"].(string)
 	payload.Iat = claims["iat"].(float64)
 	payload.Exp = claims["exp"].(float64)

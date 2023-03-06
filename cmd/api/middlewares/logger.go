@@ -16,21 +16,15 @@ func loggerHandler(c *gin.Context) {
 	path := c.Request.URL.Path
 	routePath := c.FullPath()
 	method := c.Request.Method
-	requestId := c.GetString(config.RequestIdContextKey)
-	levelId := fmt.Sprintf("REQ:%s", requestId)
+	requestId := c.GetString(config.RequestIdCtxKey)
+	loggerId := fmt.Sprintf("REQ:%s", requestId)
+	clientIP := c.ClientIP()
+
 	logger.Log(logger.Input{
-		Id:    levelId,
-		Level: logger.DEBUG,
-		Metadata: logger.Metadata{
-			"ip":         c.ClientIP(),
-			"path":       path,
-			"route_path": routePath,
-			"method":     method,
-			"query":      c.Request.URL.Query(),
-			"version":    c.Request.Proto,
-			"referer":    c.GetHeader("referer"),
-			"agent":      c.Request.UserAgent(),
-		},
+		Id:       loggerId,
+		Level:    logger.DEBUG,
+		Message:  "started",
+		Metadata: logger.Metadata{"ip": clientIP},
 	})
 
 	// Process request
@@ -41,9 +35,17 @@ func loggerHandler(c *gin.Context) {
 	latency := end.Sub(start)
 
 	metadata := logger.Metadata{
-		"time":   latency.String(),
-		"length": c.Writer.Size(),
-		"status": status,
+		"ip":         clientIP,
+		"path":       path,
+		"route_path": routePath,
+		"method":     method,
+		"query":      c.Request.URL.Query(),
+		"version":    c.Request.Proto,
+		"referer":    c.GetHeader("referer"),
+		"agent":      c.Request.UserAgent(),
+		"time":       latency.String(),
+		"length":     c.Writer.Size(),
+		"status":     status,
 	}
 
 	if config.IsDebug && method != http.MethodGet {
@@ -56,7 +58,7 @@ func loggerHandler(c *gin.Context) {
 	}
 
 	logger.Log(logger.Input{
-		Id:       levelId,
+		Id:       loggerId,
 		Level:    level,
 		Message:  "completed",
 		Metadata: metadata,

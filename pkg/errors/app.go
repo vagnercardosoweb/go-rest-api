@@ -17,6 +17,7 @@ type (
 		StatusCode  int      `json:"statusCode"`
 		Metadata    Metadata `json:"metadata"`
 		Logging     bool     `json:"-"`
+		Arguments   []any    `json:"-"`
 		SendToSlack bool     `json:"-"`
 	}
 )
@@ -53,4 +54,5 @@ func (e *Input) checkAndMakeDefaultValues() {
 	if e.ErrorId == "" {
 		e.ErrorId = fmt.Sprintf("%v", time.Now().UnixMilli())
 	}
+	e.Message = fmt.Sprintf(e.Message, e.Arguments...)
 }

@@ -1,4 +1,4 @@
-FROM golang:1.19
+FROM golang:1.20-bullseye AS build
 
 RUN apt-get update -y && apt-get install nodejs npm -y
 
@@ -10,4 +10,4 @@ RUN go mod download all
 
 EXPOSE 3333
 
-CMD ["nodemon", "--ext", "go", "--exec", "go", "run", "/app/api/server/main.go", "--signal", "SIGTERM"]
+CMD ["nodemon", "--ext", "go", "--exec", "go", "run", "/app/cmd/api/main.go", "--signal", "SIGTERM"]

@@ -1,15 +1,15 @@
-package handlers
+package routes
 
 import (
-	"net/http"
-	"time"
-
 	"github.com/gin-gonic/gin"
+	"github.com/vagnercardosoweb/go-rest-api/cmd/api/middlewares"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
+	"net/http"
+	"time"
 )
 
-func Healthy(c *gin.Context) {
+func healthy(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"date":      time.Now().UTC(),
 		"hostname":  config.Hostname,
@@ -18,11 +18,11 @@ func Healthy(c *gin.Context) {
 	})
 }
 
-func Favicon(c *gin.Context) {
+func favicon(c *gin.Context) {
 	c.Writer.WriteHeader(http.StatusOK)
 }
 
-func NotAllowed(ctx *gin.Context) {
+func notAllowed(ctx *gin.Context) {
 	notAllowedError := errors.NewMethodNotAllowed(errors.Input{
 		Message: "Method not allowed",
 		Metadata: errors.Metadata{
@@ -33,7 +33,7 @@ func NotAllowed(ctx *gin.Context) {
 	ctx.JSON(http.StatusMethodNotAllowed, notAllowedError)
 }
 
-func NotFound(ctx *gin.Context) {
+func notFound(ctx *gin.Context) {
 	notFoundError := errors.NewNotFound(errors.Input{
 		Message: "Page not found",
 		Metadata: errors.Metadata{
@@ -42,4 +42,15 @@ func NotFound(ctx *gin.Context) {
 		},
 	})
 	ctx.JSON(notFoundError.StatusCode, notFoundError)
+}
+
+func Setup(router *gin.Engine) {
+	router.NoRoute(notFound)
+	router.NoMethod(notAllowed)
+
+	router.GET("/", middlewares.NoCacheHandler, healthy)
+	router.GET("/favicon.ico", favicon)
+
+	v1 := router.Group("/v1", middlewares.Auth)
+	v1.GET("", healthy)
 }

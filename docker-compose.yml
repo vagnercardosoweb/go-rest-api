@@ -1,19 +1,19 @@
 version: '3'
 
 networks:
-  go-structure.network:
+  my-personal-finances.network:
     driver: bridge
 
 volumes:
-  go-structure.redis:
-  go-structure.postgres:
+  my-personal-finances.redis:
+  my-personal-finances.postgres:
 
 services:
   server:
     build:
       context: .
       dockerfile: Dockerfile.local
-    container_name: go-structure.server
+    container_name: my-personal-finances.server
     restart: always
     tty: true
     env_file: .env
@@ -23,21 +23,21 @@ services:
     volumes:
       - .:/app
     networks:
-      - go-structure.network
+      - my-personal-finances.network
     ports:
       - "${LOCAL_PORT:-3301}:3333"
     environment:
       - APP_ENV=${APP_ENV:-local}
 
   postgres:
-    image: bitnami/postgresql:14
-    container_name: go-structure.postgres
+    image: bitnami/postgresql:15
+    container_name: my-personal-finances.postgres
     tty: true
     env_file: .env
     volumes:
-      - go-structure.postgres:/bitnami/postgresql
+      - my-personal-finances.postgres:/bitnami/postgresql
     networks:
-      - go-structure.network
+      - my-personal-finances.network
     ports:
       - "${DB_PORT:-5432}:5432"
     environment:
@@ -47,13 +47,13 @@ services:
 
   redis:
     image: bitnami/redis:latest
-    container_name: go-structure.redis
+    container_name: my-personal-finances.redis
     tty: true
     env_file: .env
     volumes:
-      - go-structure.redis:/bitnami/redis/data
+      - my-personal-finances.redis:/bitnami/redis/data
     networks:
-      - go-structure.network
+      - my-personal-finances.network
     ports:
       - "${REDIS_PORT:-6379}:6379"
     environment:

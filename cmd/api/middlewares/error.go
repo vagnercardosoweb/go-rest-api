@@ -30,7 +30,7 @@ func errorHandler(c *gin.Context) {
 
 	var metadata = make(logger.Metadata, 0)
 	statusText := http.StatusText(statusCode)
-	requestId := c.MustGet(config.RequestIdContextKey)
+	requestId := c.MustGet(config.RequestIdCtxKey)
 
 	var resError = errors.New(errors.Input{
 		Code:        statusText,

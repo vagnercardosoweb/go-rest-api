@@ -21,11 +21,11 @@ var (
 )
 
 const (
-	RequestIdContextKey       = "RequestIdContextKey"
-	DbConnectionContextKey    = "DbConnectionContextKey"
-	RedisConnectionContextKey = "RedisConnectionContextKey"
-	AuthTokenContextKey       = "AuthTokenContextKey"
-	JwtPayloadContextKey      = "JwtPayloadContextKey"
+	PgConnectCtxKey    = "PgConnectCtxKey"
+	RedisConnectCtxKey = "RedisConnectCtxKey"
+	AuthTokenCtxKey    = "AuthTokenCtxKey"
+	JwtPayloadCtxKey   = "JwtPayloadCtxKey"
+	RequestIdCtxKey    = "RequestIdCtxKey"
 )
 
 func GetShutdownTimeout() time.Duration {

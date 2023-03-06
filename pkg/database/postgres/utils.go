@@ -2,10 +2,29 @@ package postgres
 
 import (
 	"database/sql"
+	"database/sql/driver"
+	"encoding/json"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 )
+
+type JSONToMap map[string]any
+
+func (j JSONToMap) Scan(value any) error {
+	if value == nil {
+		return nil
+	}
+	var data = value.([]byte)
+	return json.Unmarshal(data, &j)
+}
+
+func (j JSONToMap) Value() (driver.Value, error) {
+	if len(j) == 0 {
+		return nil, nil
+	}
+	return json.Marshal(j)
+}
 
 func NewNullString(s string) sql.NullString {
 	if len(s) == 0 {
