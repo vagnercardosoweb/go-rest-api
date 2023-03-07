@@ -18,4 +18,4 @@
 .idea/
 tmp/
 .vscode
-sqlc/
+bin/
