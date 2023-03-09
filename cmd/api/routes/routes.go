@@ -3,7 +3,6 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/middlewares"
-	userHandler "github.com/vagnercardosoweb/go-rest-api/internal/user/handler"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"net/http"
@@ -51,9 +50,4 @@ func Setup(router *gin.Engine) {
 
 	router.GET("/", middlewares.NoCacheHandler, healthy)
 	router.GET("/favicon.ico", favicon)
-
-	v1 := router.Group("/v1")
-
-	userHandler := userHandler.New()
-	v1.GET("/users", userHandler.List)
 }

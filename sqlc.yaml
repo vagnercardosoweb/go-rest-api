@@ -17,3 +17,5 @@ sql:
         emit_exported_queries: true
         emit_all_enum_values: true
         emit_enum_valid_method: true
+        emit_result_struct_pointers: true
+        emit_params_struct_pointers: true

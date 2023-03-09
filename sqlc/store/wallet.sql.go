@@ -7,7 +7,6 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/google/uuid"
 )
@@ -30,7 +29,7 @@ type GetWalletByIdRow struct {
 	UserID    uuid.UUID `db:"user_id" json:"user_id"`
 }
 
-func (q *Queries) GetWalletById(ctx context.Context, id uuid.UUID) (GetWalletByIdRow, error) {
+func (q *Queries) GetWalletById(ctx context.Context, id uuid.UUID) (*GetWalletByIdRow, error) {
 	row := q.db.QueryRowContext(ctx, GetWalletById, id)
 	var i GetWalletByIdRow
 	err := row.Scan(
@@ -39,7 +38,7 @@ func (q *Queries) GetWalletById(ctx context.Context, id uuid.UUID) (GetWalletByI
 		&i.SortOrder,
 		&i.UserID,
 	)
-	return i, err
+	return &i, err
 }
 
 const GetWallets = `-- name: GetWallets :many
@@ -47,10 +46,8 @@ SELECT
     wallets.id,
     wallets.name,
     wallets.sort_order,
-    JSON_BUILD_OBJECT(
-      'id', users.id,
-      'name', users.name
-        ) AS "user"
+    users.id AS "user_id",
+    users.name AS "user_name"
 FROM
     wallets
         INNER JOIN users ON wallets.user_id = users.id
@@ -58,30 +55,32 @@ LIMIT $1
 `
 
 type GetWalletsRow struct {
-	ID        uuid.UUID       `db:"id" json:"id"`
-	Name      string          `db:"name" json:"name"`
-	SortOrder int16           `db:"sort_order" json:"sort_order"`
-	User      json.RawMessage `db:"user" json:"user"`
+	ID        uuid.UUID `db:"id" json:"id"`
+	Name      string    `db:"name" json:"name"`
+	SortOrder int16     `db:"sort_order" json:"sort_order"`
+	UserID    uuid.UUID `db:"user_id" json:"user_id"`
+	UserName  string    `db:"user_name" json:"user_name"`
 }
 
-func (q *Queries) GetWallets(ctx context.Context, limit int32) ([]GetWalletsRow, error) {
+func (q *Queries) GetWallets(ctx context.Context, limit int32) ([]*GetWalletsRow, error) {
 	rows, err := q.db.QueryContext(ctx, GetWallets, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetWalletsRow{}
+	items := []*GetWalletsRow{}
 	for rows.Next() {
 		var i GetWalletsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
 			&i.SortOrder,
-			&i.User,
+			&i.UserID,
+			&i.UserName,
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, &i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

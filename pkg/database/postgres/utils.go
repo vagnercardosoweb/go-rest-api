@@ -11,7 +11,7 @@ import (
 
 type JSONToMap map[string]any
 
-func (j JSONToMap) Scan(value any) error {
+func (j *JSONToMap) Scan(value any) error {
 	if value == nil {
 		return nil
 	}
@@ -19,8 +19,8 @@ func (j JSONToMap) Scan(value any) error {
 	return json.Unmarshal(data, &j)
 }
 
-func (j JSONToMap) Value() (driver.Value, error) {
-	if len(j) == 0 {
+func (j *JSONToMap) Value() (driver.Value, error) {
+	if len(*j) == 0 {
 		return nil, nil
 	}
 	return json.Marshal(j)

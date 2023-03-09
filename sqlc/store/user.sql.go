@@ -33,7 +33,7 @@ type CreateUserParams struct {
 	CreatedAt           time.Time    `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
+func (q *Queries) CreateUser(ctx context.Context, arg *CreateUserParams) error {
 	_, err := q.db.ExecContext(ctx, CreateUser,
 		arg.Name,
 		arg.Email,
@@ -66,7 +66,7 @@ type GetUserByEmailInLoginRow struct {
 	PasswordHash string    `db:"password_hash" json:"password_hash"`
 }
 
-func (q *Queries) GetUserByEmailInLogin(ctx context.Context, email string) (GetUserByEmailInLoginRow, error) {
+func (q *Queries) GetUserByEmailInLogin(ctx context.Context, email string) (*GetUserByEmailInLoginRow, error) {
 	row := q.db.QueryRowContext(ctx, GetUserByEmailInLogin, email)
 	var i GetUserByEmailInLoginRow
 	err := row.Scan(
@@ -75,7 +75,7 @@ func (q *Queries) GetUserByEmailInLogin(ctx context.Context, email string) (GetU
 		&i.Email,
 		&i.PasswordHash,
 	)
-	return i, err
+	return &i, err
 }
 
 const GetUsers = `-- name: GetUsers :many
@@ -103,13 +103,13 @@ type GetUsersRow struct {
 	LoginBlockedUntil   sql.NullTime `db:"login_blocked_until" json:"login_blocked_until"`
 }
 
-func (q *Queries) GetUsers(ctx context.Context, limit int32) ([]GetUsersRow, error) {
+func (q *Queries) GetUsers(ctx context.Context, limit int32) ([]*GetUsersRow, error) {
 	rows, err := q.db.QueryContext(ctx, GetUsers, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetUsersRow{}
+	items := []*GetUsersRow{}
 	for rows.Next() {
 		var i GetUsersRow
 		if err := rows.Scan(
@@ -124,7 +124,7 @@ func (q *Queries) GetUsers(ctx context.Context, limit int32) ([]GetUsersRow, err
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, &i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err

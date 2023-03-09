@@ -2,7 +2,7 @@ IMAGE_URL="vagnercardosoweb/go-rest-api"
 IMAGE_VERSION=$$(date +"%Y%m%dT%H%M")
 
 start:
-	docker-compose -f docker-compose.yml up --build
+	docker-compose -f docker-compose.yml up --build -d
 
 build:
 	docker build --rm --no-cache -f ./Dockerfile.production -t "${IMAGE_URL}:${IMAGE_VERSION}" .

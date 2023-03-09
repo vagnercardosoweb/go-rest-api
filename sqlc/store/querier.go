@@ -11,11 +11,11 @@ import (
 )
 
 type Querier interface {
-	CreateUser(ctx context.Context, arg CreateUserParams) error
-	GetUserByEmailInLogin(ctx context.Context, email string) (GetUserByEmailInLoginRow, error)
-	GetUsers(ctx context.Context, limit int32) ([]GetUsersRow, error)
-	GetWalletById(ctx context.Context, id uuid.UUID) (GetWalletByIdRow, error)
-	GetWallets(ctx context.Context, limit int32) ([]GetWalletsRow, error)
+	CreateUser(ctx context.Context, arg *CreateUserParams) error
+	GetUserByEmailInLogin(ctx context.Context, email string) (*GetUserByEmailInLoginRow, error)
+	GetUsers(ctx context.Context, limit int32) ([]*GetUsersRow, error)
+	GetWalletById(ctx context.Context, id uuid.UUID) (*GetWalletByIdRow, error)
+	GetWallets(ctx context.Context, limit int32) ([]*GetWalletsRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

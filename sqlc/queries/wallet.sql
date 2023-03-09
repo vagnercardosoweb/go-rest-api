@@ -3,10 +3,8 @@ SELECT
     wallets.id,
     wallets.name,
     wallets.sort_order,
-    JSON_BUILD_OBJECT(
-      'id', users.id,
-      'name', users.name
-        ) AS "user"
+    users.id AS "user_id",
+    users.name AS "user_name"
 FROM
     wallets
         INNER JOIN users ON wallets.user_id = users.id
