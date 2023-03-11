@@ -23,9 +23,9 @@ type (
 )
 
 func New(input Input) *Input {
+	input.makeDefaultValues()
 	input.AddMetadata("pid", config.Pid)
 	input.AddMetadata("hostname", config.Hostname)
-	input.checkAndMakeDefaultValues()
 	return &input
 }
 
@@ -41,12 +41,12 @@ func (e *Input) AddMetadata(name string, value any) *Input {
 	return e
 }
 
-func (e *Input) checkAndMakeDefaultValues() {
+func (e *Input) makeDefaultValues() {
 	if e.Code == "" {
 		e.Code = "InternalServerError"
 	}
 	if e.Message == "" {
-		e.Message = "Internal Server Error"
+		e.Message = "InternalServerError"
 	}
 	if e.StatusCode == 0 {
 		e.StatusCode = http.StatusInternalServerError

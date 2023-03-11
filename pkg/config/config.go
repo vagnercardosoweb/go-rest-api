@@ -26,6 +26,7 @@ const (
 	AuthTokenCtxKey    = "AuthTokenCtxKey"
 	JwtPayloadCtxKey   = "JwtPayloadCtxKey"
 	RequestIdCtxKey    = "RequestIdCtxKey"
+	StoreQuerieCtx     = "StoreQuerieCtx"
 )
 
 func GetShutdownTimeout() time.Duration {
