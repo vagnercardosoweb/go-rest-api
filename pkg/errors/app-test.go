@@ -1,14 +1,14 @@
-package errors_test
+package errors
 
 import (
 	"github.com/stretchr/testify/assert"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
+
 	"net/http"
 	"testing"
 )
 
 func TestCreateEmptyError(t *testing.T) {
-	err := errors.New(errors.Input{})
+	err := New(Input{})
 	assert.NotNil(t, err)
 	assert.NotNil(t, err.ErrorId)
 	assert.Equal(t, err.Code, "InternalServerError")
