@@ -9,8 +9,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/vagnercardosoweb/go-rest-api/sqlc/store"
-
 	"github.com/gin-gonic/gin"
 
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/middlewares"
@@ -21,6 +19,7 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/monitoring"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
+	"github.com/vagnercardosoweb/go-rest-api/sqlc/store"
 )
 
 var (

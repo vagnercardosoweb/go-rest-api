@@ -1,5 +1,3 @@
-DROP TABLE IF EXISTS wallets;
-
 CREATE TABLE wallets (
     id UUID NOT NULL DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,

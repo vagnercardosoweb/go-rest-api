@@ -1,5 +1,3 @@
-DROP TABLE IF EXISTS forgot_passwords;
-
 CREATE TABLE forgot_passwords (
     id UUID NOT NULL DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,

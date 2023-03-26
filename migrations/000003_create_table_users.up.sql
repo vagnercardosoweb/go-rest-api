@@ -1,5 +1,3 @@
-DROP TABLE IF EXISTS users;
-
 CREATE TABLE users (
     id UUID NOT NULL DEFAULT uuid_generate_v4(),
     name VARCHAR(70) NOT NULL,

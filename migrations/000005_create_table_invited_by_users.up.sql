@@ -1,5 +1,3 @@
-DROP TABLE IF EXISTS invited_by_users;
-
 CREATE TABLE invited_by_users (
     id UUID NOT NULL DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
