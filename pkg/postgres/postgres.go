@@ -58,7 +58,7 @@ func (c *Connection) withQueryTimeoutCtx() (context.Context, context.CancelFunc)
 	return c.context, func() {}
 }
 
-func (c *Connection) GetSqlx() *sqlx.DB {
+func (c *Connection) GetDB() *sqlx.DB {
 	return c.client
 }
 

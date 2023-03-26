@@ -1,12 +1,13 @@
 package routes
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/middlewares"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
-	"net/http"
-	"time"
 )
 
 func healthy(c *gin.Context) {

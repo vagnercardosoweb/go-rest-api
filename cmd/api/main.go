@@ -16,18 +16,17 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/middlewares"
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/routes"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/database/postgres"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/database/redis"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/monitoring"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
 )
 
 var (
 	ctx          context.Context
 	httpServer   *http.Server
 	postgresConn *postgres.Connection
-	storeQueries *store.Queries
 	redisConn    *redis.Connection
 )
 
@@ -41,8 +40,11 @@ func init() {
 	redisConn = redis.Connect(ctx)
 	ctx = context.WithValue(ctx, config.RedisConnectCtxKey, redisConn)
 
-	storeQueries = store.New(postgresConn.GetSqlx())
-	ctx = context.WithValue(ctx, config.StoreQueriesCtx, storeQueries)
+	ctx = context.WithValue(
+		ctx,
+		config.StoreQueriesCtx,
+		store.New(postgresConn.GetDB()),
+	)
 
 	httpServer = &http.Server{
 		Addr:    fmt.Sprintf(":%s", env.Get("PORT", "3333")),
