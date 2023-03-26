@@ -8,13 +8,17 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func LoadFromFile(filenames ...string) {
+func LoadFromLocal() {
 	if os.Getenv("IS_AWS_LAMBDA") == "true" {
+		log.Println("Skipping load the environment, the environment is being executing with lambda")
 		return
 	}
-	err := godotenv.Load(filenames...)
+	if Get("APP_ENV", "local") != "local" {
+		log.Println("Only APP_ENV=LOCAL will be loaded the Environments")
+		return
+	}
+	err := godotenv.Load(".env.local")
 	if err != nil {
-		log.Println("shared.EnvLoadFromFile")
 		panic(err)
 	}
 }

@@ -1,13 +1,11 @@
 FROM golang:1.20-bullseye AS build
 
-RUN apt-get update -y && apt-get install nodejs npm -y
-
 WORKDIR /app
 COPY . /app
 
-RUN npm install -g nodemon
+RUN go install github.com/cosmtrek/air@latest
 RUN go mod download all
 
-EXPOSE 3333
+EXPOSE ${PORT:-3333}
 
-CMD ["nodemon", "--ext", "go", "--exec", "go", "run", "/app/cmd/api/main.go", "--signal", "SIGTERM"]
+CMD ["air"]

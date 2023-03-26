@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/vagnercardosoweb/go-rest-api/sqlc/store"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/vagnercardosoweb/go-rest-api/sqlc/store"
 
 	"github.com/gin-gonic/gin"
 
@@ -26,11 +27,12 @@ var (
 	ctx          context.Context
 	httpServer   *http.Server
 	postgresConn *postgres.Connection
+	storeQueries *store.Queries
 	redisConn    *redis.Connection
 )
 
 func init() {
-	env.LoadFromFile()
+	env.LoadFromLocal()
 	ctx = context.Background()
 
 	postgresConn = postgres.Connect(ctx)
@@ -39,8 +41,8 @@ func init() {
 	redisConn = redis.Connect(ctx)
 	ctx = context.WithValue(ctx, config.RedisConnectCtxKey, redisConn)
 
-	queries := store.New(postgresConn.GetSqlx())
-	ctx = context.WithValue(ctx, config.StoreQuerieCtx, queries)
+	storeQueries = store.New(postgresConn.GetSqlx())
+	ctx = context.WithValue(ctx, config.StoreQueriesCtx, storeQueries)
 
 	httpServer = &http.Server{
 		Addr:    fmt.Sprintf(":%s", env.Get("PORT", "3333")),
@@ -83,7 +85,7 @@ func handler() *gin.Engine {
 	router.Use(func(c *gin.Context) {
 		c.Set(config.PgConnectCtxKey, ctx.Value(config.PgConnectCtxKey))
 		c.Set(config.RedisConnectCtxKey, ctx.Value(config.RedisConnectCtxKey))
-		c.Set(config.StoreQuerieCtx, ctx.Value(config.StoreQuerieCtx))
+		c.Set(config.StoreQueriesCtx, ctx.Value(config.StoreQueriesCtx))
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})

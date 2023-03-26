@@ -51,7 +51,7 @@ func errorHandler(c *gin.Context) {
 
 	metadata["ip"] = c.ClientIP()
 	metadata["path"] = c.Request.URL.Path
-	metadata["route_path"] = c.FullPath()
+	metadata["full_path"] = c.FullPath()
 	metadata["method"] = c.Request.Method
 	metadata["query"] = c.Request.URL.Query()
 	metadata["version"] = c.Request.Proto

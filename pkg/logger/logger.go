@@ -40,21 +40,21 @@ func Log(input Input) {
 	}
 
 	logJson, _ := json.Marshal(struct {
-		Id       string    `json:"id"`
-		Level    string    `json:"level"`
-		Message  string    `json:"message"`
-		Pid      int       `json:"pid"`
-		Hostname string    `json:"hostname"`
-		Time     time.Time `json:"time"`
-		Metadata Metadata  `json:"metadata"`
+		Id        string    `json:"id"`
+		Level     string    `json:"level"`
+		Message   string    `json:"message"`
+		Pid       int       `json:"pid"`
+		Hostname  string    `json:"hostname"`
+		Timestamp time.Time `json:"timestamp"`
+		Metadata  Metadata  `json:"metadata"`
 	}{
-		Id:       input.Id,
-		Level:    input.Level,
-		Message:  fmt.Sprintf(input.Message, input.Arguments...),
-		Time:     time.Now().UTC(),
-		Metadata: input.Metadata,
-		Pid:      config.Pid,
-		Hostname: config.Hostname,
+		Id:        input.Id,
+		Level:     input.Level,
+		Message:   fmt.Sprintf(input.Message, input.Arguments...),
+		Timestamp: time.Now().UTC(),
+		Metadata:  input.Metadata,
+		Pid:       config.Pid,
+		Hostname:  config.Hostname,
 	})
 
 	logger.Print(string(logJson))
