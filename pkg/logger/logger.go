@@ -57,7 +57,7 @@ func Log(input Input) {
 		Hostname:  config.Hostname,
 	})
 
-	logger.Print(string(logJson))
+	logger.Println(string(logJson))
 }
 
 func Info(message string, arguments ...any) {

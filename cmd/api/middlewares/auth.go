@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +20,10 @@ func Auth(c *gin.Context) {
 		return
 	}
 
-	unauthorized := errors.NewUnauthorized(errors.Input{Message: "Missing token in request."})
+	unauthorized := errors.New(errors.Input{
+		Message:    "Missing token in request.",
+		StatusCode: http.StatusUnauthorized,
+	})
 
 	if token == "" {
 		c.AbortWithError(unauthorized.StatusCode, unauthorized)
@@ -32,7 +36,7 @@ func Auth(c *gin.Context) {
 		return
 	}
 
-	payload, err := jwt.Verify(token)
+	payload, err := jwt.Decode(token)
 
 	if err != nil {
 		unauthorized.Message = "Your access token is not valid, please login again."

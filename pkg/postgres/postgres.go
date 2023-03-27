@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
@@ -147,8 +148,9 @@ func (c *Connection) WithTx(fn func(Connection) error) error {
 
 	if err != nil {
 		if txError := tx.Rollback(); txError != nil {
-			return errors.NewInternalServer(errors.Input{
-				Message: "Rollback Transaction Error",
+			return errors.New(errors.Input{
+				Message:    "Rollback Transaction Error",
+				StatusCode: http.StatusInternalServerError,
 				Metadata: errors.Metadata{
 					"fn_error": err.Error(),
 					"tx_error": txError.Error(),

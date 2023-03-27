@@ -24,19 +24,21 @@ func favicon(c *gin.Context) {
 }
 
 func notAllowed(ctx *gin.Context) {
-	notAllowedError := errors.NewMethodNotAllowed(errors.Input{
-		Message: "Method not allowed",
+	notAllowedError := errors.New(errors.Input{
+		Message:    "Method not allowed",
+		StatusCode: http.StatusMethodNotAllowed,
 		Metadata: errors.Metadata{
 			"path":   ctx.Request.URL.Path,
 			"method": ctx.Request.Method,
 		},
 	})
-	ctx.JSON(http.StatusMethodNotAllowed, notAllowedError)
+	ctx.JSON(notAllowedError.StatusCode, notAllowedError)
 }
 
 func notFound(ctx *gin.Context) {
-	notFoundError := errors.NewNotFound(errors.Input{
-		Message: "Page not found",
+	notFoundError := errors.New(errors.Input{
+		Message:    "Page not found",
+		StatusCode: http.StatusNotFound,
 		Metadata: errors.Metadata{
 			"path":   ctx.Request.URL.Path,
 			"method": ctx.Request.Method,
