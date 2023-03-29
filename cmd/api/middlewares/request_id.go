@@ -7,7 +7,7 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 )
 
-func requestIdHandler(c *gin.Context) {
+func requestId(c *gin.Context) {
 	requestId := c.GetHeader("x-amzn-trace-id")
 	if requestId == "" {
 		requestId = c.GetHeader("x-amzn-requestid")

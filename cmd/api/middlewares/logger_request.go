@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func loggerHandler(c *gin.Context) {
+func loggerRequest(c *gin.Context) {
 	start := time.Now()
 	path := c.Request.URL.Path
 	routePath := c.FullPath()

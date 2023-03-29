@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
+	"github.com/vagnercardosoweb/go-rest-api/sqlc/store"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -18,6 +19,7 @@ type Connection struct {
 	client        *sqlx.DB
 	lastQueryTime time.Time
 	context       context.Context
+	Queries       *store.Queries
 	history       []History
 	config        *Config
 }
@@ -46,6 +48,7 @@ func Connect(ctx context.Context) *Connection {
 		tx:      nil,
 		client:  db,
 		context: ctx,
+		Queries: store.New(db),
 		history: make([]History, 0),
 		config:  config,
 	}

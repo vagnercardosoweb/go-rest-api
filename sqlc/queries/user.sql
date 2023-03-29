@@ -1,9 +1,11 @@
--- name: GetUserByEmailInLogin :one
+-- name: GetUserByEmailToLogin :one
 SELECT
     id,
     name,
     email,
-    password_hash
+    password_hash,
+    confirmed_email_at,
+    login_blocked_until
 FROM users
 WHERE LOWER(email) = LOWER(sqlc.arg('email'))
 LIMIT 1;

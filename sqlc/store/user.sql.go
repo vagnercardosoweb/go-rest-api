@@ -48,32 +48,38 @@ func (q *Queries) CreateUser(ctx context.Context, arg *CreateUserParams) error {
 	return err
 }
 
-const GetUserByEmailInLogin = `-- name: GetUserByEmailInLogin :one
+const GetUserByEmailToLogin = `-- name: GetUserByEmailToLogin :one
 SELECT
     id,
     name,
     email,
-    password_hash
+    password_hash,
+    confirmed_email_at,
+    login_blocked_until
 FROM users
 WHERE LOWER(email) = LOWER($1)
 LIMIT 1
 `
 
-type GetUserByEmailInLoginRow struct {
-	ID           uuid.UUID `db:"id" json:"id"`
-	Name         string    `db:"name" json:"name"`
-	Email        string    `db:"email" json:"email"`
-	PasswordHash string    `db:"password_hash" json:"password_hash"`
+type GetUserByEmailToLoginRow struct {
+	ID                uuid.UUID    `db:"id" json:"id"`
+	Name              string       `db:"name" json:"name"`
+	Email             string       `db:"email" json:"email"`
+	PasswordHash      string       `db:"password_hash" json:"password_hash"`
+	ConfirmedEmailAt  sql.NullTime `db:"confirmed_email_at" json:"confirmed_email_at"`
+	LoginBlockedUntil sql.NullTime `db:"login_blocked_until" json:"login_blocked_until"`
 }
 
-func (q *Queries) GetUserByEmailInLogin(ctx context.Context, email string) (*GetUserByEmailInLoginRow, error) {
-	row := q.db.QueryRowContext(ctx, GetUserByEmailInLogin, email)
-	var i GetUserByEmailInLoginRow
+func (q *Queries) GetUserByEmailToLogin(ctx context.Context, email string) (*GetUserByEmailToLoginRow, error) {
+	row := q.db.QueryRowContext(ctx, GetUserByEmailToLogin, email)
+	var i GetUserByEmailToLoginRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Email,
 		&i.PasswordHash,
+		&i.ConfirmedEmailAt,
+		&i.LoginBlockedUntil,
 	)
 	return &i, err
 }

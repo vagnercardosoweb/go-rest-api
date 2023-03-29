@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func errorHandler(c *gin.Context) {
+func responseError(c *gin.Context) {
 	c.Next()
 
 	reqErrors := c.Errors

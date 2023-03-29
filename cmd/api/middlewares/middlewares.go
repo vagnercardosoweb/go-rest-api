@@ -3,9 +3,9 @@ package middlewares
 import "github.com/gin-gonic/gin"
 
 func Setup(router *gin.Engine) {
-	router.Use(corsHandler)
-	router.Use(requestIdHandler)
-	router.Use(extractTokenHandler)
-	router.Use(loggerHandler)
-	router.Use(errorHandler)
+	router.Use(cors)
+	router.Use(requestId)
+	router.Use(extractAuthToken)
+	router.Use(loggerRequest)
+	router.Use(responseError)
 }

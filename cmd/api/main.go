@@ -19,7 +19,6 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/monitoring"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
-	"github.com/vagnercardosoweb/go-rest-api/sqlc/store"
 )
 
 var (
@@ -38,12 +37,6 @@ func init() {
 
 	redisConn = redis.Connect(ctx)
 	ctx = context.WithValue(ctx, config.RedisConnectCtxKey, redisConn)
-
-	ctx = context.WithValue(
-		ctx,
-		config.StoreQueriesCtx,
-		store.New(postgresConn.GetDB()),
-	)
 
 	httpServer = &http.Server{
 		Addr:    fmt.Sprintf(":%s", env.Get("PORT", "3333")),
@@ -69,8 +62,7 @@ func shutdown() {
 
 	<-ctx.Done()
 
-	logger.Warn("Timeout shutdown of %v seconds.", timeout)
-	logger.Error("Server exiting")
+	logger.Error("Server exiting of %v seconds.", timeout)
 }
 
 func handler() *gin.Engine {
@@ -84,9 +76,9 @@ func handler() *gin.Engine {
 
 	router.Use(gin.Recovery())
 	router.Use(func(c *gin.Context) {
-		c.Set(config.PgConnectCtxKey, ctx.Value(config.PgConnectCtxKey))
-		c.Set(config.RedisConnectCtxKey, ctx.Value(config.RedisConnectCtxKey))
-		c.Set(config.StoreQueriesCtx, ctx.Value(config.StoreQueriesCtx))
+		c.Set(config.PgConnectCtxKey, postgresConn)
+		c.Set(config.RedisConnectCtxKey, redisConn)
+		c.Set(config.StoreQueriesCtx, postgresConn.Queries)
 		c.Request = c.Request.WithContext(ctx)
 		c.Next()
 	})

@@ -9,13 +9,13 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/jwt"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/token"
 )
 
-func Auth(c *gin.Context) {
-	token := c.GetString(config.AuthTokenCtxKey)
+func CheckJwt(c *gin.Context) {
+	headerToken := c.GetString(config.AuthHeaderToken)
 
-	if token == env.Required("JWT_SECRET_KEY") {
+	if headerToken == env.Required("TOKEN_DEFAULT") {
 		c.Next()
 		return
 	}
@@ -25,19 +25,18 @@ func Auth(c *gin.Context) {
 		StatusCode: http.StatusUnauthorized,
 	})
 
-	if token == "" {
+	if headerToken == "" {
 		c.AbortWithError(unauthorized.StatusCode, unauthorized)
 		return
 	}
 
-	if len(strings.Split(token, ".")) != 3 {
+	if len(strings.Split(headerToken, ".")) != 3 {
 		unauthorized.Message = "The token is badly formatted."
 		c.AbortWithError(unauthorized.StatusCode, unauthorized)
 		return
 	}
 
-	payload, err := jwt.Decode(token)
-
+	payload, err := token.NewJwt(nil).Decode(headerToken)
 	if err != nil {
 		unauthorized.Message = "Your access token is not valid, please login again."
 		unauthorized.AddMetadata("error", err.Error())
@@ -45,6 +44,6 @@ func Auth(c *gin.Context) {
 		return
 	}
 
-	c.Set(config.JwtPayloadCtxKey, payload)
+	c.Set(config.TokenPayloadCtxKey, payload)
 	c.Next()
 }

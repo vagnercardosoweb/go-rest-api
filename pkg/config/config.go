@@ -23,8 +23,8 @@ var (
 const (
 	PgConnectCtxKey    = "PgConnectCtxKey"
 	RedisConnectCtxKey = "RedisConnectCtxKey"
-	AuthTokenCtxKey    = "AuthTokenCtxKey"
-	JwtPayloadCtxKey   = "JwtPayloadCtxKey"
+	AuthHeaderToken    = "AuthHeaderTokenCtxKey"
+	TokenPayloadCtxKey = "TokenPayloadCtxKey"
 	RequestIdCtxKey    = "RequestIdCtxKey"
 	StoreQueriesCtx    = "StoreQueriesCtx"
 )
