@@ -10,13 +10,6 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 )
 
-type Payload struct {
-	Sub string
-	Iat float64
-	Exp float64
-	Iss string
-}
-
 type TokenJwt struct {
 	secretKey []byte
 }
