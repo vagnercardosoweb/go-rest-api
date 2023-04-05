@@ -14,7 +14,7 @@ func LoadFromLocal() {
 		return
 	}
 	if Get("APP_ENV", "local") != "local" {
-		log.Println("Only APP_ENV=LOCAL will be loaded the Environments")
+		log.Println("Only APP_ENV=local will be loaded the Environments")
 		return
 	}
 	err := godotenv.Load(".env.local")
