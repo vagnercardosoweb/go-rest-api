@@ -24,7 +24,6 @@ type (
 
 func New(input Input) *Input {
 	input.validate()
-	input.defineCode()
 
 	if input.Metadata == nil {
 		input.Metadata = Metadata{
@@ -46,20 +45,17 @@ func (input *Input) AddMetadata(name string, value any) *Input {
 }
 
 func (input *Input) validate() {
-	if input.Message == "" {
-		input.Message = "InternalServerError"
-	}
 	if input.StatusCode == 0 {
 		input.StatusCode = http.StatusInternalServerError
+	}
+	if input.Message == "" {
+		input.Message = http.StatusText(input.StatusCode)
 	}
 	if input.ErrorId == "" {
 		input.ErrorId = uuid.New().String()
 	}
-	input.Message = fmt.Sprintf(input.Message, input.Arguments...)
-}
-
-func (input *Input) defineCode() {
 	if input.Code == "" {
-		input.Code = http.StatusText(input.StatusCode)
+		input.Code = "DEFAULT"
 	}
+	input.Message = fmt.Sprintf(input.Message, input.Arguments...)
 }
