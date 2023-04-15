@@ -8,7 +8,6 @@ volumes:
   go-rest-api.redis:
   go-rest-api.postgres:
 
-
 services:
   server:
     build:

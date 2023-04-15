@@ -1,21 +1,21 @@
 package routes
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/middlewares"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
 func healthy(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"date":      time.Now().UTC(),
-		"hostname":  config.Hostname,
 		"ipAddress": c.RemoteIP(),
 		"userAgent": c.Request.UserAgent(),
+		"path":      fmt.Sprintf("%s %s", c.Request.Method, c.Request.URL.Path),
 	})
 }
 
@@ -23,28 +23,18 @@ func favicon(c *gin.Context) {
 	c.Writer.WriteHeader(http.StatusOK)
 }
 
-func notAllowed(ctx *gin.Context) {
-	notAllowedError := errors.New(errors.Input{
-		Message:    "Method not allowed",
+func notAllowed(c *gin.Context) {
+	c.Error(errors.New(errors.Input{
+		Message:    fmt.Sprintf("Not allowed %s %s", c.Request.Method, c.Request.URL.Path),
 		StatusCode: http.StatusMethodNotAllowed,
-		Metadata: errors.Metadata{
-			"path":   ctx.Request.URL.Path,
-			"method": ctx.Request.Method,
-		},
-	})
-	ctx.JSON(notAllowedError.StatusCode, notAllowedError)
+	}))
 }
 
-func notFound(ctx *gin.Context) {
-	notFoundError := errors.New(errors.Input{
-		Message:    "Page not found",
+func notFound(c *gin.Context) {
+	c.Error(errors.New(errors.Input{
+		Message:    fmt.Sprintf("Cannot %s %s", c.Request.Method, c.Request.URL.String()),
 		StatusCode: http.StatusNotFound,
-		Metadata: errors.Metadata{
-			"path":   ctx.Request.URL.Path,
-			"method": ctx.Request.Method,
-		},
-	})
-	ctx.JSON(notFoundError.StatusCode, notFoundError)
+	}))
 }
 
 func Setup(router *gin.Engine) {

@@ -8,8 +8,13 @@ type PasswordHashBcrypt struct {
 	cost int
 }
 
-func NewPasswordHashBcrypt(cost int) PasswordHash {
-	return &PasswordHashBcrypt{cost}
+func NewPasswordHashBcrypt() *PasswordHashBcrypt {
+	return &PasswordHashBcrypt{12}
+}
+
+func (b *PasswordHashBcrypt) WithCost(cost int) *PasswordHashBcrypt {
+	b.cost = cost
+	return b
 }
 
 func (b *PasswordHashBcrypt) Create(password string) (string, error) {

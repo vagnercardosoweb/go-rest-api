@@ -15,7 +15,7 @@ import (
 func CheckJwt(c *gin.Context) {
 	headerToken := c.GetString(config.AuthHeaderToken)
 
-	if headerToken == env.Required("TOKEN_DEFAULT") {
+	if headerToken == env.Required("JWT_PUBLIC_TOKEN") {
 		c.Next()
 		return
 	}

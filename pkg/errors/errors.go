@@ -16,9 +16,8 @@ type (
 		Message     string   `json:"message"`
 		StatusCode  int      `json:"statusCode"`
 		Metadata    Metadata `json:"metadata"`
-		Logging     bool     `json:"-"`
-		Arguments   []any    `json:"-"`
-		SendToSlack bool     `json:"-"`
+		SendToSlack bool     `json:"sendToSlack"`
+		Arguments   []any    `json:"arguments"`
 	}
 )
 

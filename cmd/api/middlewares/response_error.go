@@ -37,7 +37,6 @@ func responseError(c *gin.Context) {
 		StatusCode:  statusCode,
 		Message:     statusText,
 		SendToSlack: true,
-		Logging:     true,
 	})
 
 	if hasError {
@@ -50,12 +49,17 @@ func responseError(c *gin.Context) {
 	}
 
 	metadata["ip"] = c.ClientIP()
-	metadata["path"] = c.Request.URL.Path
-	metadata["full_path"] = c.FullPath()
+	metadata["path"] = c.Request.URL.String()
+
+	routePath := c.FullPath()
+	if routePath != "" {
+		metadata["route_path"] = c.FullPath()
+	}
+
 	metadata["method"] = c.Request.Method
 	metadata["query"] = c.Request.URL.Query()
 	metadata["version"] = c.Request.Proto
-	metadata["referer"] = c.GetHeader("referer")
+	metadata["referrer"] = c.GetHeader("referer")
 	metadata["agent"] = c.Request.UserAgent()
 	metadata["body"] = c.Request.Form
 	metadata["headers"] = c.Request.Header
@@ -73,9 +77,14 @@ func responseError(c *gin.Context) {
 	logger.Log(logger.Input{
 		Id:       fmt.Sprintf("REQ:%s", requestId),
 		Level:    logger.ERROR,
-		Message:  "error",
+		Message:  "REQUEST_ERROR",
 		Metadata: metadata,
 	})
 
-	c.JSON(resError.StatusCode, resError)
+	c.JSON(resError.StatusCode, gin.H{
+		"code":       resError.Code,
+		"errorId":    resError.ErrorId,
+		"statusCode": resError.StatusCode,
+		"message":    resError.Message,
+	})
 }

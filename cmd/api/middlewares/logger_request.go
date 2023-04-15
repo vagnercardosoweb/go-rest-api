@@ -13,7 +13,7 @@ import (
 
 func loggerRequest(c *gin.Context) {
 	start := time.Now()
-	path := c.Request.URL.Path
+	path := c.Request.URL.String()
 	routePath := c.FullPath()
 	method := c.Request.Method
 	requestId := c.GetString(config.RequestIdCtxKey)
@@ -21,23 +21,26 @@ func loggerRequest(c *gin.Context) {
 	clientIP := c.ClientIP()
 
 	metadata := logger.Metadata{
-		"ip":        clientIP,
-		"path":      path,
-		"full_path": routePath,
-		"method":    method,
-		"query":     c.Request.URL.Query(),
-		"version":   c.Request.Proto,
-		"referer":   c.GetHeader("referer"),
-		"agent":     c.Request.UserAgent(),
-		"time":      0,
-		"length":    0,
-		"status":    0,
+		"ip":       clientIP,
+		"method":   method,
+		"path":     path,
+		"query":    c.Request.URL.Query(),
+		"version":  c.Request.Proto,
+		"referrer": c.GetHeader("referer"),
+		"agent":    c.Request.UserAgent(),
+		"time":     0,
+		"length":   0,
+		"status":   0,
+	}
+
+	if routePath != "" {
+		metadata["route_path"] = routePath
 	}
 
 	logger.Log(logger.Input{
 		Id:       loggerId,
 		Level:    logger.DEBUG,
-		Message:  "STARTED",
+		Message:  "REQUEST_STARTED",
 		Metadata: metadata,
 	})
 
@@ -57,14 +60,14 @@ func loggerRequest(c *gin.Context) {
 	}
 
 	level := logger.DEBUG
-	if status >= http.StatusInternalServerError {
+	if status < http.StatusOK || status >= http.StatusBadRequest {
 		level = logger.ERROR
 	}
 
 	logger.Log(logger.Input{
 		Id:       loggerId,
 		Level:    level,
-		Message:  "COMPLETED",
+		Message:  "REQUEST_COMPLETED",
 		Metadata: metadata,
 	})
 }
