@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,7 +16,6 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/routes"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/monitoring"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
@@ -26,11 +26,13 @@ var (
 	httpServer   *http.Server
 	postgresConn *postgres.Connection
 	redisConn    *redis.Connection
+	appLogger    *logger.Logger
 )
 
 func init() {
 	env.LoadFromLocal()
 	ctx = context.Background()
+	appLogger = logger.New()
 
 	postgresConn = postgres.Connect(ctx, postgres.Default)
 	ctx = context.WithValue(ctx, config.PgConnectCtxKey, postgresConn)
@@ -49,20 +51,20 @@ func shutdown() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-quit
 
-	logger.Error("Shutting down server")
+	appLogger.Error("Shutting down server")
 
 	timeout := config.GetShutdownTimeout() * time.Second
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	if err := httpServer.Shutdown(ctx); err != nil {
-		logger.Error("Server forced to shutdown: %v", err.Error())
+		appLogger.Error("Server forced to shutdown: %v", err.Error())
 		os.Exit(1)
 	}
 
 	<-ctx.Done()
 
-	logger.Error("Server exiting of %v seconds.", timeout)
+	appLogger.Error("Server exiting of %v seconds.", timeout)
 }
 
 func handler() *gin.Engine {
@@ -77,6 +79,7 @@ func handler() *gin.Engine {
 	router.Use(func(c *gin.Context) {
 		c.Request = c.Request.WithContext(ctx)
 
+		c.Set(config.RequestLoggerCtxKey, appLogger)
 		c.Set(config.PgConnectCtxKey, postgresConn)
 		c.Set(config.RedisConnectCtxKey, redisConn)
 
@@ -95,18 +98,18 @@ func main() {
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("Server listen error: %v", err.Error())
+			appLogger.Error("Server listen error: %v", err.Error())
 			os.Exit(1)
 		}
 	}()
 
-	logger.Info(
+	appLogger.Info(
 		"Server running on http://0.0.0.0:%s",
 		env.Get("LOCAL_PORT", "3301"),
 	)
 
 	if config.IsDebug {
-		monitoring.RunProfiler()
+		monitoring.RunProfiler(appLogger)
 	}
 
 	shutdown()

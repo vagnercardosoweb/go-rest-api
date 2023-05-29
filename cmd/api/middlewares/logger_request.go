@@ -16,7 +16,7 @@ func loggerRequest(c *gin.Context) {
 	}
 
 	method := c.Request.Method
-	requestId := c.GetString(config.RequestIdCtxKey)
+	requestLogger := c.MustGet(config.RequestLoggerCtxKey).(*logger.Logger)
 	clientIP := c.ClientIP()
 	metadata := map[string]any{
 		"ip":      clientIP,
@@ -35,11 +35,7 @@ func loggerRequest(c *gin.Context) {
 		metadata["route_path"] = routePath
 	}
 
-	logger.Log(logger.Input{
-		Id:       requestId,
-		Message:  "HTTP_REQUEST_STARTED",
-		Metadata: metadata,
-	})
+	requestLogger.WithMetadata(metadata).Info("HTTP_REQUEST_STARTED")
 
 	// Process request
 	c.Next()
@@ -54,15 +50,10 @@ func loggerRequest(c *gin.Context) {
 		metadata["body"] = getRequestBody(c)
 	}
 
-	level := logger.INFO
+	level := logger.LevelInfo
 	if status < http.StatusOK || status >= http.StatusBadRequest {
-		level = logger.ERROR
+		level = logger.LevelError
 	}
 
-	logger.Log(logger.Input{
-		Id:       requestId,
-		Level:    level,
-		Message:  "HTTP_REQUEST_COMPLETED",
-		Metadata: metadata,
-	})
+	requestLogger.WithMetadata(metadata).Log(level, "HTTP_REQUEST_COMPLETED")
 }

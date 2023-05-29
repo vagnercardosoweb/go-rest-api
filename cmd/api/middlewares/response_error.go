@@ -15,6 +15,7 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/slack_alert"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func responseError(c *gin.Context) {
@@ -80,7 +81,7 @@ func responseError(c *gin.Context) {
 	}
 
 	metadata["ip"] = c.ClientIP()
-	metadata["time"] = c.Writer.Header().Get("X-Response-Time")
+	metadata["time"] = time.Since(c.Writer.(*XResponseTimer).start).String()
 	metadata["path"] = path
 
 	if routePath := c.FullPath(); routePath != "" {
@@ -118,13 +119,10 @@ func responseError(c *gin.Context) {
 		metadata["forwarded_email"] = forwardedEmail
 	}
 
-	appError.ErrorId = c.Writer.Header().Get("X-Request-ID")
-	logger.Log(logger.Input{
-		Id:       appError.ErrorId,
-		Level:    logger.ERROR,
-		Message:  "HTTP_REQUEST_ERROR",
-		Metadata: metadata,
-	})
+	appError.ErrorId = c.GetString(config.RequestIdCtxKey)
+	c.MustGet(config.RequestLoggerCtxKey).(*logger.Logger).
+		WithMetadata(metadata).
+		Error("HTTP_REQUEST_ERROR")
 
 	if config.IsLocal {
 		c.JSON(appError.StatusCode, appError)

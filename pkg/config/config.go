@@ -21,12 +21,12 @@ var (
 )
 
 const (
-	PgConnectCtxKey    = "PgConnectCtxKey"
-	RedisConnectCtxKey = "RedisConnectCtxKey"
-	AuthHeaderToken    = "AuthHeaderTokenCtxKey"
-	TokenPayloadCtxKey = "TokenPayloadCtxKey"
-	RequestIdCtxKey    = "RequestIdCtxKey"
-	LoggerCtxKey       = "LoggerCtxKey"
+	PgConnectCtxKey     = "PgConnectCtxKey"
+	RedisConnectCtxKey  = "RedisConnectCtxKey"
+	AuthHeaderToken     = "AuthHeaderTokenCtxKey"
+	TokenPayloadCtxKey  = "TokenPayloadCtxKey"
+	RequestLoggerCtxKey = "RequestLoggerCtxKey"
+	RequestIdCtxKey     = "RequestIdCtxKey"
 )
 
 func GetShutdownTimeout() time.Duration {

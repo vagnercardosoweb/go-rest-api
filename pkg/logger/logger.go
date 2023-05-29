@@ -3,96 +3,102 @@ package logger
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"log"
 	"os"
+	"sync"
 	"time"
-
-	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 )
-
-type Input struct {
-	Id        string
-	Level     string
-	Message   string
-	Metadata  any
-	Arguments []any
-}
 
 var logger = log.New(os.Stdout, "", 0)
-var (
-	INFO     = "INFO"
-	WARN     = "WARN"
-	CRITICAL = "CRITICAL"
-	ERROR    = "ERROR"
-	DEBUG    = "DEBUG"
+
+type level string
+
+const (
+	LevelInfo     level = "INFO"
+	LevelDebug    level = "DEBUG"
+	LevelWarn     level = "WARN"
+	LevelCritical level = "CRITICAL"
+	LevelError    level = "ERROR"
 )
 
-func Log(input Input) {
-	if input.Id == "" {
-		input.Id = "APP"
-	}
+type Logger struct {
+	id       string
+	metadata map[string]any
+	mu       *sync.Mutex
+}
 
-	if input.Level == "" {
-		input.Level = INFO
-	}
+type output struct {
+	Id        string         `json:"id"`
+	Level     level          `json:"level"`
+	Message   string         `json:"message"`
+	Pid       int            `json:"pid"`
+	Hostname  string         `json:"hostname"`
+	Timestamp time.Time      `json:"timestamp"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
+}
 
-	logJson, _ := json.Marshal(struct {
-		Id        string    `json:"id"`
-		Level     string    `json:"level"`
-		Message   string    `json:"message"`
-		Pid       int       `json:"pid"`
-		Hostname  string    `json:"hostname"`
-		Timestamp time.Time `json:"timestamp"`
-		Metadata  any       `json:"metadata,omitempty"`
-	}{
-		Id:        input.Id,
-		Level:     input.Level,
-		Message:   fmt.Sprintf(input.Message, input.Arguments...),
+func New() *Logger {
+	return &Logger{
+		id:       "APP",
+		metadata: make(map[string]any),
+		mu:       new(sync.Mutex),
+	}
+}
+
+func (*Logger) WithID(id string) *Logger {
+	l := New()
+	l.id = id
+	return l
+}
+
+func (l *Logger) WithMetadata(metadata map[string]any) *Logger {
+	nl := New()
+	nl.metadata = metadata
+	nl.id = l.id
+	return nl
+}
+
+func (l *Logger) AddMetadata(key string, value any) *Logger {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.metadata[key] = value
+	return l
+}
+
+func (l *Logger) Info(message string, arguments ...any) {
+	l.Log(LevelInfo, message, arguments...)
+}
+
+func (l *Logger) Warn(message string, arguments ...any) {
+	l.Log(LevelWarn, message, arguments...)
+}
+
+func (l *Logger) Debug(message string, arguments ...any) {
+	l.Log(LevelDebug, message, arguments...)
+}
+
+func (l *Logger) Critical(message string, arguments ...any) {
+	l.Log(LevelCritical, message, arguments...)
+}
+
+func (l *Logger) Error(message string, arguments ...any) {
+	l.Log(LevelError, message, arguments...)
+}
+
+func (l *Logger) Log(level level, message string, arguments ...any) {
+	if len(arguments) > 0 {
+		message = fmt.Sprintf(message, arguments...)
+	}
+	logAsJson, _ := json.Marshal(output{
+		Id:        l.id,
+		Level:     level,
+		Message:   message,
 		Timestamp: time.Now().UTC(),
-		Metadata:  input.Metadata,
+		Metadata:  l.metadata,
 		Pid:       config.Pid,
 		Hostname:  config.Hostname,
 	})
-
-	logger.Println(string(logJson))
-}
-
-func Info(message string, arguments ...any) {
-	Log(Input{
-		Level:     INFO,
-		Arguments: arguments,
-		Message:   message,
-	})
-}
-
-func Warn(message string, arguments ...any) {
-	Log(Input{
-		Level:     WARN,
-		Arguments: arguments,
-		Message:   message,
-	})
-}
-
-func Error(message string, arguments ...any) {
-	Log(Input{
-		Level:     ERROR,
-		Arguments: arguments,
-		Message:   message,
-	})
-}
-
-func Critical(message string, arguments ...any) {
-	Log(Input{
-		Level:     CRITICAL,
-		Arguments: arguments,
-		Message:   message,
-	})
-}
-
-func Debug(message string, arguments ...any) {
-	Log(Input{
-		Level:     INFO,
-		Arguments: arguments,
-		Message:   message,
-	})
+	l.metadata = make(map[string]any)
+	logger.Println(string(logAsJson))
 }

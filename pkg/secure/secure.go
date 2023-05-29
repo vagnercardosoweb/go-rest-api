@@ -4,62 +4,10 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"io"
 )
-
-const defaultIDByteLength int = 12
-
-// Identifier is a random, cryptographically generated sequence of characters used to refer to something
-type Identifier []byte
-
-// NewIdentifier creates a new random Identifier of n bytes or
-// returns an error.
-func NewIdentifier(n int) (Identifier, error) {
-	id, err := RandomGenerator{}.RandomBytes(n)
-	if err != nil {
-		return Identifier{}, err
-	}
-
-	return id, nil
-}
-
-// NewID is like NewIdentifier, but panics if the Identifier
-// cannot be initialized
-func NewID() Identifier {
-	id, err := NewIdentifier(defaultIDByteLength)
-	if err != nil {
-		panic(err)
-	}
-	return id
-}
-
-// String returns the string form of Identifier (base64 encoded
-// according to RFC 4648).
-func (e Identifier) String() string {
-	return base64.URLEncoding.EncodeToString(e)
-}
-
-// ParseIdentifier decodes s into Identifier or returns an error.
-func ParseIdentifier(s string) (Identifier, error) {
-	b, err := base64.URLEncoding.DecodeString(s)
-	if err != nil {
-		return Identifier{}, err
-	}
-
-	return b, nil
-}
-
-// MustParseIdentifier is like Parse but panics if the string cannot be parsed.
-func MustParseIdentifier(s string) Identifier {
-	id, err := ParseIdentifier(s)
-	if err != nil {
-		panic(err)
-	}
-	return id
-}
 
 // NewEncryptionKey generates a random 256-bit key. It will return an
 // error if the system's secure random number generator fails to
