@@ -1,70 +1,68 @@
 package middlewares
 
 import (
-	"fmt"
-	"net/http"
-	"time"
-
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 func loggerRequest(c *gin.Context) {
-	start := time.Now()
-	path := c.Request.URL.Path
-	routePath := c.FullPath()
+	path := c.Request.URL.String()
+	if path == "/" {
+		c.Next()
+		return
+	}
+
 	method := c.Request.Method
 	requestId := c.GetString(config.RequestIdCtxKey)
-	loggerId := fmt.Sprintf("REQ:%s", requestId)
 	clientIP := c.ClientIP()
+	metadata := map[string]any{
+		"ip":      clientIP,
+		"method":  method,
+		"path":    path,
+		"query":   c.Request.URL.Query(),
+		"version": c.Request.Proto,
+		"referer": c.GetHeader("referer"),
+		"agent":   c.Request.UserAgent(),
+		"time":    0,
+		"length":  0,
+		"status":  0,
+	}
 
-	metadata := logger.Metadata{
-		"ip":        clientIP,
-		"path":      path,
-		"full_path": routePath,
-		"method":    method,
-		"query":     c.Request.URL.Query(),
-		"version":   c.Request.Proto,
-		"referer":   c.GetHeader("referer"),
-		"agent":     c.Request.UserAgent(),
-		"time":      0,
-		"length":    0,
-		"status":    0,
+	if routePath := c.FullPath(); routePath != "" {
+		metadata["route_path"] = routePath
 	}
 
 	logger.Log(logger.Input{
-		Id:       loggerId,
-		Level:    logger.DEBUG,
-		Message:  "STARTED",
+		Id:       requestId,
+		Message:  "HTTP_REQUEST_STARTED",
 		Metadata: metadata,
 	})
 
 	// Process request
 	c.Next()
 
-	end := time.Now()
 	status := c.Writer.Status()
-	latency := end.Sub(start)
 
-	metadata["time"] = latency.String()
+	metadata["time"] = c.Writer.Header().Get("X-Response-Time")
 	metadata["length"] = c.Writer.Size()
 	metadata["status"] = status
 
-	if config.IsDebug && method != http.MethodGet {
-		metadata["body"] = c.Request.Form
+	if method != http.MethodGet {
+		metadata["body"] = getRequestBody(c)
 	}
 
-	level := logger.DEBUG
-	if status >= http.StatusInternalServerError {
+	level := logger.INFO
+	if status < http.StatusOK || status >= http.StatusBadRequest {
 		level = logger.ERROR
 	}
 
 	logger.Log(logger.Input{
-		Id:       loggerId,
+		Id:       requestId,
 		Level:    level,
-		Message:  "COMPLETED",
+		Message:  "HTTP_REQUEST_COMPLETED",
 		Metadata: metadata,
 	})
 }

@@ -10,16 +10,13 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 )
 
-type (
-	Metadata map[string]any
-	Input    struct {
-		Id        string
-		Level     string
-		Message   string
-		Metadata  Metadata
-		Arguments []any
-	}
-)
+type Input struct {
+	Id        string
+	Level     string
+	Message   string
+	Metadata  any
+	Arguments []any
+}
 
 var logger = log.New(os.Stdout, "", 0)
 var (
@@ -46,7 +43,7 @@ func Log(input Input) {
 		Pid       int       `json:"pid"`
 		Hostname  string    `json:"hostname"`
 		Timestamp time.Time `json:"timestamp"`
-		Metadata  Metadata  `json:"metadata"`
+		Metadata  any       `json:"metadata,omitempty"`
 	}{
 		Id:        input.Id,
 		Level:     input.Level,

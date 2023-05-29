@@ -1,68 +1,82 @@
 package postgres
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 )
 
-type Config struct {
-	Port     int
-	Host     string
-	Database string
-	Username string
-	Password string
-	Timezone string
-	Schema   string
-	AppName  string
-	Logging  bool
+type EnvPrefix string
+
+type config struct {
+	Port       int
+	Host       string
+	Database   string
+	Username   string
+	Password   string
+	Timezone   string
+	Schema     string
+	AppName    string
+	EnabledSSL bool
+	Prefix     EnvPrefix
+	Logging    bool
 }
 
-func newConfig() *Config {
-	port, _ := strconv.Atoi(env.Get("DB_PORT", "5432"))
-	logging := env.Get("DB_LOGGING", "false") == "true"
+const (
+	Default EnvPrefix = "DB"
+)
 
-	return &Config{
-		Port:     port,
-		Host:     env.Required("DB_HOST"),
-		Database: env.Required("DB_NAME"),
-		Username: env.Required("DB_USERNAME"),
-		Password: env.Required("DB_PASSWORD"),
-		Timezone: env.Required("DB_TIMEZONE", "UTC"),
-		Schema:   env.Required("SCHEMA", "public"),
-		AppName:  env.Get("DB_APP_NAME", "go-structure"),
-		Logging:  logging,
-	}
+func fromEnvPrefix(envPrefix EnvPrefix) *config {
+	config := &config{}
+
+	config.Prefix = envPrefix
+	config.Port = config.getValueFromEnvToInt("PORT", 5432)
+	config.Host = config.env("HOST")
+	config.Database = config.env("NAME")
+	config.Username = config.env("USERNAME")
+	config.Password = config.env("PASSWORD")
+	config.Timezone = config.env("TIMEZONE", "UTC")
+	config.Schema = config.env("SCHEMA", "public")
+	config.AppName = config.env("APP_NAME", "golang")
+	config.EnabledSSL = config.env("ENABLED_SSL", "false") == "true"
+	config.Logging = config.env("LOGGING", "false") == "true"
+
+	return config
 }
 
-func getValueFromEnvToInt(key string, defaultValue int) int {
-	value, err := strconv.Atoi(env.Get(key))
+func (c *config) env(name string, defaultValue ...string) string {
+	return env.Get(fmt.Sprintf("%s_%s", c.Prefix, name), defaultValue...)
+}
+
+func (c *config) getValueFromEnvToInt(key string, defaultValue int) int {
+	value, err := strconv.Atoi(c.env(key))
 	if err != nil {
 		return defaultValue
 	}
 	return value
 }
 
-func (c *Config) getMaxOpenConns() int {
-	return getValueFromEnvToInt("DB_POOL_MAX", 50)
+func (c *config) getMaxPool() int {
+	return c.getValueFromEnvToInt("POOL_MAX", 35)
 }
 
-func (c *Config) getMaxIdleConns() int {
-	return getValueFromEnvToInt("DB_MAX_IDLE_CONN", 30)
+func (c *config) getMaxIdleConn() int {
+	return c.getValueFromEnvToInt("MAX_IDLE_CONN", 30)
 }
 
-func (c *Config) getQueryTimeout() time.Duration {
-	timeout := getValueFromEnvToInt("DB_QUERY_TIMEOUT", 3)
+func (c *config) getQueryTimeout() time.Duration {
+	timeout := c.getValueFromEnvToInt("QUERY_TIMEOUT", 3)
 	return time.Second * time.Duration(timeout)
 }
 
-func (c *Config) getConnMaxLifetime() time.Duration {
-	lifetime := getValueFromEnvToInt("DB_MAX_LIFETIME_CONN", 60)
+func (c *config) getConnMaxLifetime() time.Duration {
+	lifetime := c.getValueFromEnvToInt("MAX_LIFETIME_CONN", 60)
 	return time.Second * time.Duration(lifetime)
 }
 
-func (c *Config) getConnMaxIdleTime() time.Duration {
-	idleTime := getValueFromEnvToInt("DB_MAX_IDLE_TIME_CONN", 15)
+func (c *config) getConnMaxIdleTime() time.Duration {
+	idleTime := c.getValueFromEnvToInt("MAX_IDLE_TIME_CONN", 15)
 	return time.Second * time.Duration(idleTime)
 }

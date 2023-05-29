@@ -8,21 +8,20 @@ volumes:
   go-rest-api.redis:
   go-rest-api.postgres:
 
-
 services:
-  server:
+  api:
     build:
       context: .
       dockerfile: Dockerfile.local
-    container_name: go-rest-api.server
+    container_name: go-rest-api.api
     restart: always
     tty: true
     env_file: .env.local
     depends_on:
-      - postgres
       - redis
+      - postgres
     volumes:
-      - .:/app
+      - .:/go/src
     networks:
       - go-rest-api.network
     ports:

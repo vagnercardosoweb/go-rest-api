@@ -9,7 +9,7 @@ import (
 )
 
 func TestTokenJwt_Encode(t *testing.T) {
-	jwt := NewJwt([]byte("secret_key"))
+	jwt := NewJwt()
 	token, err := jwt.Encode(Input{Subject: "any_sub"})
 	assert.Nil(t, err)
 	assert.NotNil(t, token)
@@ -17,13 +17,13 @@ func TestTokenJwt_Encode(t *testing.T) {
 }
 
 func TestTokenJwt_Encode_WithoutSubject(t *testing.T) {
-	jwt := NewJwt([]byte("secret_key"))
+	jwt := NewJwt()
 	_, err := jwt.Encode(Input{})
 	assert.NotNil(t, err)
 }
 
 func TestTokenJwt_Decode(t *testing.T) {
-	jwt := NewJwt([]byte("secret_key"))
+	jwt := NewJwt()
 	issuedAt := time.Now()
 	expiresAt := issuedAt.Add(time.Hour * 2)
 

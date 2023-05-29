@@ -24,16 +24,16 @@ func LoadFromLocal() {
 }
 
 func Get(name string, defaultValue ...string) string {
-	value := os.Getenv(name)
-	if len(value) == 0 && len(defaultValue) > 0 {
+	value, exist := os.LookupEnv(name)
+	if !exist && len(defaultValue) > 0 {
 		return defaultValue[0]
 	}
 	return value
 }
 
-func Required(name string, defaultValue ...string) string {
-	value := Get(name, defaultValue...)
-	if len(value) == 0 {
+func Required(name string) string {
+	value, exist := os.LookupEnv(name)
+	if !exist {
 		panic(fmt.Sprintf("Environment [%s] not exist", name))
 	}
 	return value

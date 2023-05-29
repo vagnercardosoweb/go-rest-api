@@ -32,7 +32,7 @@ func init() {
 	env.LoadFromLocal()
 	ctx = context.Background()
 
-	postgresConn = postgres.Connect(ctx)
+	postgresConn = postgres.Connect(ctx, postgres.Default)
 	ctx = context.WithValue(ctx, config.PgConnectCtxKey, postgresConn)
 
 	redisConn = redis.Connect(ctx)
@@ -74,12 +74,12 @@ func handler() *gin.Engine {
 	router.RemoveExtraSlash = true
 	router.RedirectTrailingSlash = true
 
-	router.Use(gin.Recovery())
 	router.Use(func(c *gin.Context) {
+		c.Request = c.Request.WithContext(ctx)
+
 		c.Set(config.PgConnectCtxKey, postgresConn)
 		c.Set(config.RedisConnectCtxKey, redisConn)
-		c.Set(config.StoreQueriesCtx, postgresConn.Queries)
-		c.Request = c.Request.WithContext(ctx)
+
 		c.Next()
 	})
 

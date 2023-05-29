@@ -7,11 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
-	"github.com/vagnercardosoweb/go-rest-api/sqlc/store"
-
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
 type Connection struct {
@@ -19,19 +17,24 @@ type Connection struct {
 	client        *sqlx.DB
 	lastQueryTime time.Time
 	context       context.Context
-	Queries       *store.Queries
 	history       []History
-	config        *Config
+	config        *config
 }
 
-func Connect(ctx context.Context) *Connection {
-	config := newConfig()
+func Connect(ctx context.Context, envPrefix EnvPrefix) *Connection {
+	config := fromEnvPrefix(envPrefix)
+
+	sslMode := "disable"
+	if config.EnabledSSL {
+		sslMode = "require"
+	}
+
 	db, err := sqlx.ConnectContext(
 		ctx,
 		"postgres",
 		fmt.Sprintf(
-			"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable TimeZone=%s application_name=%s",
-			config.Host, config.Port, config.Username, config.Password, config.Database, config.Timezone, config.AppName,
+			"host=%s port=%d user=%s password=%s dbname=%s TimeZone=%s application_name=%s sslmode=%s",
+			config.Host, config.Port, config.Username, config.Password, config.Database, config.Timezone, config.AppName, sslMode,
 		),
 	)
 
@@ -39,16 +42,15 @@ func Connect(ctx context.Context) *Connection {
 		panic(err)
 	}
 
-	db.SetMaxOpenConns(config.getMaxOpenConns())
+	db.SetMaxOpenConns(config.getMaxPool())
 	db.SetConnMaxIdleTime(config.getConnMaxIdleTime())
 	db.SetConnMaxLifetime(config.getConnMaxLifetime())
-	db.SetMaxIdleConns(config.getMaxIdleConns())
+	db.SetMaxIdleConns(config.getMaxIdleConn())
 
 	return &Connection{
 		tx:      nil,
 		client:  db,
 		context: ctx,
-		Queries: store.New(db),
 		history: make([]History, 0),
 		config:  config,
 	}
@@ -62,8 +64,8 @@ func (c *Connection) withQueryTimeoutCtx() (context.Context, context.CancelFunc)
 	return c.context, func() {}
 }
 
-func (c *Connection) GetDB() *sqlx.DB {
-	return c.client
+func (c *Connection) GetDB() *sql.DB {
+	return c.client.DB
 }
 
 func (c *Connection) Exec(query string, args ...interface{}) (sql.Result, error) {
@@ -135,13 +137,45 @@ func (c *Connection) Query(dest any, query string, args ...any) error {
 	return err
 }
 
-func (c *Connection) WithTx(fn func(Connection) error) error {
-	tx, err := c.client.BeginTxx(c.context, nil)
-	if err != nil {
-		return err
+func (c *Connection) QueryOne(dest any, query string, args ...any) error {
+	ctx, cancel := c.withQueryTimeoutCtx()
+	defer cancel()
+
+	var err error
+	history := History{Query: query, Arguments: args, CreatedAt: time.Now()}
+
+	defer func() {
+		c.lastQueryTime = time.Now().UTC()
+		history.LatencyMs = history.FinishedAt.Sub(history.StartedAt).Milliseconds()
+		c.addHistory(history)
+	}()
+
+	if c.config.Logging {
+		//
 	}
 
-	err = fn(Connection{
+	history.StartedAt = time.Now()
+	if c.tx != nil {
+		err = c.tx.GetContext(ctx, dest, query, args...)
+	} else {
+		err = c.client.GetContext(ctx, dest, query, args...)
+	}
+	history.FinishedAt = time.Now()
+
+	if err != nil {
+		history.ErrorMessage = err.Error()
+	}
+
+	return err
+}
+
+func (c *Connection) WithTx(fn func(*Connection) (any, error)) (any, error) {
+	tx, err := c.client.BeginTxx(c.context, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := fn(&Connection{
 		tx:      tx,
 		client:  c.client,
 		context: c.context,
@@ -151,7 +185,7 @@ func (c *Connection) WithTx(fn func(Connection) error) error {
 
 	if err != nil {
 		if txError := tx.Rollback(); txError != nil {
-			return errors.New(errors.Input{
+			return nil, errors.New(errors.Input{
 				Message:    "Rollback Transaction Error",
 				StatusCode: http.StatusInternalServerError,
 				Metadata: errors.Metadata{
@@ -161,10 +195,10 @@ func (c *Connection) WithTx(fn func(Connection) error) error {
 			)
 		}
 
-		return err
+		return nil, err
 	}
 
-	return tx.Commit()
+	return result, tx.Commit()
 }
 
 func (c *Connection) Close() error {

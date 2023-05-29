@@ -9,15 +9,15 @@ import (
 )
 
 var (
-	AppEnv  = env.Get("APP_ENV", "local")
-	IsDebug = env.Get("DEBUG", "false") == "true"
-
 	Pid         = os.Getpid()
 	Hostname, _ = os.Hostname()
 
+	AppEnv = env.Get("APP_ENV", "local")
+
 	IsLocal      = AppEnv == "local"
-	IsStaging    = AppEnv == "staging"
 	IsProduction = AppEnv == "production"
+	IsStaging    = AppEnv == "staging"
+	IsDebug      = false
 )
 
 const (
@@ -26,7 +26,7 @@ const (
 	AuthHeaderToken    = "AuthHeaderTokenCtxKey"
 	TokenPayloadCtxKey = "TokenPayloadCtxKey"
 	RequestIdCtxKey    = "RequestIdCtxKey"
-	StoreQueriesCtx    = "StoreQueriesCtx"
+	LoggerCtxKey       = "LoggerCtxKey"
 )
 
 func GetShutdownTimeout() time.Duration {

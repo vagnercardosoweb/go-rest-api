@@ -10,19 +10,20 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 )
 
-type TokenJwt struct {
+type Jwt struct {
 	secretKey []byte
 }
 
-func NewJwt(secretKey []byte) Token {
-	if len(secretKey) == 0 {
-		secretKey = []byte(env.Required("JWT_SECRET_KEY"))
-	}
-
-	return &TokenJwt{secretKey: secretKey}
+func NewJwt() *Jwt {
+	return &Jwt{secretKey: []byte(env.Required("JWT_SECRET_KEY"))}
 }
 
-func (j *TokenJwt) Encode(input Input) (string, error) {
+func (j *Jwt) WithSecret(secretKey []byte) *Jwt {
+	j.secretKey = secretKey
+	return j
+}
+
+func (j *Jwt) Encode(input Input) (string, error) {
 	if input.Subject == "" {
 		return "", errors.New("sub needs to be filled to create a token")
 	}
@@ -56,7 +57,7 @@ func (j *TokenJwt) Encode(input Input) (string, error) {
 	return signedString, err
 }
 
-func (j *TokenJwt) Decode(token string) (*Output, error) {
+func (j *Jwt) Decode(token string) (*Output, error) {
 	jwtToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
@@ -84,13 +85,19 @@ func (j *TokenJwt) Decode(token string) (*Output, error) {
 			Subject:   claims["sub"].(string),
 			IssuedAt:  time.Unix(int64(claims["iat"].(float64)), 0),
 			ExpiresAt: time.Unix(int64(claims["exp"].(float64)), 0),
-			Issuer:    claims["iss"].(string),
-			Audience:  claims["aud"].(string),
 		},
 	}
 
 	if _, ok := claims["meta"].(map[string]any); ok {
 		output.Meta = claims["meta"].(map[string]any)
+	}
+
+	if _, ok := claims["iss"].(string); ok {
+		output.Issuer = claims["iss"].(string)
+	}
+
+	if _, ok := claims["aud"].(string); ok {
+		output.Audience = claims["aud"].(string)
 	}
 
 	return output, nil

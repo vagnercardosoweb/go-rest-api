@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
+	logger "github.com/vagnercardosoweb/go-rest-api/pkg/logger_new"
 )
 
 const megabyte = 1024 * 1024
@@ -16,18 +16,14 @@ func runProfiler() {
 	for {
 		runtime.ReadMemStats(m)
 
-		logger.Log(logger.Input{
-			Id:      "MONITORING",
-			Level:   logger.DEBUG,
-			Message: "Run profiler",
-			Metadata: logger.Metadata{
-				"memory_used":        m.Alloc,
-				"memory_used_mb":     fmt.Sprintf("%v mb", m.Alloc/megabyte),
-				"goroutine":          runtime.NumGoroutine(),
-				"memory_acquired_mb": fmt.Sprintf("%v mb", m.Sys/megabyte),
-				"memory_acquired":    m.Sys,
-			},
-		})
+		logger.New().
+			WithID("MONITORING").
+			WithMetadata("memory_used", m.Alloc).
+			WithMetadata("memory_used_mb", fmt.Sprintf("%vmb", m.Alloc/megabyte)).
+			WithMetadata("goroutine", runtime.NumGoroutine()).
+			WithMetadata("memory_acquired_mb", fmt.Sprintf("%vmb", m.Sys/megabyte)).
+			WithMetadata("memory_acquired", m.Sys).
+			Info("Run profiler")
 
 		time.Sleep(time.Second * 30)
 	}

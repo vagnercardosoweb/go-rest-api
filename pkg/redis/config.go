@@ -15,7 +15,7 @@ func newConfig() *libRedis.Options {
 		env.Required("REDIS_PORT"),
 	)
 
-	database, _ := strconv.Atoi(env.Required("REDIS_DATABASE", "0"))
+	database, _ := strconv.Atoi(env.Required("REDIS_DATABASE"))
 	password := env.Required("REDIS_PASSWORD")
 
 	return &libRedis.Options{

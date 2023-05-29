@@ -119,7 +119,7 @@ func Encrypt(plaintext []byte, key *[32]byte) (ciphertext []byte, err error) {
 // the data and provides a check that it hasn't been altered. Expects input
 // form nonce|ciphertext|tag where '|' indicates concatenation.
 // Taken from https://github.com/gtank/cryptopasta/blob/master/encrypt.go
-func Decrypt(ciphertext []byte, key *[32]byte) (plaintext []byte, err error) {
+func Decrypt(cipherText []byte, key *[32]byte) (plaintext []byte, err error) {
 	var block cipher.Block
 	block, err = aes.NewCipher(key[:])
 	if err != nil {
@@ -133,13 +133,13 @@ func Decrypt(ciphertext []byte, key *[32]byte) (plaintext []byte, err error) {
 	}
 
 	nonceSize := gcm.NonceSize()
-	if len(ciphertext) < nonceSize {
-		return nil, errors.New("malformed ciphertext")
+	if len(cipherText) < nonceSize {
+		return nil, errors.New("malformed cipherText")
 	}
 
 	plaintext, err = gcm.Open(nil,
-		ciphertext[:nonceSize],
-		ciphertext[nonceSize:],
+		cipherText[:nonceSize],
+		cipherText[nonceSize:],
 		nil,
 	)
 	if err != nil {
