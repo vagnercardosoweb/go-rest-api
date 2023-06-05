@@ -36,12 +36,16 @@ func As(err error, target any) bool {
 	return errors.As(err, &target)
 }
 
+func Is(err error, target error) bool {
+	return errors.Is(err, target)
+}
+
 func WithSqlError(err error, errorMessage ...string) *Input {
 	appError := New(Input{})
 	appError.OriginalError = err.Error()
 	appError.StatusCode = http.StatusInternalServerError
 
-	if err == sql.ErrNoRows {
+	if Is(err, sql.ErrNoRows) {
 		appError.Message = "No rows in result set"
 		appError.StatusCode = http.StatusNotFound
 	} else {

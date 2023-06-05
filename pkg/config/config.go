@@ -12,12 +12,12 @@ var (
 	Pid         = os.Getpid()
 	Hostname, _ = os.Hostname()
 
-	AppEnv = env.Get("APP_ENV", "local")
+	IsDebug = env.Get("DEBUG", "false") == "true"
+	AppEnv  = env.Get("APP_ENV", "local")
 
 	IsLocal      = AppEnv == "local"
 	IsProduction = AppEnv == "production"
 	IsStaging    = AppEnv == "staging"
-	IsDebug      = false
 )
 
 const (
