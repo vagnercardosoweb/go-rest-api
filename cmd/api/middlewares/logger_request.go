@@ -46,7 +46,7 @@ func loggerRequest(c *gin.Context) {
 	metadata["length"] = c.Writer.Size()
 	metadata["status"] = status
 
-	if method != http.MethodGet {
+	if config.IsDebug && method != http.MethodGet {
 		metadata["body"] = getRequestBody(c)
 	}
 

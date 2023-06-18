@@ -25,7 +25,7 @@ services:
     networks:
       - go-rest-api.network
     ports:
-      - "${LOCAL_PORT:-3301}:3333"
+      - "${DOCKER_PORT:-3301}:3333"
     environment:
       - APP_ENV=${APP_ENV:-local}
 

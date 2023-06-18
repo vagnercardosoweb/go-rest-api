@@ -8,11 +8,11 @@ import (
 
 type XResponseTimer struct {
 	gin.ResponseWriter
-	start time.Time
+	Start time.Time
 }
 
 func (w *XResponseTimer) WriteHeader(statusCode int) {
-	duration := time.Since(w.start)
+	duration := time.Since(w.Start)
 	w.Header().Set("X-Response-Time", duration.String())
 	w.ResponseWriter.WriteHeader(statusCode)
 }
@@ -22,7 +22,7 @@ func (w *XResponseTimer) Write(b []byte) (int, error) {
 }
 
 func responseTimer(c *gin.Context) {
-	blw := &XResponseTimer{ResponseWriter: c.Writer, start: time.Now()}
+	blw := &XResponseTimer{ResponseWriter: c.Writer, Start: time.Now()}
 	c.Writer = blw
 	c.Next()
 }

@@ -29,8 +29,9 @@ func WrapHandler(handler func(c *gin.Context) any) gin.HandlerFunc {
 				"data":      result,
 				"path":      fmt.Sprintf("%s %s", c.Request.Method, c.Request.URL.String()),
 				"ipAddress": c.ClientIP(),
+				"userAgent": c.Request.UserAgent(),
 				"timestamp": time.Now().UTC(),
-				"duration":  time.Since(c.Writer.(*XResponseTimer).start).String(),
+				"duration":  time.Since(c.Writer.(*XResponseTimer).Start).String(),
 				"hostname":  config.Hostname,
 			})
 		}

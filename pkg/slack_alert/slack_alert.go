@@ -31,7 +31,7 @@ type SlackAlert struct {
 func New() *SlackAlert {
 	sa := &SlackAlert{
 		token:       env.Get("SLACK_TOKEN"),
-		username:    env.Get("SLACK_USERNAME", "golang api"),
+		username:    env.Get("SLACK_USERNAME", "go rest api"),
 		channel:     env.Get("SLACK_CHANNEL", "golang-alerts"),
 		memberId:    env.Get("SLACK_MEMBER_ID"),
 		environment: config.AppEnv,

@@ -73,7 +73,7 @@ func responseError(c *gin.Context) {
 				appError.StatusCode = http.StatusBadRequest
 				appError.SendToSlack = false
 			} else {
-				appError.OriginalError = requestErrors
+				appError.OriginalError = requestErrors.Last().Error()
 			}
 		} else {
 			appError = requestErrors[0].Err.(*errors.Input)
@@ -81,7 +81,7 @@ func responseError(c *gin.Context) {
 	}
 
 	metadata["ip"] = c.ClientIP()
-	metadata["time"] = time.Since(c.Writer.(*XResponseTimer).start).String()
+	metadata["time"] = time.Since(c.Writer.(*XResponseTimer).Start).String()
 	metadata["path"] = path
 
 	if routePath := c.FullPath(); routePath != "" {

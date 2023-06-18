@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,6 +15,8 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/routes"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/monitoring"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
@@ -97,7 +98,7 @@ func main() {
 	defer postgresConn.Close()
 
 	go func() {
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			appLogger.Error("Server listen error: %v", err.Error())
 			os.Exit(1)
 		}
@@ -105,7 +106,7 @@ func main() {
 
 	appLogger.Info(
 		"Server running on http://0.0.0.0:%s",
-		env.Get("LOCAL_PORT", "3301"),
+		env.Get("DOCKER_PORT", "3301"),
 	)
 
 	if config.IsDebug {
