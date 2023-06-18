@@ -42,7 +42,7 @@ func init() {
 	ctx = context.WithValue(ctx, config.RedisConnectCtxKey, redisConn)
 
 	httpServer = &http.Server{
-		Addr:    fmt.Sprintf(":%s", env.Get("PORT", "3333")),
+		Addr:    fmt.Sprintf(":%s", env.Required("PORT")),
 		Handler: handler(),
 	}
 }
@@ -105,8 +105,8 @@ func main() {
 	}()
 
 	appLogger.Info(
-		"Server running on http://0.0.0.0:%s",
-		env.Get("DOCKER_PORT", "3301"),
+		"Server running on http://0.0.0.0%s",
+		httpServer.Addr,
 	)
 
 	if config.IsDebug {

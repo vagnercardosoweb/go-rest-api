@@ -6,7 +6,7 @@ metadata:
   labels:
     app: api
 data:
-  PORT: "3333"
+  PORT: "3000"
   DOCKER_PORT: "3301"
   APP_ENV: "staging"
   DEBUG: "false"

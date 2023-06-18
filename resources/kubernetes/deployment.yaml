@@ -30,7 +30,7 @@ spec:
           imagePullPolicy: Always
           ports:
             - name: api
-              containerPort: 3333
+              containerPort: 3000
               protocol: TCP
           envFrom:
             - configMapRef:
