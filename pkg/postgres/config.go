@@ -63,7 +63,7 @@ func (c *config) getMaxPool() int {
 }
 
 func (c *config) getMaxIdleConn() int {
-	return c.getValueFromEnvToInt("MAX_IDLE_CONN", 30)
+	return c.getValueFromEnvToInt("MAX_IDLE_CONN", 5)
 }
 
 func (c *config) getQueryTimeout() time.Duration {

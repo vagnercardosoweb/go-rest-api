@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strconv"
 
-	libRedis "github.com/go-redis/redis/v9"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
+
+	redisLib "github.com/go-redis/redis/v9"
 )
 
-func newConfig() *libRedis.Options {
+func newConfig() *redisLib.Options {
 	addr := fmt.Sprintf(
 		"%s:%s",
 		env.Required("REDIS_HOST"),
@@ -18,7 +19,7 @@ func newConfig() *libRedis.Options {
 	database, _ := strconv.Atoi(env.Required("REDIS_DATABASE"))
 	password := env.Required("REDIS_PASSWORD")
 
-	return &libRedis.Options{
+	return &redisLib.Options{
 		Addr:     addr,
 		Password: password,
 		DB:       database,

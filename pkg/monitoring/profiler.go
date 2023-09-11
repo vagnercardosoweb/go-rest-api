@@ -2,9 +2,10 @@ package monitoring
 
 import (
 	"fmt"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"runtime"
 	"time"
+
+	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 )
 
 const megabyte = 1024 * 1024

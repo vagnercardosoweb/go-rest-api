@@ -21,7 +21,7 @@ func (w *XResponseTimer) Write(b []byte) (int, error) {
 	return w.ResponseWriter.Write(b)
 }
 
-func responseTimer(c *gin.Context) {
+func ResponseTime(c *gin.Context) {
 	blw := &XResponseTimer{ResponseWriter: c.Writer, Start: time.Now()}
 	c.Writer = blw
 	c.Next()

@@ -1,8 +1,10 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: api
-  namespace: golang
+  name: golang-api
+  namespace: golang-api
+  labels:
+    app: golang-api
   annotations:
     nginx.org/client-max-body-size: "50m"
 spec:
@@ -15,6 +17,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: api
+                name: golang-api
                 port:
                   number: 80

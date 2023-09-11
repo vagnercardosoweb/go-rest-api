@@ -1,29 +1,43 @@
 package postgres
 
-import "time"
+import (
+	"fmt"
+	"reflect"
+	"time"
+)
 
 type History struct {
 	Query        string        `json:"query"`
-	Arguments    []interface{} `json:"arguments"`
-	LatencyMs    int64         `json:"latency_ms"`
-	ErrorMessage string        `json:"error_message"`
-	StartedAt    time.Time     `json:"started_at"`
-	FinishedAt   time.Time     `json:"finished_at"`
-	CreatedAt    time.Time     `json:"created_at"`
+	Duration     string        `json:"duration"`
+	ErrorMessage string        `json:"errorMessage"`
+	StartedAt    time.Time     `json:"startedAt"`
+	FinishedAt   time.Time     `json:"finishedAt"`
+	Bind         []interface{} `json:"bind"`
 }
 
-func (c *Connection) GetHistory() []History {
+func (c *Client) GetHistory() []History {
 	return c.history
 }
 
-func (c *Connection) addHistory(history History) {
-	if c.hasHistory(history.Query) {
+func (c *Client) addHistory(history History) {
+	if c.config.Logging {
+		c.logger.
+			WithMetadata(map[string]interface{}{
+				"query":         history.Query,
+				"inTransaction": c.tx != nil,
+				"errorMessage":  history.ErrorMessage,
+				"duration":      history.Duration,
+				"bind":          history.Bind,
+			}).
+			Info(fmt.Sprintf("%s_QUERY", c.config.Prefix))
+	}
+	if c.hasHistory(history) {
 		return
 	}
 	c.history = append(c.history, history)
 }
 
-func (c *Connection) GetLastHistory() History {
+func (c *Client) GetLastHistory() History {
 	if len(c.history) == 0 {
 		return History{}
 	}
@@ -31,11 +45,11 @@ func (c *Connection) GetLastHistory() History {
 
 }
 
-func (c *Connection) hasHistory(query string) bool {
+func (c *Client) hasHistory(history History) bool {
 	result := false
 
 	for _, record := range c.history {
-		if record.Query == query {
+		if record.Query == history.Query && reflect.DeepEqual(record.Bind, history.Bind) {
 			result = true
 			break
 		}

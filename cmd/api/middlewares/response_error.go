@@ -3,22 +3,18 @@ package middlewares
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/locales/en"
-	ut "github.com/go-playground/universal-translator"
-	"github.com/go-playground/validator/v10"
-	enTranslation "github.com/go-playground/validator/v10/translations/en"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/slack_alert"
+	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/slack_alert"
 )
 
-func responseError(c *gin.Context) {
+func ResponseError(c *gin.Context) {
 	c.Next()
 
 	requestErrors := c.Errors
@@ -39,44 +35,16 @@ func responseError(c *gin.Context) {
 
 	var metadata = make(map[string]any, 0)
 	var appError *errors.Input
-	var validations []any
 
 	if hasRequestError {
-		if _, ok := requestErrors[0].Err.(*errors.Input); !ok {
-			appError = errors.New(errors.Input{
-				StatusCode:  statusCode,
-				SendToSlack: true,
-			})
-
-			if errs, ok := requestErrors[0].Err.(validator.ValidationErrors); ok {
-				appError.Message = "Some fields are invalid"
-
-				if val, ok := binding.Validator.Engine().(*validator.Validate); ok {
-					lang := en.New()
-					trans, _ := ut.New(lang, lang).GetTranslator("en")
-					_ = enTranslation.RegisterDefaultTranslations(val, trans)
-
-					for _, e := range errs {
-						validations = append(validations, map[string]any{
-							"tag":       e.Tag(),
-							"field":     e.Field(),
-							"namespace": e.Namespace(),
-							"value":     e.Value(),
-							"param":     e.Param(),
-						})
-					}
-
-					appError.Message = errs[0].Translate(trans)
-					_ = appError.AddMetadata("validations", validations)
-				}
-
-				appError.StatusCode = http.StatusBadRequest
-				appError.SendToSlack = false
-			} else {
-				appError.OriginalError = requestErrors.Last().Error()
-			}
+		originalError := requestErrors[0].Err
+		if valueAsError, ok := originalError.(*errors.Input); ok {
+			appError = valueAsError
 		} else {
-			appError = requestErrors[0].Err.(*errors.Input)
+			appError = errors.New(errors.Input{
+				OriginalError: originalError,
+				StatusCode:    statusCode,
+			})
 		}
 	}
 
@@ -85,7 +53,7 @@ func responseError(c *gin.Context) {
 	metadata["path"] = path
 
 	if routePath := c.FullPath(); routePath != "" {
-		metadata["route_path"] = routePath
+		metadata["routePath"] = routePath
 	}
 
 	params := make(map[string]string)
@@ -96,40 +64,37 @@ func responseError(c *gin.Context) {
 
 	headers := make(map[string]string)
 	for key, value := range c.Request.Header {
-		valueAsString := value[0]
-		if key == "Authorization" {
-			tokenType := strings.Split(valueAsString, " ")[0]
-			valueAsString = fmt.Sprintf("%s %s", tokenType, "***")
-		}
-		headers[strings.ToLower(key)] = valueAsString
+		headers[strings.ToLower(key)] = value[0]
 	}
 	metadata["headers"] = headers
 
 	metadata["method"] = method
 	metadata["query"] = c.Request.URL.Query()
 	metadata["version"] = c.Request.Proto
-	metadata["body"] = getRequestBody(c)
+	metadata["body"] = GetBodyAsJson(c)
 	metadata["error"] = appError
 
 	if forwardedUser := c.GetHeader("X-Forwarded-User"); forwardedUser != "" {
-		metadata["forwarded_user"] = forwardedUser
+		metadata["forwardedUser"] = forwardedUser
 	}
 
 	if forwardedEmail := c.GetHeader("X-Forwarded-Email"); forwardedEmail != "" {
-		metadata["forwarded_email"] = forwardedEmail
+		metadata["forwardedEmail"] = forwardedEmail
 	}
 
-	appError.ErrorId = c.GetString(config.RequestIdCtxKey)
-	c.MustGet(config.RequestLoggerCtxKey).(*logger.Logger).
-		WithMetadata(metadata).
-		Error("HTTP_REQUEST_ERROR")
+	logger := config.GetLoggerFromCtx(c)
+	appError.ErrorId = config.GetRequestIdFromCtx(c)
 
-	if config.IsLocal {
+	if *appError.Logging {
+		logger.WithMetadata(metadata).Error("HTTP_REQUEST_ERROR")
+	}
+
+	if config.IsLocal() {
 		c.JSON(appError.StatusCode, appError)
 		return
 	}
 
-	if appError.SendToSlack {
+	if *appError.SendToSlack {
 		go slack_alert.New().WithRequestError(method, path, appError).Send()
 	}
 
@@ -139,6 +104,11 @@ func responseError(c *gin.Context) {
 			"An internal error occurred, contact the developers and enter the code [%s].",
 			appError.ErrorId,
 		)
+	}
+
+	var validations []map[string]any
+	if v, ok := appError.Metadata["validations"]; ok {
+		validations = v.([]map[string]any)
 	}
 
 	c.JSON(appError.StatusCode, gin.H{
@@ -151,10 +121,23 @@ func responseError(c *gin.Context) {
 	})
 }
 
-func getRequestBody(c *gin.Context) map[string]any {
-	result := make(map[string]any)
+func GetBodyAsBytes(c *gin.Context) []byte {
+	bodyAsBytes := []byte("{}")
 	if val, ok := c.Get(gin.BodyBytesKey); ok && val != nil {
-		_ = json.Unmarshal(val.([]byte), &result)
+		bodyAsBytes = val.([]byte)
+	} else {
+		b, _ := io.ReadAll(c.Request.Body)
+		if len(b) > 0 {
+			c.Set(gin.BodyBytesKey, b)
+			bodyAsBytes = b
+		}
 	}
+	return bodyAsBytes
+}
+
+func GetBodyAsJson(c *gin.Context) map[string]any {
+	bodyAsBytes := GetBodyAsBytes(c)
+	result := make(map[string]any)
+	_ = json.Unmarshal(bodyAsBytes, &result)
 	return result
 }

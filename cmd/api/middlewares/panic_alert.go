@@ -7,7 +7,7 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
-func panicAlert(c *gin.Context, err any) {
+func PanicAlert(c *gin.Context, err any) {
 	message := err
 
 	if e, ok := message.(error); ok {
@@ -17,10 +17,10 @@ func panicAlert(c *gin.Context, err any) {
 	c.Error(errors.New(errors.Input{
 		Code:          "PANIC_ERROR",
 		Message:       "The application received a panic error",
-		SendToSlack:   true,
+		SendToSlack:   errors.Bool(true),
 		StatusCode:    http.StatusInternalServerError,
 		OriginalError: message,
 	}))
 
-	responseError(c)
+	ResponseError(c)
 }

@@ -7,23 +7,16 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/token"
 )
 
-func WithToken(c *gin.Context) {
-	headerToken := c.GetString(config.AuthHeaderToken)
-
-	if headerToken == env.Required("JWT_PUBLIC_TOKEN") {
-		c.Next()
-		return
-	}
-
+func CheckToken(c *gin.Context) {
+	headerToken := c.GetString(config.AuthHeaderTokenCtx)
 	unauthorized := errors.New(errors.Input{
-		Code:       "INVALID_JWT_TOKEN",
-		Message:    "Missing token in request.",
-		StatusCode: http.StatusUnauthorized,
+		StatusCode:  http.StatusUnauthorized,
+		SendToSlack: errors.Bool(false),
+		Message:     "Missing token in request.",
+		Code:        "INVALID_JWT_TOKEN",
 	})
 
 	if headerToken == "" {
@@ -37,7 +30,9 @@ func WithToken(c *gin.Context) {
 		return
 	}
 
-	payload, err := token.NewJwt().Decode(headerToken)
+	token := config.GetTokenFromCtx(c)
+	decoded, err := token.Decode(headerToken)
+
 	if err != nil {
 		unauthorized.Message = "Your access token is not valid, please login again."
 		unauthorized.OriginalError = err.Error()
@@ -45,6 +40,12 @@ func WithToken(c *gin.Context) {
 		return
 	}
 
-	c.Set(config.TokenPayloadCtxKey, payload)
+	if _, ok := decoded.Meta["type"]; !ok {
+		unauthorized.Message = "Your access token is not valid, please login again."
+		c.AbortWithError(unauthorized.StatusCode, unauthorized)
+		return
+	}
+
+	c.Set(config.TokenDecodedCtxKey, decoded)
 	c.Next()
 }

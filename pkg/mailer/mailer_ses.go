@@ -3,17 +3,17 @@ package mailer
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ses"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"net/http"
 	"time"
+
+	"github.com/aws/aws-sdk-go/service/ses"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/aws"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
-type SES struct {
-	client            *ses.SES
+type Ses struct {
+	client            *aws.SesClient
 	to                []Address
 	from              []Address
 	replyTo           []Address
@@ -28,72 +28,65 @@ type SES struct {
 	files             []File
 }
 
-func NewSes() Mailer {
-	source := env.Required("AWS_SES_SOURCE")
-	configurationName := env.Get("AWS_SES_CONFIGURATION_NAME")
-	region := env.Get("AWS_SES_REGION", "us-east-1")
-	client := ses.New(
-		session.Must(session.NewSession()),
-		aws.NewConfig().WithRegion(region),
-	)
-	return &SES{
-		client:            client,
-		configurationName: configurationName,
-		source:            source,
+func NewFromAwsSes() Mailer {
+	return &Ses{
+		client:            aws.GetSesClient(),
+		configurationName: env.Get("AWS_SES_CONFIGURATION_NAME"),
+		source:            env.Required("AWS_SES_SOURCE"),
 	}
 }
 
-func (i *SES) To(name, address string) Mailer {
+func (i *Ses) To(name, address string) Mailer {
 	i.to = append(i.to, Address{Name: name, Address: address})
 	return i
 }
 
-func (i *SES) From(name, address string) Mailer {
+func (i *Ses) From(name, address string) Mailer {
 	i.from = append(i.from, Address{Name: name, Address: address})
 	return i
 }
 
-func (i *SES) ReplyTo(name, address string) Mailer {
+func (i *Ses) ReplyTo(name, address string) Mailer {
 	i.replyTo = append(i.replyTo, Address{Name: name, Address: address})
 	return i
 }
 
-func (i *SES) AddCC(name, address string) Mailer {
+func (i *Ses) AddCC(name, address string) Mailer {
 	i.cc = append(i.cc, Address{Name: name, Address: address})
 	return i
 }
 
-func (i *SES) AddBCC(name, address string) Mailer {
+func (i *Ses) AddBCC(name, address string) Mailer {
 	i.bcc = append(i.bcc, Address{Name: name, Address: address})
 	return i
 }
 
-func (i *SES) AddFile(name, path string) Mailer {
+func (i *Ses) AddFile(name, path string) Mailer {
 	i.files = append(i.files, File{Name: name, Path: path})
 	return i
 }
 
-func (i *SES) Subject(subject string) Mailer {
+func (i *Ses) Subject(subject string) Mailer {
 	i.subject = subject
 	return i
 }
 
-func (i *SES) Template(name string, payload TemplatePayload) Mailer {
+func (i *Ses) Template(name string, payload any) Mailer {
 	i.template = Template{Name: name, Payload: payload}
 	return i
 }
 
-func (i *SES) Html(value string) Mailer {
+func (i *Ses) Html(value string) Mailer {
 	i.html = value
 	return i
 }
 
-func (i *SES) Text(value string) Mailer {
+func (i *Ses) Text(value string) Mailer {
 	i.text = value
 	return i
 }
 
-func (i *SES) Send() error {
+func (i *Ses) Send() error {
 	if len(i.to) == 0 {
 		return errors.New(errors.Input{
 			Message:    "At least one destination e-mail must be informed.",
@@ -131,15 +124,21 @@ func (i *SES) Send() error {
 	}
 
 	if i.template.Name != "" {
-		if &i.template.Payload == nil {
-			i.template.Payload = make(TemplatePayload)
+		payloadAsMap := make(map[string]any)
+
+		if value, ok := i.template.Payload.(map[string]any); !ok {
+			payloadAsBytes, _ := json.Marshal(i.template.Payload)
+			json.Unmarshal(payloadAsBytes, &payloadAsMap)
+		} else {
+			payloadAsMap = value
 		}
-		i.template.Payload["year"] = time.Now().Year()
-		i.template.Payload["subject"] = i.subject
-		if _, ok := i.template.Payload["title"]; !ok {
-			i.template.Payload["title"] = i.subject
-		}
-		payloadAsBytes, _ := json.Marshal(i.template.Payload)
+
+		payloadAsMap["year"] = time.Now().Year()
+		payloadAsMap["subject"] = i.subject
+		payloadAsMap["title"] = i.subject
+
+		payloadAsBytes, _ := json.Marshal(payloadAsMap)
+
 		if _, err := i.client.SendTemplatedEmail(&ses.SendTemplatedEmailInput{
 			Source:               input.Source,
 			Template:             aws.String(i.template.Name),
@@ -150,6 +149,7 @@ func (i *SES) Send() error {
 		}); err != nil {
 			return err
 		}
+
 		return nil
 	}
 
@@ -177,7 +177,7 @@ func (i *SES) Send() error {
 	return nil
 }
 
-func (*SES) parseAddress(addresses []Address) []*string {
+func (*Ses) parseAddress(addresses []Address) []*string {
 	var results []*string
 	for _, address := range addresses {
 		results = append(

@@ -1,6 +1,8 @@
 package password_hash
 
 import (
+	"errors"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -26,5 +28,14 @@ func (b *Bcrypt) Create(password string) (string, error) {
 }
 
 func (b *Bcrypt) Compare(hashedPassword string, plainPassword string) error {
-	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plainPassword))
+	if len(hashedPassword) == 0 {
+		return errors.New("hashed password is empty")
+	}
+	if len(plainPassword) == 0 {
+		return errors.New("plain password is empty")
+	}
+	return bcrypt.CompareHashAndPassword(
+		[]byte(hashedPassword),
+		[]byte(plainPassword),
+	)
 }

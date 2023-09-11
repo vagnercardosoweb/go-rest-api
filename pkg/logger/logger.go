@@ -3,14 +3,17 @@ package logger
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"log"
 	"os"
 	"sync"
 	"time"
 )
 
-var logger = log.New(os.Stdout, "", 0)
+var (
+	pid         = os.Getpid()
+	hostname, _ = os.Hostname()
+	logger      = log.New(os.Stdout, "", 0)
+)
 
 type level string
 
@@ -52,6 +55,10 @@ func (*Logger) WithID(id string) *Logger {
 	return l
 }
 
+func (l *Logger) GetID() string {
+	return l.id
+}
+
 func (l *Logger) WithMetadata(metadata map[string]any) *Logger {
 	nl := New()
 	nl.metadata = metadata
@@ -87,6 +94,8 @@ func (l *Logger) Error(message string, arguments ...any) {
 }
 
 func (l *Logger) Log(level level, message string, arguments ...any) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if len(arguments) > 0 {
 		message = fmt.Sprintf(message, arguments...)
 	}
@@ -96,8 +105,8 @@ func (l *Logger) Log(level level, message string, arguments ...any) {
 		Message:   message,
 		Timestamp: time.Now().UTC(),
 		Metadata:  l.metadata,
-		Pid:       config.Pid,
-		Hostname:  config.Hostname,
+		Pid:       pid,
+		Hostname:  hostname,
 	})
 	l.metadata = make(map[string]any)
 	logger.Println(string(logAsJson))

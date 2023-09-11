@@ -12,7 +12,7 @@ const (
 	headers = "Accept, Origin, Content-Type, Authorization, Cache-Control, X-Requested-With, X-HTTP-Method-Override, Accept-Language, X-Refresh-Token, X-Id-Token, X-Aws-IdToken"
 )
 
-func cors(c *gin.Context) {
+func Cors(c *gin.Context) {
 	c.Header("Access-Control-Allow-Origin", origin)
 	c.Header("Access-Control-Allow-Methods", methods)
 	c.Header("Access-Control-Allow-Credentials", "true")

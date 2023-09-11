@@ -5,19 +5,30 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 )
 
-func requestId(c *gin.Context) {
-	requestId := c.GetHeader("x-amzn-trace-id")
-	if requestId == "" {
-		requestId = c.GetHeader("x-amzn-requestid")
-	}
-	if requestId == "" {
-		requestId = uuid.New().String()
-	}
+func RequestId(c *gin.Context) {
+	requestId := uuid.New().String()
+	logger := config.GetLoggerFromCtx(c).WithID(requestId)
+
+	c.Set(config.PgClientCtxKey, config.GetPgClient(c).WithLogger(logger))
+	c.Set(config.RequestLoggerCtxKey, logger)
 	c.Set(config.RequestIdCtxKey, requestId)
-	c.Set(config.RequestLoggerCtxKey, logger.New().WithID(requestId))
+
+	injectAwsRequestIdToHeader(c)
+
 	c.Header("X-Request-Id", requestId)
 	c.Next()
+}
+
+func injectAwsRequestIdToHeader(c *gin.Context) {
+	awsRequestId := c.GetHeader("x-amzn-trace-id")
+
+	if awsRequestId == "" {
+		awsRequestId = c.GetHeader("x-amzn-requestid")
+	}
+
+	if awsRequestId != "" {
+		c.Header("X-Aws-RequestId", awsRequestId)
+	}
 }

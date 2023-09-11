@@ -2,10 +2,16 @@ package middlewares
 
 import (
 	"fmt"
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
-	"net/http"
-	"time"
+)
+
+var (
+	hostname, _ = os.Hostname()
 )
 
 func WrapHandler(handler func(c *gin.Context) any) gin.HandlerFunc {
@@ -14,6 +20,7 @@ func WrapHandler(handler func(c *gin.Context) any) gin.HandlerFunc {
 
 		if err, ok := result.(error); ok {
 			c.Error(err)
+			c.Abort()
 			return
 		}
 
@@ -26,16 +33,19 @@ func WrapHandler(handler func(c *gin.Context) any) gin.HandlerFunc {
 
 		if result != nil {
 			c.JSON(status, gin.H{
-				"data":      result,
-				"path":      fmt.Sprintf("%s %s", c.Request.Method, c.Request.URL.String()),
-				"ipAddress": c.ClientIP(),
-				"userAgent": c.Request.UserAgent(),
-				"timestamp": time.Now().UTC(),
-				"duration":  time.Since(c.Writer.(*XResponseTimer).Start).String(),
-				"hostname":  config.Hostname,
+				"data":        result,
+				"path":        fmt.Sprintf("%s %s", c.Request.Method, c.Request.URL.String()),
+				"duration":    time.Since(c.Writer.(*XResponseTimer).Start).String(),
+				"hostname":    hostname,
+				"environment": config.GetAppEnv(),
+				"ipAddress":   c.ClientIP(),
+				"userAgent":   c.Request.UserAgent(),
+				"timezone":    config.GetLocationGlobal().String(),
+				"utcDate":     time.Now().UTC(),
+				"brlDate":     time.Now().In(config.GetLocationBrl()),
 			})
 		}
 
-		return
+		c.Next()
 	}
 }

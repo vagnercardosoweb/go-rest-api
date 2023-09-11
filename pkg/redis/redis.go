@@ -10,16 +10,16 @@ import (
 	"github.com/go-redis/redis/v9"
 )
 
-type Connection struct {
-	ctx    context.Context
-	client *redis.Client
+type Client struct {
+	redis *redis.Client
+	ctx   context.Context
 }
 
-func Connect(ctx context.Context) *Connection {
+func NewClient(ctx context.Context) *Client {
 	client := redis.NewClient(newConfig())
-	connection := &Connection{
-		ctx:    ctx,
-		client: client,
+	connection := &Client{
+		ctx:   ctx,
+		redis: client,
 	}
 	err := connection.Ping()
 	if err != nil {
@@ -28,23 +28,23 @@ func Connect(ctx context.Context) *Connection {
 	return connection
 }
 
-func (c *Connection) Get(key string, dest any) error {
+func (c *Client) Get(key string, dest any) error {
 	if reflect.ValueOf(dest).Kind() != reflect.Ptr {
 		return fmt.Errorf("Redis#Get('%s') dest must be pointer", key)
 	}
-	result, err := c.client.Get(c.ctx, key).Result()
+	result, err := c.redis.Get(c.ctx, key).Result()
 	if err != nil {
 		return err
 	}
 	return json.Unmarshal([]byte(result), dest)
 }
 
-func (c *Connection) Set(key string, value any, expiration time.Duration) error {
+func (c *Client) Set(key string, value any, expiration time.Duration) error {
 	jsonValue, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-	return c.client.Set(
+	return c.redis.Set(
 		c.ctx,
 		key,
 		jsonValue,
@@ -52,28 +52,28 @@ func (c *Connection) Set(key string, value any, expiration time.Duration) error 
 	).Err()
 }
 
-func (c *Connection) Has(key string) (bool, error) {
-	cmd := c.client.Exists(c.ctx, key)
+func (c *Client) Has(key string) (bool, error) {
+	cmd := c.redis.Exists(c.ctx, key)
 	return c.checkResultCmd(cmd)
 }
 
-func (c *Connection) checkResultCmd(cmd *redis.IntCmd) (bool, error) {
+func (c *Client) checkResultCmd(cmd *redis.IntCmd) (bool, error) {
 	if cmd.Err() != nil {
 		return false, cmd.Err()
 	}
 	return cmd.Val() > 0, nil
 }
 
-func (c *Connection) Del(key string) (bool, error) {
-	cmd := c.client.Del(c.ctx, key)
+func (c *Client) Del(key string) (bool, error) {
+	cmd := c.redis.Del(c.ctx, key)
 	return c.checkResultCmd(cmd)
 }
 
-func (c *Connection) Ping() error {
-	result := c.client.Ping(c.ctx)
+func (c *Client) Ping() error {
+	result := c.redis.Ping(c.ctx)
 	return result.Err()
 }
 
-func (c *Connection) Close() error {
-	return c.client.Close()
+func (c *Client) Close() error {
+	return c.redis.Close()
 }

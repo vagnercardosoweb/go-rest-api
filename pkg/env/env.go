@@ -8,7 +8,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func LoadFromLocal() {
+func Load() {
 	if os.Getenv("IS_AWS_LAMBDA") == "true" {
 		log.Println("Skipping load the environment, the environment is being executing with lambda")
 		return

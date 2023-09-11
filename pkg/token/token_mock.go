@@ -17,7 +17,7 @@ func (m *Mock) Encode(input Input) (string, error) {
 	return args.String(0), args.Error(1)
 }
 
-func (m *Mock) Decode(token string) (*Output, error) {
+func (m *Mock) Decode(token string) (*Decoded, error) {
 	args := m.Called(token)
-	return args.Get(0).(*Output), args.Error(1)
+	return args.Get(0).(*Decoded), args.Error(1)
 }

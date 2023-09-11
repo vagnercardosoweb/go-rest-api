@@ -3,27 +3,24 @@ package token
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 )
 
 type Jwt struct {
 	secretKey []byte
+	expiresIn time.Duration
 }
 
-func NewJwt() *Jwt {
-	return &Jwt{secretKey: []byte(env.Required("JWT_SECRET_KEY"))}
+func NewJwt(secretKey []byte, expiresIn time.Duration) *Jwt {
+	return &Jwt{
+		expiresIn: expiresIn,
+		secretKey: secretKey,
+	}
 }
 
-func (j *Jwt) WithSecret(secretKey []byte) *Jwt {
-	j.secretKey = secretKey
-	return j
-}
-
-func (j *Jwt) Encode(input Input) (string, error) {
+func (j *Jwt) Encode(input *Input) (string, error) {
 	if input.Subject == "" {
 		return "", errors.New("sub needs to be filled to create a token")
 	}
@@ -33,8 +30,7 @@ func (j *Jwt) Encode(input Input) (string, error) {
 	}
 
 	if input.ExpiresAt.IsZero() {
-		expiresInSecond, _ := strconv.Atoi(env.Get("JWT_EXPIRES_IN_SECONDS", "86400"))
-		input.ExpiresAt = time.Now().Add(time.Second * time.Duration(expiresInSecond))
+		input.ExpiresAt = time.Now().Add(time.Second * j.expiresIn)
 	}
 
 	claims := jwt.MapClaims{
@@ -46,6 +42,8 @@ func (j *Jwt) Encode(input Input) (string, error) {
 
 	if input.Issuer != "" {
 		claims["iss"] = input.Issuer
+	} else {
+		claims["iss"] = "internal-api"
 	}
 
 	if input.Audience != "" {
@@ -57,7 +55,7 @@ func (j *Jwt) Encode(input Input) (string, error) {
 	return signedString, err
 }
 
-func (j *Jwt) Decode(token string) (*Output, error) {
+func (j *Jwt) Decode(token string) (*Decoded, error) {
 	jwtToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
@@ -79,7 +77,7 @@ func (j *Jwt) Decode(token string) (*Output, error) {
 		return nil, err
 	}
 
-	output := &Output{
+	output := &Decoded{
 		Token: token,
 		Input: Input{
 			Subject:   claims["sub"].(string),

@@ -9,8 +9,6 @@ import (
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/password_hash"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/token"
 )
 
 type Input struct {
@@ -24,13 +22,13 @@ func Login(c *gin.Context) any {
 		return err
 	}
 
+	token := config.GetTokenFromCtx(c)
+	pgClient := config.GetPgClient(c)
+
 	svc := services.New(
-		repositories.NewPostgres(
-			c.MustGet(config.PgConnectCtxKey).(*postgres.Connection),
-			c.Request.Context(),
-		),
+		repositories.NewPostgres(pgClient, c.Request.Context()),
 		password_hash.NewBcrypt(),
-		token.NewJwt(),
+		token,
 	)
 
 	result, err := svc.Login(input.Email, input.Password)

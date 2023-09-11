@@ -54,7 +54,7 @@ func (svc *service) Login(email, password string) (string, error) {
 		})
 	}
 
-	jwt, err := svc.token.Encode(token.Input{Subject: user.ID.String()})
+	jwt, err := svc.token.Encode(&token.Input{Subject: user.ID.String()})
 	if err != nil {
 		return "", err
 	}

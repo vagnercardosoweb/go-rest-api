@@ -1,7 +1,5 @@
 package mailer
 
-type TemplatePayload = map[string]any
-
 type Mailer interface {
 	To(name, address string) Mailer
 	From(name, address string) Mailer
@@ -11,7 +9,7 @@ type Mailer interface {
 	AddFile(name, path string) Mailer
 	Subject(subject string) Mailer
 	Html(value string) Mailer
-	Template(name string, payload TemplatePayload) Mailer
+	Template(name string, payload any) Mailer
 	Text(value string) Mailer
 	Send() error
 }
@@ -27,6 +25,6 @@ type File struct {
 }
 
 type Template struct {
+	Payload any
 	Name    string
-	Payload TemplatePayload
 }

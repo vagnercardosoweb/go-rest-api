@@ -8,26 +8,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var secretKey = []byte("secret_key")
+
+func getJwt() Token {
+	return NewJwt(secretKey, time.Duration(time.Hour*2))
+}
+
 func TestTokenJwt_Encode(t *testing.T) {
-	jwt := NewJwt()
-	token, err := jwt.Encode(Input{Subject: "any_sub"})
+	jwt := getJwt()
+	token, err := jwt.Encode(&Input{Subject: "any_sub"})
 	assert.Nil(t, err)
 	assert.NotNil(t, token)
 	assert.Len(t, strings.Split(token, "."), 3)
 }
 
 func TestTokenJwt_Encode_WithoutSubject(t *testing.T) {
-	jwt := NewJwt()
-	_, err := jwt.Encode(Input{})
+	jwt := getJwt()
+	_, err := jwt.Encode(&Input{})
 	assert.NotNil(t, err)
 }
 
 func TestTokenJwt_Decode(t *testing.T) {
-	jwt := NewJwt()
+	jwt := getJwt()
 	issuedAt := time.Now()
 	expiresAt := issuedAt.Add(time.Hour * 2)
 
-	token, err := jwt.Encode(Input{
+	token, err := jwt.Encode(&Input{
 		Subject:   "any_subject",
 		IssuedAt:  issuedAt,
 		ExpiresAt: expiresAt,

@@ -3,6 +3,7 @@ package auth_repositories
 import (
 	"context"
 	"database/sql"
+
 	"github.com/google/uuid"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 )
@@ -13,10 +14,10 @@ type Interface interface {
 
 type pg struct {
 	ctx context.Context
-	db  *postgres.Connection
+	db  *postgres.Client
 }
 
-func NewPostgres(db *postgres.Connection, ctx context.Context) Interface {
+func NewPostgres(db *postgres.Client, ctx context.Context) Interface {
 	return &pg{db: db, ctx: ctx}
 }
 

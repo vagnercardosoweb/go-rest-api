@@ -11,12 +11,12 @@ type Input struct {
 	Issuer    string
 }
 
-type Output struct {
+type Decoded struct {
 	Input
 	Token string
 }
 
 type Token interface {
-	Encode(input Input) (string, error)
-	Decode(token string) (*Output, error)
+	Encode(input *Input) (string, error)
+	Decode(token string) (*Decoded, error)
 }

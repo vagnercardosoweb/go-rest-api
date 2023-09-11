@@ -1,16 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: api
-  namespace: golang
+  name: golang-api
+  namespace: golang-api
   labels:
-    app: api
+    app: golang-api
 spec:
   selector:
     matchLabels:
-      app: api
-  replicas: 1
-  minReadySeconds: 0
+      app: golang-api
+  replicas: 3
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -18,20 +17,26 @@ spec:
       maxSurge: 1
   template:
     metadata:
-      name: api
-      namespace: golang
+      name: golang-api
+      namespace: golang-api
       labels:
-        app: api
+        app: golang-api
     spec:
-      restartPolicy: Always
       containers:
-        - name: api
-          image: ${IMAGE_URL}
+        - name: golang-api
+          image: IMAGE_URL
           imagePullPolicy: Always
           ports:
-            - name: api
+            - name: golang-api
               containerPort: 3000
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: api
+                name: golang-api
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 1024Mi
+            requests:
+              cpu: 200m
+              memory: 256Mi

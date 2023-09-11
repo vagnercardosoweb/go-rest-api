@@ -12,20 +12,24 @@ define run_migration_docker
 	docker run --rm -v $(shell pwd)/migrations:/migrations migrate/migrate -path /migrations/ -database "${POSTGRESQL_LOCAL_URL}" $(1)
 endef
 
-start:
+start_docker:
 	docker-compose -f docker-compose.yml down --remove-orphans
 	docker-compose -f docker-compose.yml up --build -d
+	docker logs go-rest-api.api -f
+
+start_local: check_build
+	~/go/bin/air -c .air.toml
 
 build_docker_local:
 	docker build --rm --no-cache -f ./Dockerfile.production -t ${IMAGE_URL}.${IMAGE_VERSION} .
 
 build_docker_aws:
-	docker build --rm --no-cache -f ./Dockerfile.production -t ${IMAGE_URL}.${IMAGE_VERSION} .
+	docker build --rm --no-cache --platform linux/amd64 -f ./Dockerfile.production -t ${IMAGE_URL}.${IMAGE_VERSION} .
 	aws --profile ${AWS_PROFILE} ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_REGISTRY_URL}
 	docker push ${IMAGE_URL}.${IMAGE_VERSION}
 
 check_build:
-	go build ./...
+	go build -v ./...
 
 migration_up:
 	$(call run_migration_docker,up)
@@ -40,4 +44,4 @@ generate_linux_bin:
 run:
 	go run ./cmd/api/main.go
 
-.PHONY: start build_docker_local build_docker_aws check_build migration_up migration_down generate_linux_bin sql_generate run
+.PHONY: start_local start_docker build_docker_local build_docker_aws check_build migration_up migration_down generate_linux_bin sql_generate run

@@ -5,23 +5,28 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
+
+	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
-type Connection struct {
+type Client struct {
 	tx            *sqlx.Tx
-	client        *sqlx.DB
+	db            *sqlx.DB
 	lastQueryTime time.Time
 	context       context.Context
+	logger        *logger.Logger
 	history       []History
 	config        *config
 }
 
-func Connect(ctx context.Context, envPrefix EnvPrefix) *Connection {
+func NewClient(ctx context.Context, logger *logger.Logger, envPrefix EnvPrefix) *Client {
 	config := fromEnvPrefix(envPrefix)
 
 	sslMode := "disable"
@@ -47,16 +52,17 @@ func Connect(ctx context.Context, envPrefix EnvPrefix) *Connection {
 	db.SetConnMaxLifetime(config.getConnMaxLifetime())
 	db.SetMaxIdleConns(config.getMaxIdleConn())
 
-	return &Connection{
+	return &Client{
 		tx:      nil,
-		client:  db,
+		db:      db,
 		context: ctx,
 		history: make([]History, 0),
+		logger:  logger,
 		config:  config,
 	}
 }
 
-func (c *Connection) withQueryTimeoutCtx() (context.Context, context.CancelFunc) {
+func (c *Client) withQueryTimeoutCtx() (context.Context, context.CancelFunc) {
 	queryTimeout := c.config.getQueryTimeout()
 	if queryTimeout > 0 {
 		return context.WithTimeout(c.context, queryTimeout)
@@ -64,38 +70,34 @@ func (c *Connection) withQueryTimeoutCtx() (context.Context, context.CancelFunc)
 	return c.context, func() {}
 }
 
-func (c *Connection) GetDB() *sql.DB {
-	return c.client.DB
+func (c *Client) GetDB() *sql.DB {
+	return c.db.DB
 }
 
-func (c *Connection) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (c *Client) Exec(query string, bind ...any) (sql.Result, error) {
+	query = c.normalizeQuery(query)
+
 	ctx, cancel := c.withQueryTimeoutCtx()
 	defer cancel()
 
 	var err error
-	var result sql.Result
-	history := History{
-		Query:     query,
-		CreatedAt: time.Now(),
-		Arguments: args,
-	}
+	history := History{Query: query, Bind: bind}
 
 	defer func() {
 		c.lastQueryTime = time.Now().UTC()
-		history.LatencyMs = history.FinishedAt.Sub(history.StartedAt).Milliseconds()
+		history.Duration = history.FinishedAt.Sub(history.StartedAt).String()
 		c.addHistory(history)
 	}()
 
-	if c.config.Logging {
-		//
+	var result sql.Result
+	history.StartedAt = time.Now()
+
+	if c.tx != nil {
+		result, err = c.tx.ExecContext(ctx, query, bind...)
+	} else {
+		result, err = c.db.ExecContext(ctx, query, bind...)
 	}
 
-	history.StartedAt = time.Now()
-	if c.tx != nil {
-		result, err = c.tx.ExecContext(ctx, query, args...)
-	} else {
-		result, err = c.client.ExecContext(ctx, query, args...)
-	}
 	history.FinishedAt = time.Now()
 
 	if err != nil {
@@ -105,29 +107,29 @@ func (c *Connection) Exec(query string, args ...interface{}) (sql.Result, error)
 	return result, err
 }
 
-func (c *Connection) Query(dest any, query string, args ...any) error {
+func (c *Client) Query(dest any, query string, bind ...any) error {
+	query = c.normalizeQuery(query)
+
 	ctx, cancel := c.withQueryTimeoutCtx()
 	defer cancel()
 
 	var err error
-	history := History{Query: query, Arguments: args, CreatedAt: time.Now()}
+	history := History{Query: query, Bind: bind}
 
 	defer func() {
 		c.lastQueryTime = time.Now().UTC()
-		history.LatencyMs = history.FinishedAt.Sub(history.StartedAt).Milliseconds()
+		history.Duration = history.FinishedAt.Sub(history.StartedAt).String()
 		c.addHistory(history)
 	}()
 
-	if c.config.Logging {
-		//
+	history.StartedAt = time.Now()
+
+	if c.tx != nil {
+		err = c.tx.SelectContext(ctx, dest, query, bind...)
+	} else {
+		err = c.db.SelectContext(ctx, dest, query, bind...)
 	}
 
-	history.StartedAt = time.Now()
-	if c.tx != nil {
-		err = c.tx.SelectContext(ctx, dest, query, args...)
-	} else {
-		err = c.client.SelectContext(ctx, dest, query, args...)
-	}
 	history.FinishedAt = time.Now()
 
 	if err != nil {
@@ -137,29 +139,29 @@ func (c *Connection) Query(dest any, query string, args ...any) error {
 	return err
 }
 
-func (c *Connection) QueryOne(dest any, query string, args ...any) error {
+func (c *Client) QueryOne(dest any, query string, bind ...any) error {
+	query = c.normalizeQuery(query)
+
 	ctx, cancel := c.withQueryTimeoutCtx()
 	defer cancel()
 
 	var err error
-	history := History{Query: query, Arguments: args, CreatedAt: time.Now()}
+	history := History{Query: query, Bind: bind}
 
 	defer func() {
 		c.lastQueryTime = time.Now().UTC()
-		history.LatencyMs = history.FinishedAt.Sub(history.StartedAt).Milliseconds()
+		history.Duration = history.FinishedAt.Sub(history.StartedAt).String()
 		c.addHistory(history)
 	}()
 
-	if c.config.Logging {
-		//
+	history.StartedAt = time.Now()
+
+	if c.tx != nil {
+		err = c.tx.GetContext(ctx, dest, query, bind...)
+	} else {
+		err = c.db.GetContext(ctx, dest, query, bind...)
 	}
 
-	history.StartedAt = time.Now()
-	if c.tx != nil {
-		err = c.tx.GetContext(ctx, dest, query, args...)
-	} else {
-		err = c.client.GetContext(ctx, dest, query, args...)
-	}
 	history.FinishedAt = time.Now()
 
 	if err != nil {
@@ -169,19 +171,16 @@ func (c *Connection) QueryOne(dest any, query string, args ...any) error {
 	return err
 }
 
-func (c *Connection) WithTx(fn func(*Connection) (any, error)) (any, error) {
-	tx, err := c.client.BeginTxx(c.context, nil)
+func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
+	tx, err := c.db.BeginTxx(c.context, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := fn(&Connection{
-		tx:      tx,
-		client:  c.client,
-		context: c.context,
-		history: make([]History, 0),
-		config:  c.config,
-	})
+	newConnection := c.Copy()
+	newConnection.tx = tx
+
+	result, err := fn(newConnection)
 
 	if err != nil {
 		if txError := tx.Rollback(); txError != nil {
@@ -189,8 +188,8 @@ func (c *Connection) WithTx(fn func(*Connection) (any, error)) (any, error) {
 				Message:    "Rollback Transaction Error",
 				StatusCode: http.StatusInternalServerError,
 				Metadata: errors.Metadata{
-					"fn_error": err.Error(),
-					"tx_error": txError.Error(),
+					"txError": txError.Error(),
+					"fnError": err.Error(),
 				}},
 			)
 		}
@@ -201,14 +200,38 @@ func (c *Connection) WithTx(fn func(*Connection) (any, error)) (any, error) {
 	return result, tx.Commit()
 }
 
-func (c *Connection) Close() error {
-	return c.client.Close()
+func (c *Client) WithLogger(logger *logger.Logger) *Client {
+	newConnection := c.Copy()
+	newConnection.logger = logger
+	return newConnection
 }
 
-func (c *Connection) LastQueryTime() time.Time {
+func (c *Client) Copy() *Client {
+	return &Client{
+		db:      c.db,
+		context: c.context,
+		logger:  c.logger,
+		history: make([]History, 0),
+		config:  c.config,
+	}
+}
+
+func (c *Client) normalizeQuery(query string) string {
+	q := strings.TrimSpace(query)
+	q = regexp.MustCompile(`\s+|\n|\t`).ReplaceAllString(q, " ")
+	q = regexp.MustCompile(`\(\s`).ReplaceAllString(q, "(")
+	q = regexp.MustCompile(`\s\)`).ReplaceAllString(q, ")")
+	return q
+}
+
+func (c *Client) Close() error {
+	return c.db.Close()
+}
+
+func (c *Client) LastQueryTime() time.Time {
 	return c.lastQueryTime
 }
 
-func (c *Connection) Ping() error {
-	return c.client.PingContext(c.context)
+func (c *Client) Ping() error {
+	return c.db.PingContext(c.context)
 }

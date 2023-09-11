@@ -9,12 +9,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
+
+	"github.com/gin-contrib/gzip"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/token"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/middlewares"
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/routes"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/monitoring"
@@ -23,23 +27,27 @@ import (
 )
 
 var (
-	ctx          context.Context
-	httpServer   *http.Server
-	postgresConn *postgres.Connection
-	redisConn    *redis.Connection
-	appLogger    *logger.Logger
+	ctx           context.Context
+	httpServer    *http.Server
+	pgClient      *postgres.Client
+	redisClient   *redis.Client
+	tokenInstance token.Token
+	appLogger     *logger.Logger
 )
 
 func init() {
-	env.LoadFromLocal()
+	env.Load()
 	ctx = context.Background()
 	appLogger = logger.New()
 
-	postgresConn = postgres.Connect(ctx, postgres.Default)
-	ctx = context.WithValue(ctx, config.PgConnectCtxKey, postgresConn)
+	tokenInstance = token.NewJwt([]byte(env.Required("JWT_SECRET_KEY")), config.GetExpiresInJwt())
+	ctx = context.WithValue(ctx, config.TokenCtxKey, tokenInstance)
 
-	redisConn = redis.Connect(ctx)
-	ctx = context.WithValue(ctx, config.RedisConnectCtxKey, redisConn)
+	pgClient = postgres.NewClient(ctx, appLogger, postgres.Default)
+	ctx = context.WithValue(ctx, config.PgClientCtxKey, pgClient)
+
+	redisClient = redis.NewClient(ctx)
+	ctx = context.WithValue(ctx, config.RedisClientCtxKey, redisClient)
 
 	httpServer = &http.Server{
 		Addr:    fmt.Sprintf(":%s", env.Required("PORT")),
@@ -52,7 +60,7 @@ func shutdown() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-quit
 
-	appLogger.Error("Shutting down server")
+	appLogger.Info("Shutting down server")
 
 	timeout := config.GetShutdownTimeout() * time.Second
 	ctx, cancel := context.WithTimeout(ctx, timeout)
@@ -65,11 +73,11 @@ func shutdown() {
 
 	<-ctx.Done()
 
-	appLogger.Error("Server exiting of %v seconds.", timeout)
+	appLogger.Info("Server exiting of %v seconds.", timeout)
 }
 
 func handler() *gin.Engine {
-	if config.IsProduction {
+	if config.IsProduction() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -77,12 +85,15 @@ func handler() *gin.Engine {
 	router.RemoveExtraSlash = true
 	router.RedirectTrailingSlash = true
 
+	router.Use(gzip.Gzip(gzip.BestSpeed))
 	router.Use(func(c *gin.Context) {
 		c.Request = c.Request.WithContext(ctx)
+		c.Writer.Header().Set("Content-Type", "application/json")
 
+		c.Set(config.PgClientCtxKey, pgClient)
+		c.Set(config.RedisClientCtxKey, redisClient)
 		c.Set(config.RequestLoggerCtxKey, appLogger)
-		c.Set(config.PgConnectCtxKey, postgresConn)
-		c.Set(config.RedisConnectCtxKey, redisConn)
+		c.Set(config.TokenCtxKey, tokenInstance)
 
 		c.Next()
 	})
@@ -94,8 +105,8 @@ func handler() *gin.Engine {
 }
 
 func main() {
-	defer redisConn.Close()
-	defer postgresConn.Close()
+	defer pgClient.Close()
+	defer redisClient.Close()
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -109,7 +120,7 @@ func main() {
 		httpServer.Addr,
 	)
 
-	if config.IsDebug {
+	if config.IsDebug() {
 		monitoring.RunProfiler(appLogger)
 	}
 

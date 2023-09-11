@@ -9,11 +9,11 @@ import (
 	"io"
 )
 
-// NewEncryptionKey generates a random 256-bit key. It will return an
+// NewEncryptKey generates a random 256-bit key. It will return an
 // error if the system's secure random number generator fails to
 // function correctly, in which case the caller should not continue.
 // Taken from https://github.com/gtank/cryptopasta/blob/master/encrypt.go
-func NewEncryptionKey() (*[32]byte, error) {
+func NewEncryptKey() (*[32]byte, error) {
 	key := [32]byte{}
 	_, err := io.ReadFull(rand.Reader, key[:])
 	if err != nil {
@@ -22,9 +22,9 @@ func NewEncryptionKey() (*[32]byte, error) {
 	return &key, nil
 }
 
-// ParseEncryptionKey decodes the string representation of an encryption key
+// ParseEncryptKey decodes the string representation of an encryption key
 // and returns its bytes
-func ParseEncryptionKey(s string) (*[32]byte, error) {
+func ParseEncryptKey(s string) (*[32]byte, error) {
 	// get hex encoded encryption key from cloud secret
 	key, err := hex.DecodeString(s)
 	if err != nil {

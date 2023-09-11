@@ -1,22 +1,29 @@
 package middlewares
 
 import (
-	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 )
 
-func loggerRequest(c *gin.Context) {
+var skipPaths = []string{
+	"/", "/favicon.ico",
+}
+
+func RequestLog(c *gin.Context) {
 	path := c.Request.URL.String()
-	if path == "/" {
-		c.Next()
-		return
+
+	for _, skipPath := range skipPaths {
+		if path == skipPath {
+			c.Next()
+			return
+		}
 	}
 
 	method := c.Request.Method
-	requestLogger := c.MustGet(config.RequestLoggerCtxKey).(*logger.Logger)
+	requestLogger := config.GetLoggerFromCtx(c)
 	clientIP := c.ClientIP()
 	metadata := map[string]any{
 		"ip":      clientIP,
@@ -46,8 +53,8 @@ func loggerRequest(c *gin.Context) {
 	metadata["length"] = c.Writer.Size()
 	metadata["status"] = status
 
-	if config.IsDebug && method != http.MethodGet {
-		metadata["body"] = getRequestBody(c)
+	if config.IsDebug() && method != http.MethodGet {
+		metadata["body"] = GetBodyAsJson(c)
 	}
 
 	level := logger.LevelInfo
@@ -55,5 +62,10 @@ func loggerRequest(c *gin.Context) {
 		level = logger.LevelError
 	}
 
-	requestLogger.WithMetadata(metadata).Log(level, "HTTP_REQUEST_COMPLETED")
+	requestLogger.
+		WithMetadata(metadata).
+		Log(
+			level,
+			"HTTP_REQUEST_COMPLETED",
+		)
 }
