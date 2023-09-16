@@ -42,7 +42,7 @@ func New() *SlackAlert {
 		channel:     env.Get("SLACK_CHANNEL", "golang-alerts"),
 		username:    env.Get("SLACK_USERNAME", "golang-api"),
 		memberId:    env.Get("SLACK_MEMBERS_ID"),
-		environment: config.GetAppEnv(),
+		environment: config.AppEnv,
 		color:       "#D32F2F",
 		fields:      make([]Field, 0),
 	}

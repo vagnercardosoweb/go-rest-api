@@ -11,7 +11,7 @@ import (
 var secretKey = []byte("secret_key")
 
 func getJwt() Token {
-	return NewJwt(secretKey, time.Duration(time.Hour*2))
+	return NewJwt(secretKey, time.Hour*2)
 }
 
 func TestTokenJwt_Encode(t *testing.T) {

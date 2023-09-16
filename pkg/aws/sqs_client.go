@@ -31,7 +31,8 @@ func GetSqsClient(logger *logger.Logger) *SqsClient {
 }
 
 func (s *SqsClient) sendMessage(queueUrl string, input any) error {
-	if config.IsLocal() {
+	if config.IsLocal {
+		s.logger.WithMetadata(map[string]any{"queueUrl": queueUrl, "input": input}).Info("SQS_SEND_MESSAGE_SKIPPED")
 		return nil
 	}
 	bodyAsBytes, err := json.Marshal(input)

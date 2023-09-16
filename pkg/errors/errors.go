@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/go-playground/validator/v10"
 	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
-	"github.com/go-playground/validator/v10"
 	enTranslation "github.com/go-playground/validator/v10/translations/en"
 	"github.com/google/uuid"
 )
@@ -77,7 +77,7 @@ func FromBindJson(err error) *Input {
 	appError := New(Input{
 		Code:        "BIND_JSON_ERROR",
 		Message:     err.Error(),
-		StatusCode:  http.StatusBadRequest,
+		StatusCode:  http.StatusUnprocessableEntity,
 		SendToSlack: falsy,
 		Logging:     falsy,
 	})

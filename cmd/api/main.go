@@ -40,7 +40,7 @@ func init() {
 	ctx = context.Background()
 	appLogger = logger.New()
 
-	tokenInstance = token.NewJwt([]byte(env.Required("JWT_SECRET_KEY")), config.GetExpiresInJwt())
+	tokenInstance = token.NewJwt([]byte(env.Required("JWT_SECRET_KEY")), config.JwtExpiresIn)
 	ctx = context.WithValue(ctx, config.TokenCtxKey, tokenInstance)
 
 	pgClient = postgres.NewClient(ctx, appLogger, postgres.Default)
@@ -60,24 +60,24 @@ func shutdown() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-quit
 
-	appLogger.Info("Shutting down server")
+	appLogger.Info("shutting down server")
 
-	timeout := config.GetShutdownTimeout() * time.Second
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	timeout := env.GetInt("SHUTDOWN_TIMEOUT", "0")
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 	defer cancel()
 
 	if err := httpServer.Shutdown(ctx); err != nil {
-		appLogger.Error("Server forced to shutdown: %v", err.Error())
+		appLogger.AddMetadata("originalError", err.Error()).Error("server forced to shutdown")
 		os.Exit(1)
 	}
 
 	<-ctx.Done()
 
-	appLogger.Info("Server exiting of %v seconds.", timeout)
+	appLogger.Info("server exiting of %v seconds.", timeout)
 }
 
 func handler() *gin.Engine {
-	if config.IsProduction() {
+	if config.IsProduction {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -110,17 +110,14 @@ func main() {
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			appLogger.Error("Server listen error: %v", err.Error())
+			appLogger.AddMetadata("originalError", err.Error()).Error("server listen error")
 			os.Exit(1)
 		}
 	}()
 
-	appLogger.Info(
-		"Server running on http://0.0.0.0%s",
-		httpServer.Addr,
-	)
+	appLogger.AddMetadata("port", httpServer.Addr).Info("server started")
 
-	if config.IsDebug() {
+	if config.IsDebug {
 		monitoring.RunProfiler(appLogger)
 	}
 

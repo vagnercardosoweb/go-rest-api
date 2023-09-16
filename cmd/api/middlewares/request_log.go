@@ -53,7 +53,7 @@ func RequestLog(c *gin.Context) {
 	metadata["length"] = c.Writer.Size()
 	metadata["status"] = status
 
-	if config.IsDebug() && method != http.MethodGet {
+	if config.IsDebug && method != http.MethodGet {
 		metadata["body"] = GetBodyAsJson(c)
 	}
 

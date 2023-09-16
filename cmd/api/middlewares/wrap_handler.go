@@ -32,17 +32,18 @@ func WrapHandler(handler func(c *gin.Context) any) gin.HandlerFunc {
 		}
 
 		if result != nil {
+			now := time.Now()
 			c.JSON(status, gin.H{
 				"data":        result,
 				"path":        fmt.Sprintf("%s %s", c.Request.Method, c.Request.URL.String()),
 				"duration":    time.Since(c.Writer.(*XResponseTimer).Start).String(),
 				"hostname":    hostname,
-				"environment": config.GetAppEnv(),
+				"environment": config.AppEnv,
 				"ipAddress":   c.ClientIP(),
 				"userAgent":   c.Request.UserAgent(),
-				"timezone":    config.GetLocationGlobal().String(),
-				"utcDate":     time.Now().UTC(),
-				"brlDate":     time.Now().In(config.GetLocationBrl()),
+				"timezone":    time.UTC.String(),
+				"brlDate":     now.In(config.LocationBrl),
+				"utcDate":     now.UTC(),
 			})
 		}
 

@@ -9,6 +9,6 @@ RUN go install github.com/cosmtrek/air@latest
 
 COPY . .
 
-EXPOSE ${PORT:-3000}
+EXPOSE ${PORT:-3300}
 
 CMD ["air"]

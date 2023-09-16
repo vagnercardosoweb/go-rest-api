@@ -206,6 +206,10 @@ func (c *Client) WithLogger(logger *logger.Logger) *Client {
 	return newConnection
 }
 
+func (c *Client) GetLogger() *logger.Logger {
+	return c.logger
+}
+
 func (c *Client) Copy() *Client {
 	return &Client{
 		db:      c.db,

@@ -89,7 +89,7 @@ func ResponseError(c *gin.Context) {
 		logger.WithMetadata(metadata).Error("HTTP_REQUEST_ERROR")
 	}
 
-	if config.IsLocal() {
+	if config.IsLocal {
 		c.JSON(appError.StatusCode, appError)
 		return
 	}

@@ -2,13 +2,11 @@ package monitoring
 
 import (
 	"fmt"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"runtime"
 	"time"
-
-	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 )
-
-const megabyte = 1024 * 1024
 
 func runProfiler(logger *logger.Logger) {
 	m := &runtime.MemStats{}
@@ -19,9 +17,9 @@ func runProfiler(logger *logger.Logger) {
 		logger.
 			WithID("MONITORING").
 			AddMetadata("memory_used", m.Alloc).
-			AddMetadata("memory_used_mb", fmt.Sprintf("%vmb", m.Alloc/megabyte)).
+			AddMetadata("memory_used_mb", fmt.Sprintf("%vmb", m.Alloc/config.MegaBytes)).
 			AddMetadata("goroutine", runtime.NumGoroutine()).
-			AddMetadata("memory_acquired_mb", fmt.Sprintf("%vmb", m.Sys/megabyte)).
+			AddMetadata("memory_acquired_mb", fmt.Sprintf("%vmb", m.Sys/config.MegaBytes)).
 			AddMetadata("memory_acquired", m.Sys).
 			Info("PROFILER")
 

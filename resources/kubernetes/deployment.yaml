@@ -28,15 +28,15 @@ spec:
           imagePullPolicy: Always
           ports:
             - name: golang-api
-              containerPort: 3000
+              containerPort: 3300
               protocol: TCP
           envFrom:
             - configMapRef:
                 name: golang-api
           resources:
             limits:
-              cpu: 2000m
-              memory: 1024Mi
+              cpu: 1000m
+              memory: 512Mi
             requests:
               cpu: 200m
               memory: 256Mi
