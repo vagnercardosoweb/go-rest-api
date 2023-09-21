@@ -10,7 +10,7 @@ import (
 
 func WithAuthType(authType string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		decoded := config.GetTokenDecodedFromCtx(c)
+		decoded := config.TokenDecodedFromCtx(c)
 		tokenType := decoded.Meta["type"].(string)
 
 		if tokenType != authType {

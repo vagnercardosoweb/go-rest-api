@@ -82,14 +82,14 @@ func ResponseError(c *gin.Context) {
 		metadata["forwardedEmail"] = forwardedEmail
 	}
 
-	logger := config.GetLoggerFromCtx(c)
-	appError.ErrorId = config.GetRequestIdFromCtx(c)
+	logger := config.LoggerFromCtx(c)
+	appError.ErrorId = config.RequestIdFromCtx(c)
 
 	if *appError.Logging {
 		logger.WithMetadata(metadata).Error("HTTP_REQUEST_ERROR")
 	}
 
-	if config.IsLocal {
+	if config.IsLocal() {
 		c.JSON(appError.StatusCode, appError)
 		return
 	}

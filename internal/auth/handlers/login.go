@@ -22,8 +22,8 @@ func Login(c *gin.Context) any {
 		return err
 	}
 
-	token := config.GetTokenFromCtx(c)
-	pgClient := config.GetPgClientFromCtx(c)
+	token := config.TokenFromCtx(c)
+	pgClient := config.PgClientFromCtx(c)
 
 	svc := services.New(
 		repositories.NewPostgres(pgClient, c.Request.Context()),

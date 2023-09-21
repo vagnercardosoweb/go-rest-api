@@ -10,8 +10,8 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
-func CheckToken(c *gin.Context) {
-	headerToken := c.GetString(config.AuthHeaderTokenCtx)
+func WithToken(c *gin.Context) {
+	authToken := config.AuthTokenFromCtx(c)
 	unauthorized := errors.New(errors.Input{
 		StatusCode:  http.StatusUnauthorized,
 		SendToSlack: errors.Bool(false),
@@ -19,19 +19,19 @@ func CheckToken(c *gin.Context) {
 		Code:        "INVALID_JWT_TOKEN",
 	})
 
-	if headerToken == "" {
+	if authToken == "" {
 		c.AbortWithError(unauthorized.StatusCode, unauthorized)
 		return
 	}
 
-	if len(strings.Split(headerToken, ".")) != 3 {
+	if len(strings.Split(authToken, ".")) != 3 {
 		unauthorized.Message = "The token is badly formatted."
 		c.AbortWithError(unauthorized.StatusCode, unauthorized)
 		return
 	}
 
-	token := config.GetTokenFromCtx(c)
-	decoded, err := token.Decode(headerToken)
+	token := config.TokenFromCtx(c)
+	decoded, err := token.Decode(authToken)
 
 	if err != nil {
 		unauthorized.Message = "Your access token is not valid, please login again."

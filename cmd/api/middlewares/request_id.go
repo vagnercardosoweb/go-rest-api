@@ -9,9 +9,9 @@ import (
 
 func RequestId(c *gin.Context) {
 	requestId := uuid.New().String()
-	logger := config.GetLoggerFromCtx(c).WithID(requestId)
+	logger := config.LoggerFromCtx(c).WithID(requestId)
 
-	c.Set(config.PgClientCtxKey, config.GetPgClientFromCtx(c).WithLogger(logger))
+	c.Set(config.PgClientCtxKey, config.PgClientFromCtx(c).WithLogger(logger))
 	c.Set(config.RequestLoggerCtxKey, logger)
 	c.Set(config.RequestIdCtxKey, requestId)
 

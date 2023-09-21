@@ -8,7 +8,7 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 )
 
-func ExtractToken(c *gin.Context) {
+func ExtractAuthToken(c *gin.Context) {
 	token := c.Query("token")
 	authorization := c.GetHeader("Authorization")
 
@@ -20,6 +20,6 @@ func ExtractToken(c *gin.Context) {
 		}
 	}
 
-	c.Set(config.AuthHeaderTokenCtx, token)
+	c.Set(config.AuthTokenCtxKey, token)
 	c.Next()
 }

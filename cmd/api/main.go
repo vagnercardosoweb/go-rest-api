@@ -9,39 +9,40 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
-
 	"github.com/gin-contrib/gzip"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/token"
-
 	"github.com/gin-gonic/gin"
 
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/middlewares"
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/routes"
+
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/monitoring"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/token"
 )
 
 var (
-	ctx           context.Context
-	httpServer    *http.Server
-	pgClient      *postgres.Client
-	redisClient   *redis.Client
-	tokenInstance token.Token
-	appLogger     *logger.Logger
+	ctx          context.Context
+	pgClient     *postgres.Client
+	httpServer   *http.Server
+	redisClient  *redis.Client
+	tokenManager token.Token
+	appLogger    *logger.Logger
 )
 
 func init() {
 	env.Load()
 	ctx = context.Background()
-	appLogger = logger.New()
 
-	tokenInstance = token.NewJwt([]byte(env.Required("JWT_SECRET_KEY")), config.JwtExpiresIn)
-	ctx = context.WithValue(ctx, config.TokenCtxKey, tokenInstance)
+	appLogger = logger.New()
+	ctx = context.WithValue(ctx, config.RequestLoggerCtxKey, appLogger)
+
+	tokenManager = token.NewJwt(config.JwtSecretKey(), config.JwtExpiresIn())
+	ctx = context.WithValue(ctx, config.TokenManagerCtxKey, tokenManager)
 
 	pgClient = postgres.NewClient(ctx, appLogger, postgres.Default)
 	ctx = context.WithValue(ctx, config.PgClientCtxKey, pgClient)
@@ -60,48 +61,60 @@ func shutdown() {
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	<-quit
 
-	appLogger.Info("shutting down server")
+	appLogger.Info("shutdown server")
 
-	timeout := env.GetInt("SHUTDOWN_TIMEOUT", "0")
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
+	timeout := time.Duration(env.GetInt("SHUTDOWN_TIMEOUT", "5")) * time.Second
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	if err := httpServer.Shutdown(ctx); err != nil {
-		appLogger.AddMetadata("originalError", err.Error()).Error("server forced to shutdown")
+		appLogger.AddMetadata("originalError", err).Error("server forced shutdown")
 		os.Exit(1)
 	}
 
-	<-ctx.Done()
+	select {
+	case <-ctx.Done():
+		appLogger.Info("timeout of %d seconds.", timeout)
+	}
 
-	appLogger.Info("server exiting of %v seconds.", timeout)
+	appLogger.Info("server exiting")
 }
 
 func handler() *gin.Engine {
-	if config.IsProduction {
+	if config.IsProduction() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	router := gin.New()
-	router.RemoveExtraSlash = true
-	router.RedirectTrailingSlash = true
+	h := gin.New()
+	h.RemoveExtraSlash = true
+	h.RedirectTrailingSlash = true
 
-	router.Use(gzip.Gzip(gzip.BestSpeed))
-	router.Use(func(c *gin.Context) {
+	h.Use(gzip.Gzip(gzip.BestSpeed))
+
+	h.Use(middlewares.ResponseTime)
+	h.Use(middlewares.Cors)
+
+	h.Use(func(c *gin.Context) {
 		c.Request = c.Request.WithContext(ctx)
 		c.Writer.Header().Set("Content-Type", "application/json")
 
 		c.Set(config.PgClientCtxKey, pgClient)
-		c.Set(config.RedisClientCtxKey, redisClient)
+		c.Set(config.TokenManagerCtxKey, tokenManager)
 		c.Set(config.RequestLoggerCtxKey, appLogger)
-		c.Set(config.TokenCtxKey, tokenInstance)
+		c.Set(config.RedisClientCtxKey, redisClient)
 
 		c.Next()
 	})
 
-	middlewares.Setup(router)
-	routes.Setup(router)
+	h.Use(middlewares.RequestId)
+	h.Use(middlewares.RequestLog)
+	h.Use(middlewares.ExtractAuthToken)
+	h.Use(gin.CustomRecovery(middlewares.Recovery))
+	h.Use(middlewares.ResponseError)
 
-	return router
+	routes.Setup(h)
+
+	return h
 }
 
 func main() {
@@ -110,14 +123,14 @@ func main() {
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			appLogger.AddMetadata("originalError", err.Error()).Error("server listen error")
+			appLogger.AddMetadata("originalError", err).Error("server listen error")
 			os.Exit(1)
 		}
 	}()
 
-	appLogger.AddMetadata("port", httpServer.Addr).Info("server started")
+	appLogger.Info("server started on port %s", httpServer.Addr)
 
-	if config.IsDebug {
+	if config.IsDebug() {
 		monitoring.RunProfiler(appLogger)
 	}
 

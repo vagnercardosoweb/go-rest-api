@@ -23,7 +23,7 @@ func RequestLog(c *gin.Context) {
 	}
 
 	method := c.Request.Method
-	requestLogger := config.GetLoggerFromCtx(c)
+	requestLogger := config.LoggerFromCtx(c)
 	clientIP := c.ClientIP()
 	metadata := map[string]any{
 		"ip":      clientIP,
@@ -53,7 +53,7 @@ func RequestLog(c *gin.Context) {
 	metadata["length"] = c.Writer.Size()
 	metadata["status"] = status
 
-	if config.IsDebug && method != http.MethodGet {
+	if config.IsDebug() && method != http.MethodGet {
 		metadata["body"] = GetBodyAsJson(c)
 	}
 

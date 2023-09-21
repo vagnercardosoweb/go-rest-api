@@ -46,7 +46,7 @@ func NewClient() *Client {
 		channel:     channel,
 		username:    username,
 		memberId:    memberId,
-		environment: config.AppEnv,
+		environment: config.AppEnv(),
 		color:       "#D32F2F",
 		fields:      make([]Field, 0),
 	}
