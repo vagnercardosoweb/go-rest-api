@@ -1,5 +1,7 @@
 package aws
 
+import "sync"
+
 type CacheKey string
 
 var (
@@ -10,8 +12,11 @@ var (
 )
 
 var cache = make(map[CacheKey]map[string]any)
+var mu sync.Mutex
 
 func addServiceToCache(key CacheKey, region string, svc any) {
+	mu.Lock()
+	defer mu.Unlock()
 	if _, exists := cache[key]; !exists {
 		cache[key] = make(map[string]any)
 	}

@@ -21,7 +21,7 @@ type Field struct {
 	Short bool   `json:"short"`
 }
 
-type SlackAlert struct {
+type Client struct {
 	fields      []Field
 	channel     string
 	username    string
@@ -34,14 +34,18 @@ type SlackAlert struct {
 var (
 	pid         = os.Getpid()
 	hostname, _ = os.Hostname()
+	token       = env.Get("SLACK_TOKEN")
+	channel     = env.Get("SLACK_CHANNEL", "alerts")
+	username    = env.Get("SLACK_USERNAME", "golang")
+	memberId    = env.Get("SLACK_MEMBERS_ID")
 )
 
-func New() *SlackAlert {
-	sa := &SlackAlert{
-		token:       env.Get("SLACK_TOKEN"),
-		channel:     env.Get("SLACK_CHANNEL", "golang-alerts"),
-		username:    env.Get("SLACK_USERNAME", "golang-api"),
-		memberId:    env.Get("SLACK_MEMBERS_ID"),
+func NewClient() *Client {
+	sa := &Client{
+		token:       token,
+		channel:     channel,
+		username:    username,
+		memberId:    memberId,
 		environment: config.AppEnv,
 		color:       "#D32F2F",
 		fields:      make([]Field, 0),
@@ -51,42 +55,12 @@ func New() *SlackAlert {
 	return sa
 }
 
-func (sa *SlackAlert) WithToken(token string) *SlackAlert {
-	sa.token = token
-	return sa
-}
-
-func (sa *SlackAlert) WithColor(color string) *SlackAlert {
-	sa.color = color
-	return sa
-}
-
-func (sa *SlackAlert) WithEnvironment(environment string) *SlackAlert {
-	sa.environment = environment
-	return sa
-}
-
-func (sa *SlackAlert) WithUsername(username string) *SlackAlert {
-	sa.username = username
-	return sa
-}
-
-func (sa *SlackAlert) WithChannel(channel string) *SlackAlert {
-	sa.channel = channel
-	return sa
-}
-
-func (sa *SlackAlert) WithMemberId(memberId string) *SlackAlert {
-	sa.memberId = memberId
-	return sa
-}
-
-func (sa *SlackAlert) AddField(title string, value string, short bool) *SlackAlert {
+func (sa *Client) AddField(title string, value string, short bool) *Client {
 	sa.fields = append(sa.fields, Field{Title: title, Value: value, Short: short})
 	return sa
 }
 
-func (sa *SlackAlert) WithError(err *errors.Input) *SlackAlert {
+func (sa *Client) WithError(err *errors.Input) *Client {
 	sa.AddField("Error Code / Error Id", fmt.Sprintf("%s / %s", err.Code, err.ErrorId), false)
 	sa.AddField("Message", err.Message, false)
 
@@ -101,13 +75,13 @@ func (sa *SlackAlert) WithError(err *errors.Input) *SlackAlert {
 	return sa
 }
 
-func (sa *SlackAlert) WithRequestError(method string, path string, err *errors.Input) *SlackAlert {
+func (sa *Client) WithRequestError(method string, path string, err *errors.Input) *Client {
 	sa.AddField("[Status] Request", fmt.Sprintf("[%d] %s %s", err.StatusCode, method, path), false)
 	sa.WithError(err)
 	return sa
 }
 
-func (sa *SlackAlert) getColor() string {
+func (sa *Client) getColor() string {
 	colors := map[string]string{
 		"error":   "#D32F2F",
 		"warning": "#F57C00",
@@ -120,7 +94,7 @@ func (sa *SlackAlert) getColor() string {
 	return sa.color
 }
 
-func (sa *SlackAlert) getMemberIds() string {
+func (sa *Client) getMemberIds() string {
 	memberIds := strings.Split(sa.memberId, ",")
 	if len(memberIds) == 0 {
 		return "hey"
@@ -128,7 +102,7 @@ func (sa *SlackAlert) getMemberIds() string {
 	return fmt.Sprintf("<@%s>", strings.Join(memberIds, ">, <@"))
 }
 
-func (sa *SlackAlert) Send() error {
+func (sa *Client) Send() error {
 	if sa.token == "" {
 		return nil
 	}

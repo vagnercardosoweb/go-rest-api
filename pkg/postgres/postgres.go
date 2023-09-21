@@ -22,7 +22,6 @@ type Client struct {
 	lastQueryTime time.Time
 	context       context.Context
 	logger        *logger.Logger
-	history       []History
 	config        *config
 }
 
@@ -56,7 +55,6 @@ func NewClient(ctx context.Context, logger *logger.Logger, envPrefix EnvPrefix) 
 		tx:      nil,
 		db:      db,
 		context: ctx,
-		history: make([]History, 0),
 		logger:  logger,
 		config:  config,
 	}
@@ -81,16 +79,16 @@ func (c *Client) Exec(query string, bind ...any) (sql.Result, error) {
 	defer cancel()
 
 	var err error
-	history := History{Query: query, Bind: bind}
+	log := Log{Query: query, Bind: bind}
 
 	defer func() {
 		c.lastQueryTime = time.Now().UTC()
-		history.Duration = history.FinishedAt.Sub(history.StartedAt).String()
-		c.addHistory(history)
+		log.Duration = log.FinishedAt.Sub(log.StartedAt).String()
+		c.log(log)
 	}()
 
 	var result sql.Result
-	history.StartedAt = time.Now()
+	log.StartedAt = time.Now()
 
 	if c.tx != nil {
 		result, err = c.tx.ExecContext(ctx, query, bind...)
@@ -98,10 +96,10 @@ func (c *Client) Exec(query string, bind ...any) (sql.Result, error) {
 		result, err = c.db.ExecContext(ctx, query, bind...)
 	}
 
-	history.FinishedAt = time.Now()
+	log.FinishedAt = time.Now()
 
 	if err != nil {
-		history.ErrorMessage = err.Error()
+		log.ErrorMessage = err.Error()
 	}
 
 	return result, err
@@ -114,15 +112,15 @@ func (c *Client) Query(dest any, query string, bind ...any) error {
 	defer cancel()
 
 	var err error
-	history := History{Query: query, Bind: bind}
+	log := Log{Query: query, Bind: bind}
 
 	defer func() {
 		c.lastQueryTime = time.Now().UTC()
-		history.Duration = history.FinishedAt.Sub(history.StartedAt).String()
-		c.addHistory(history)
+		log.Duration = log.FinishedAt.Sub(log.StartedAt).String()
+		c.log(log)
 	}()
 
-	history.StartedAt = time.Now()
+	log.StartedAt = time.Now()
 
 	if c.tx != nil {
 		err = c.tx.SelectContext(ctx, dest, query, bind...)
@@ -130,10 +128,10 @@ func (c *Client) Query(dest any, query string, bind ...any) error {
 		err = c.db.SelectContext(ctx, dest, query, bind...)
 	}
 
-	history.FinishedAt = time.Now()
+	log.FinishedAt = time.Now()
 
 	if err != nil {
-		history.ErrorMessage = err.Error()
+		log.ErrorMessage = err.Error()
 	}
 
 	return err
@@ -146,15 +144,15 @@ func (c *Client) QueryOne(dest any, query string, bind ...any) error {
 	defer cancel()
 
 	var err error
-	history := History{Query: query, Bind: bind}
+	log := Log{Query: query, Bind: bind}
 
 	defer func() {
 		c.lastQueryTime = time.Now().UTC()
-		history.Duration = history.FinishedAt.Sub(history.StartedAt).String()
-		c.addHistory(history)
+		log.Duration = log.FinishedAt.Sub(log.StartedAt).String()
+		c.log(log)
 	}()
 
-	history.StartedAt = time.Now()
+	log.StartedAt = time.Now()
 
 	if c.tx != nil {
 		err = c.tx.GetContext(ctx, dest, query, bind...)
@@ -162,10 +160,10 @@ func (c *Client) QueryOne(dest any, query string, bind ...any) error {
 		err = c.db.GetContext(ctx, dest, query, bind...)
 	}
 
-	history.FinishedAt = time.Now()
+	log.FinishedAt = time.Now()
 
 	if err != nil {
-		history.ErrorMessage = err.Error()
+		log.ErrorMessage = err.Error()
 	}
 
 	return err
@@ -176,6 +174,9 @@ func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// prevents database lock in case of panic error
+	defer tx.Rollback()
 
 	newConnection := c.Copy()
 	newConnection.tx = tx
@@ -215,7 +216,6 @@ func (c *Client) Copy() *Client {
 		db:      c.db,
 		context: c.context,
 		logger:  c.logger,
-		history: make([]History, 0),
 		config:  c.config,
 	}
 }

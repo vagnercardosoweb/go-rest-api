@@ -30,7 +30,7 @@ func GetSqsClient(logger *logger.Logger) *SqsClient {
 	return client
 }
 
-func (s *SqsClient) sendMessage(queueUrl string, input any) error {
+func (s *SqsClient) sendMessage(queueUrl *string, input any) error {
 	if config.IsLocal {
 		s.logger.WithMetadata(map[string]any{"queueUrl": queueUrl, "input": input}).Info("SQS_SEND_MESSAGE_SKIPPED")
 		return nil
@@ -41,7 +41,7 @@ func (s *SqsClient) sendMessage(queueUrl string, input any) error {
 	}
 	s.logger.WithMetadata(map[string]any{"queueUrl": queueUrl, "input": input}).Info("SQS_SEND_MESSAGE_INPUT")
 	output, err := s.client.SendMessage(&sqs.SendMessageInput{
-		QueueUrl:    String(queueUrl),
+		QueueUrl:    queueUrl,
 		MessageBody: String(string(bodyAsBytes)),
 	})
 	if err != nil {

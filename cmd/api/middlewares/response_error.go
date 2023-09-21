@@ -95,7 +95,7 @@ func ResponseError(c *gin.Context) {
 	}
 
 	if *appError.SendToSlack {
-		go slack_alert.New().WithRequestError(method, path, appError).Send()
+		go slack_alert.NewClient().WithRequestError(method, path, appError).Send()
 	}
 
 	errorMessage := appError.Message

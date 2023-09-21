@@ -66,6 +66,16 @@ func NewNullInt32(i int32) sql.NullInt32 {
 	}
 }
 
+func NewNullFloat64(f float64) sql.NullFloat64 {
+	if f == 0 {
+		return sql.NullFloat64{}
+	}
+	return sql.NullFloat64{
+		Float64: f,
+		Valid:   true,
+	}
+}
+
 func NewNullUUID(i uuid.UUID) uuid.NullUUID {
 	if i == uuid.Nil {
 		return uuid.NullUUID{}

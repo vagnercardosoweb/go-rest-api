@@ -3,11 +3,13 @@ package logger
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"log"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
 var (
@@ -32,7 +34,7 @@ type Logger struct {
 	mu       *sync.Mutex
 }
 
-type output struct {
+type Output struct {
 	Id          string         `json:"id"`
 	Level       level          `json:"level"`
 	Pid         int            `json:"pid"`
@@ -62,19 +64,21 @@ func (l *Logger) GetID() string {
 }
 
 func (l *Logger) WithMetadata(metadata map[string]any) *Logger {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	for key, value := range metadata {
+		l.AddMetadata(key, value)
+	}
 
-	nl := New()
-	nl.metadata = metadata
-	nl.id = l.id
-
-	return nl
+	return l
 }
 
 func (l *Logger) AddMetadata(key string, value any) *Logger {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if _, ok := value.(*errors.Input); !ok {
+		if err, ok := value.(error); ok {
+			value = err.Error()
+		}
+	}
 	l.metadata[key] = value
 	return l
 }
@@ -105,7 +109,7 @@ func (l *Logger) Log(level level, message string, arguments ...any) {
 	if len(arguments) > 0 {
 		message = fmt.Sprintf(message, arguments...)
 	}
-	logAsJson, _ := json.Marshal(output{
+	logAsJson, _ := json.Marshal(Output{
 		Id:          l.id,
 		Level:       level,
 		Environment: env.Get("APP_ENV", "local"),

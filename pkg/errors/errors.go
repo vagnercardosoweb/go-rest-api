@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/go-playground/validator/v10"
 	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
 	enTranslation "github.com/go-playground/validator/v10/translations/en"
 	"github.com/google/uuid"
 )
@@ -34,6 +34,8 @@ type (
 
 func New(input Input) *Input {
 	input.makeDefaultValues()
+	input.makeOriginalError()
+	input.makeMetadata()
 	if len(input.Stack) == 0 {
 		input.Stack = GetCallerStack(2)
 	}
@@ -128,12 +130,6 @@ func (input *Input) AddMetadata(name string, value any) *Input {
 }
 
 func (input *Input) makeDefaultValues() {
-	if originalError, ok := input.OriginalError.(*Input); ok {
-		*input = *originalError
-	} else if err, ok := input.OriginalError.(error); ok {
-		input.OriginalError = err.Error()
-	}
-
 	if input.Name == "" {
 		input.Name = "AppError"
 	}
@@ -154,10 +150,6 @@ func (input *Input) makeDefaultValues() {
 		input.ErrorId = uuid.New().String()
 	}
 
-	if input.Metadata == nil {
-		input.Metadata = make(Metadata)
-	}
-
 	truthy := Bool(true)
 	if input.Logging == nil {
 		input.Logging = truthy
@@ -171,4 +163,28 @@ func (input *Input) makeDefaultValues() {
 		input.Message,
 		input.Arguments...,
 	)
+}
+
+func (input *Input) makeOriginalError() {
+	if _, ok := input.OriginalError.(*Input); !ok {
+		if err, ok := input.OriginalError.(error); ok {
+			input.OriginalError = err.Error()
+		}
+	}
+}
+
+func (input *Input) makeMetadata() {
+	if input.Metadata == nil {
+		input.Metadata = make(Metadata)
+	}
+
+	for name, value := range input.Metadata {
+		if _, ok := value.(*Input); ok {
+			continue
+		}
+
+		if err, ok := value.(error); ok {
+			input.Metadata[name] = err.Error()
+		}
+	}
 }
