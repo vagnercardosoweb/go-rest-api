@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 )
 
-type JSONToMap map[string]any
+type JsonToMap map[string]any
 
-func (j *JSONToMap) Scan(value any) error {
+func (j *JsonToMap) Scan(value any) error {
 	if value == nil {
 		return nil
 	}
@@ -19,11 +19,22 @@ func (j *JSONToMap) Scan(value any) error {
 	return json.Unmarshal(data, &j)
 }
 
-func (j *JSONToMap) Value() (driver.Value, error) {
-	if len(*j) == 0 {
-		return nil, nil
-	}
+func (j JsonToMap) Value() (driver.Value, error) {
 	return json.Marshal(j)
+}
+
+type ArrayToMap []map[string]any
+
+func (a *ArrayToMap) Scan(value any) error {
+	if value == nil {
+		return nil
+	}
+	var data = value.([]byte)
+	return json.Unmarshal(data, &a)
+}
+
+func (a ArrayToMap) Value() (driver.Value, error) {
+	return json.Marshal(a)
 }
 
 func NewNullString(s string) sql.NullString {

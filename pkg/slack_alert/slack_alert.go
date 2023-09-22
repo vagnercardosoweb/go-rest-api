@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
@@ -29,26 +30,24 @@ type Client struct {
 	environment string
 	color       string
 	token       string
+	mu          *sync.Mutex
 }
 
 var (
 	pid         = os.Getpid()
 	hostname, _ = os.Hostname()
-	token       = env.Get("SLACK_TOKEN")
-	channel     = env.Get("SLACK_CHANNEL", "alerts")
-	username    = env.Get("SLACK_USERNAME", "golang")
-	memberId    = env.Get("SLACK_MEMBERS_ID")
 )
 
 func NewClient() *Client {
 	sa := &Client{
-		token:       token,
-		channel:     channel,
-		username:    username,
-		memberId:    memberId,
+		token:       env.Get("SLACK_TOKEN"),
+		channel:     env.Get("SLACK_CHANNEL", "alerts"),
+		username:    env.Get("SLACK_USERNAME", "golang"),
+		memberId:    env.Get("SLACK_MEMBERS_ID"),
 		environment: config.AppEnv(),
 		color:       "#D32F2F",
 		fields:      make([]Field, 0),
+		mu:          &sync.Mutex{},
 	}
 	sa.AddField("Hostname", hostname, true)
 	sa.AddField("PID", strconv.Itoa(pid), true)
@@ -56,7 +55,14 @@ func NewClient() *Client {
 }
 
 func (sa *Client) AddField(title string, value string, short bool) *Client {
+	sa.mu.Lock()
+	defer sa.mu.Unlock()
 	sa.fields = append(sa.fields, Field{Title: title, Value: value, Short: short})
+	return sa
+}
+
+func (sa *Client) AddFieldError(title string, err error) *Client {
+	sa.AddField(title, fmt.Sprintf("```%s```", err), false)
 	return sa
 }
 

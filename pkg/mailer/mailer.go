@@ -1,16 +1,16 @@
 package mailer
 
-type Mailer interface {
-	To(name, address string) Mailer
-	From(name, address string) Mailer
-	ReplyTo(name, address string) Mailer
-	AddCC(name, address string) Mailer
-	AddBCC(name, address string) Mailer
-	AddFile(name, path string) Mailer
-	Subject(subject string) Mailer
-	Html(value string) Mailer
-	Template(name string, payload any) Mailer
-	Text(value string) Mailer
+type Client interface {
+	To(name, address string) Client
+	From(name, address string) Client
+	ReplyTo(name, address string) Client
+	AddCC(name, address string) Client
+	AddBCC(name, address string) Client
+	AddFile(name, path string) Client
+	Subject(subject string) Client
+	Html(value string) Client
+	Template(name string, payload any) Client
+	Text(value string) Client
 	Send() error
 }
 

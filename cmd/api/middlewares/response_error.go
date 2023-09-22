@@ -29,24 +29,11 @@ func ResponseError(c *gin.Context) {
 	statusCode := c.Writer.Status()
 	method := c.Request.Method
 
-	if (isAborted && statusCode == http.StatusOK) || hasRequestError {
+	if isAborted && statusCode == http.StatusOK {
 		statusCode = http.StatusInternalServerError
 	}
 
 	var metadata = make(map[string]any, 0)
-	var appError *errors.Input
-
-	if hasRequestError {
-		originalError := requestErrors[0].Err
-		if valueAsError, ok := originalError.(*errors.Input); ok {
-			appError = valueAsError
-		} else {
-			appError = errors.New(errors.Input{
-				OriginalError: originalError,
-				StatusCode:    statusCode,
-			})
-		}
-	}
 
 	metadata["ip"] = c.ClientIP()
 	metadata["time"] = time.Since(c.Writer.(*XResponseTimer).Start).String()
@@ -72,7 +59,6 @@ func ResponseError(c *gin.Context) {
 	metadata["query"] = c.Request.URL.Query()
 	metadata["version"] = c.Request.Proto
 	metadata["body"] = GetBodyAsJson(c)
-	metadata["error"] = appError
 
 	if forwardedUser := c.GetHeader("X-Forwarded-User"); forwardedUser != "" {
 		metadata["forwardedUser"] = forwardedUser
@@ -82,8 +68,27 @@ func ResponseError(c *gin.Context) {
 		metadata["forwardedEmail"] = forwardedEmail
 	}
 
+	var appError *errors.Input
 	logger := config.LoggerFromCtx(c)
-	appError.ErrorId = config.RequestIdFromCtx(c)
+	requestId := logger.GetID()
+
+	if !hasRequestError {
+		logger.WithMetadata(metadata).Error("HTTP_REQUEST_ERROR")
+		return
+	}
+
+	originalError := requestErrors[0].Err
+	if valueAsError, ok := originalError.(*errors.Input); ok {
+		appError = valueAsError
+	} else {
+		appError = errors.New(errors.Input{
+			Message:    originalError.Error(),
+			StatusCode: statusCode,
+		})
+	}
+
+	appError.ErrorId = requestId
+	metadata["error"] = appError
 
 	if *appError.Logging {
 		logger.WithMetadata(metadata).Error("HTTP_REQUEST_ERROR")

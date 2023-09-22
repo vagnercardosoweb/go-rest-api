@@ -12,7 +12,7 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
-type Ses struct {
+type SesClient struct {
 	client            *aws.SesClient
 	to                []Address
 	from              []Address
@@ -28,65 +28,65 @@ type Ses struct {
 	files             []File
 }
 
-func NewFromAwsSes() Mailer {
-	return &Ses{
+func NewSesClient() *SesClient {
+	return &SesClient{
 		client:            aws.GetSesClient(),
 		configurationName: env.Get("AWS_SES_CONFIGURATION_NAME"),
 		source:            env.Required("AWS_SES_SOURCE"),
 	}
 }
 
-func (i *Ses) To(name, address string) Mailer {
+func (i *SesClient) To(name, address string) Client {
 	i.to = append(i.to, Address{Name: name, Address: address})
 	return i
 }
 
-func (i *Ses) From(name, address string) Mailer {
+func (i *SesClient) From(name, address string) Client {
 	i.from = append(i.from, Address{Name: name, Address: address})
 	return i
 }
 
-func (i *Ses) ReplyTo(name, address string) Mailer {
+func (i *SesClient) ReplyTo(name, address string) Client {
 	i.replyTo = append(i.replyTo, Address{Name: name, Address: address})
 	return i
 }
 
-func (i *Ses) AddCC(name, address string) Mailer {
+func (i *SesClient) AddCC(name, address string) Client {
 	i.cc = append(i.cc, Address{Name: name, Address: address})
 	return i
 }
 
-func (i *Ses) AddBCC(name, address string) Mailer {
+func (i *SesClient) AddBCC(name, address string) Client {
 	i.bcc = append(i.bcc, Address{Name: name, Address: address})
 	return i
 }
 
-func (i *Ses) AddFile(name, path string) Mailer {
+func (i *SesClient) AddFile(name, path string) Client {
 	i.files = append(i.files, File{Name: name, Path: path})
 	return i
 }
 
-func (i *Ses) Subject(subject string) Mailer {
+func (i *SesClient) Subject(subject string) Client {
 	i.subject = subject
 	return i
 }
 
-func (i *Ses) Template(name string, payload any) Mailer {
+func (i *SesClient) Template(name string, payload any) Client {
 	i.template = Template{Name: name, Payload: payload}
 	return i
 }
 
-func (i *Ses) Html(value string) Mailer {
+func (i *SesClient) Html(value string) Client {
 	i.html = value
 	return i
 }
 
-func (i *Ses) Text(value string) Mailer {
+func (i *SesClient) Text(value string) Client {
 	i.text = value
 	return i
 }
 
-func (i *Ses) Send() error {
+func (i *SesClient) Send() error {
 	if len(i.to) == 0 {
 		return errors.New(errors.Input{
 			Message:    "At least one destination e-mail must be informed.",
@@ -177,7 +177,7 @@ func (i *Ses) Send() error {
 	return nil
 }
 
-func (*Ses) parseAddress(addresses []Address) []*string {
+func (*SesClient) parseAddress(addresses []Address) []*string {
 	var results []*string
 	for _, address := range addresses {
 		results = append(

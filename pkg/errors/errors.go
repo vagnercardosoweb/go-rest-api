@@ -4,15 +4,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
-	"github.com/go-playground/validator/v10"
 	enTranslation "github.com/go-playground/validator/v10/translations/en"
-	"github.com/google/uuid"
+	"io"
+	"net/http"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type (
@@ -23,27 +22,30 @@ type (
 		ErrorId       string   `json:"errorId"`
 		Message       string   `json:"message"`
 		StatusCode    int      `json:"statusCode"`
-		OriginalError any      `json:"originalError"`
-		Stack         []string `json:"stack"`
-		Metadata      Metadata `json:"metadata"`
 		SendToSlack   *bool    `json:"sendToSlack"`
-		Arguments     []any    `json:"arguments"`
 		Logging       *bool    `json:"logging"`
+		Metadata      Metadata `json:"metadata,omitempty"`
+		Arguments     []any    `json:"-"`
+		OriginalError any      `json:"originalError,omitempty"`
+		SkipStack     bool     `json:"-"`
+		Stack         []string `json:"stack"`
 	}
 )
 
-func New(input Input) *Input {
-	input.makeDefaultValues()
-	input.makeOriginalError()
-	input.makeMetadata()
-	if len(input.Stack) == 0 {
-		input.Stack = GetCallerStack(2)
+var translator ut.Translator
+
+func init() {
+	if val, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		lang := en.New()
+		translator, _ = ut.New(lang, lang).GetTranslator("en")
+		_ = enTranslation.RegisterDefaultTranslations(val, translator)
 	}
-	return &input
 }
 
-func As(err error, target any) bool {
-	return errors.As(err, &target)
+func New(input Input) *Input {
+	input.build()
+	input.makeStack()
+	return &input
 }
 
 func Is(err, target error) bool {
@@ -54,21 +56,24 @@ func Bool(value bool) *bool {
 	return &value
 }
 
-func FromSql(err error, errorMessage ...string) *Input {
-	appError := New(Input{})
-	appError.OriginalError = err.Error()
-	appError.StatusCode = http.StatusInternalServerError
+// FromSql converts a sql error to an AppError.
+// First argument is the error, the rest are arguments to be used in the message
+func FromSql(err error, args ...any) *Input {
+	appError := New(Input{OriginalError: err})
 
 	if Is(err, sql.ErrNoRows) {
 		appError.Message = "Resource not found"
 		appError.StatusCode = http.StatusNotFound
+
 		falsy := Bool(false)
 		appError.SendToSlack = falsy
 		appError.Logging = falsy
 	}
 
-	if len(errorMessage) > 0 {
-		appError.Message = errorMessage[0]
+	if len(args) > 0 {
+		appError.Message = args[0].(string)
+		appError.Arguments = args[1:]
+		appError.makeMessage()
 	}
 
 	return appError
@@ -96,95 +101,101 @@ func FromBindJson(err error) *Input {
 		appError.Message = "Some fields are invalid"
 		appError.Code = "VALIDATION_ERROR"
 
-		if val, ok := binding.Validator.Engine().(*validator.Validate); ok {
-			lang := en.New()
-			trans, _ := ut.New(lang, lang).GetTranslator("en")
-			_ = enTranslation.RegisterDefaultTranslations(val, trans)
-
-			for _, e := range errs {
-				validations = append(validations, map[string]any{
-					"tag":       e.Tag(),
-					"field":     e.Field(),
-					"message":   e.Translate(trans),
-					"namespace": e.Namespace(),
-					"value":     e.Value(),
-					"param":     e.Param(),
-				})
-			}
-
-			appError.Message = validations[0]["message"].(string)
-			_ = appError.AddMetadata("validations", validations)
+		for _, e := range errs {
+			validations = append(validations, map[string]any{
+				"tag":       e.Tag(),
+				"field":     e.Field(),
+				"message":   e.Translate(translator),
+				"namespace": e.Namespace(),
+				"value":     e.Value(),
+				"param":     e.Param(),
+			})
 		}
+
+		appError.Message = validations[0]["message"].(string)
+		appError.Metadata["validations"] = validations
 	}
 
 	return appError
 }
 
-func (input *Input) Error() string {
-	return input.Message
+func (e *Input) Error() string {
+	return e.Message
 }
 
-func (input *Input) AddMetadata(name string, value any) *Input {
-	input.Metadata[name] = value
-	return input
+func (e *Input) makeStack() {
+	if e.SkipStack == true {
+		return
+	}
+
+	if len(e.Stack) == 0 {
+		e.Stack = GetCallerStack(2)
+	}
 }
 
-func (input *Input) makeDefaultValues() {
-	if input.Name == "" {
-		input.Name = "AppError"
+func (e *Input) checkInputValues() {
+	if e.Name == "" {
+		e.Name = "AppError"
 	}
 
-	if input.Code == "" {
-		input.Code = "DEFAULT"
+	if e.Code == "" {
+		e.Code = "DEFAULT"
 	}
 
-	if input.StatusCode == 0 {
-		input.StatusCode = http.StatusInternalServerError
-	}
-
-	if input.Message == "" {
-		input.Message = http.StatusText(input.StatusCode)
-	}
-
-	if input.ErrorId == "" {
-		input.ErrorId = uuid.New().String()
+	if e.StatusCode == 0 {
+		e.StatusCode = http.StatusInternalServerError
 	}
 
 	truthy := Bool(true)
-	if input.Logging == nil {
-		input.Logging = truthy
+	if e.Logging == nil {
+		e.Logging = truthy
 	}
 
-	if input.SendToSlack == nil {
-		input.SendToSlack = truthy
+	if e.SendToSlack == nil {
+		e.SendToSlack = truthy
 	}
+}
 
-	input.Message = fmt.Sprintf(
-		input.Message,
-		input.Arguments...,
+func (e *Input) build() {
+	e.makeMetadata()
+	e.checkInputValues()
+	e.checkOriginalError()
+	e.makeMessage()
+}
+
+func (e *Input) makeMessage() {
+	e.Message = fmt.Sprintf(
+		e.Message,
+		e.Arguments...,
 	)
-}
 
-func (input *Input) makeOriginalError() {
-	if _, ok := input.OriginalError.(*Input); !ok {
-		if err, ok := input.OriginalError.(error); ok {
-			input.OriginalError = err.Error()
-		}
+	if e.Message == "" {
+		e.Message = http.StatusText(e.StatusCode)
 	}
 }
 
-func (input *Input) makeMetadata() {
-	if input.Metadata == nil {
-		input.Metadata = make(Metadata)
+func (e *Input) checkOriginalError() {
+	if _, ok := e.OriginalError.(*Input); ok {
+		return
 	}
 
-	for name, value := range input.Metadata {
+	if err, ok := e.OriginalError.(error); ok {
+		e.OriginalError = err.Error()
+	}
+}
+
+func (e *Input) makeMetadata() {
+	if e.Metadata == nil {
+		e.Metadata = make(Metadata)
+	}
+
+	for name, value := range e.Metadata {
 		if _, ok := value.(*Input); ok {
 			continue
 		}
 
 		if err, ok := value.(error); ok {
-			input.Metadata[name] = err.Error()
+			e.Metadata[name] = err.Error()
 		}
 	}
 }

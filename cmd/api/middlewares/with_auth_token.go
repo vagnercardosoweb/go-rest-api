@@ -10,7 +10,7 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
-func WithToken(c *gin.Context) {
+func WithAuthToken(c *gin.Context) {
 	authToken := config.AuthTokenFromCtx(c)
 	unauthorized := errors.New(errors.Input{
 		StatusCode:  http.StatusUnauthorized,
