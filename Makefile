@@ -12,6 +12,10 @@ define run_migration_docker
 	docker run --rm -v $(shell pwd)/migrations:/migrations migrate/migrate -path /migrations/ -database "${POSTGRESQL_LOCAL_URL}" $(1)
 endef
 
+
+run:
+	go run -race ./cmd/api/main.go
+
 start_docker:
 	docker-compose -f docker-compose.yml down --remove-orphans
 	docker-compose -f docker-compose.yml up --build -d
@@ -34,6 +38,9 @@ build_docker_aws:
 	aws --profile ${AWS_PROFILE} ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_REGISTRY_URL}
 	docker push ${IMAGE_URL}.${IMAGE_VERSION}
 
+check_build:
+	go build -v ./...
+
 migration_up:
 	$(call run_migration_docker,up)
 
@@ -44,13 +51,8 @@ generate_linux_bin:
 	rm -rf ./bin && mkdir -p ./bin
 	CGO_ENABLED=0 GOARCH=amd64 GOOS=linux go build -ldflags="-s -w" -o ./bin/api ./cmd/api/main.go
 
-check_build:
-	go build -v ./...
+generate_local_bin:
+	rm -rf ./bin && mkdir -p ./bin
+	CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/api ./cmd/api/main.go
 
-test:
-	go test -v ./...
-
-run:
-	go run ./cmd/api/main.go
-
-.PHONY: start_local start_staging start_production start_docker build_docker_local build_docker_aws check_build migration_up migration_down generate_linux_bin sql_generate run
+.PHONY: run start_docker start_local start_production start_staging build_docker_local build_docker_aws check_build migration_up migration_down generate_linux_bin generate_local_bin

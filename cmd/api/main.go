@@ -68,7 +68,7 @@ func shutdown() {
 	defer cancel()
 
 	if err := httpServer.Shutdown(ctx); err != nil {
-		appLogger.AddMetadata("originalError", err).Error("server forced shutdown")
+		appLogger.AddMetadata("error", err).Error("server forced shutdown")
 		os.Exit(1)
 	}
 
@@ -123,7 +123,7 @@ func main() {
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			appLogger.AddMetadata("originalError", err).Error("server listen error")
+			appLogger.AddMetadata("error", err).Error("server listen error")
 			os.Exit(1)
 		}
 	}()

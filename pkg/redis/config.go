@@ -6,7 +6,7 @@ import (
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 
-	redisLib "github.com/go-redis/redis/v9"
+	redisLib "github.com/redis/go-redis/v9"
 )
 
 func newConfig() *redisLib.Options {

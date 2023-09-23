@@ -45,7 +45,7 @@ func (s *SqsClient) sendMessage(queueUrl *string, input any) error {
 		MessageBody: String(string(bodyAsBytes)),
 	})
 	if err != nil {
-		s.logger.AddMetadata("originalError", err.Error()).Info("SQS_SEND_MESSAGE_ERROR")
+		s.logger.AddMetadata("error", err.Error()).Info("SQS_SEND_MESSAGE_ERROR")
 		return err
 	}
 	s.logger.AddMetadata("messageId", output.MessageId).Info("SQS_SEND_MESSAGE_COMPLETED")

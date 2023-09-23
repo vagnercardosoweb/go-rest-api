@@ -61,18 +61,18 @@ func (sa *Client) AddField(title string, value string, short bool) *Client {
 	return sa
 }
 
-func (sa *Client) AddFieldError(title string, err error) *Client {
+func (sa *Client) AddFieldError(title string, err any) *Client {
 	sa.AddField(title, fmt.Sprintf("```%s```", err), false)
 	return sa
 }
 
 func (sa *Client) WithError(err *errors.Input) *Client {
-	sa.AddField("Error Code / Error Id", fmt.Sprintf("%s / %s", err.Code, err.ErrorId), false)
+	sa.AddField("ErrorCode / ErrorId", fmt.Sprintf("%s / %s", err.Code, err.ErrorId), false)
 	sa.AddField("Message", err.Message, false)
 
 	if err.OriginalError != nil {
 		sa.AddField(
-			"Original Error",
+			"Error",
 			fmt.Sprintf("```%s```", err.OriginalError),
 			false,
 		)
@@ -109,7 +109,7 @@ func (sa *Client) getMemberIds() string {
 }
 
 func (sa *Client) Send() error {
-	if sa.token == "" {
+	if config.IsLocal() || sa.token == "" {
 		return nil
 	}
 
@@ -137,11 +137,9 @@ func (sa *Client) Send() error {
 
 	if err != nil {
 		return errors.New(errors.Input{
-			Code:          "SLACK_CREATE_REQUEST",
-			Message:       "Slack create request error",
-			StatusCode:    http.StatusInternalServerError,
-			OriginalError: err.Error(),
-			SendToSlack:   errors.Bool(false),
+			Code:        "SLACK_NEW_REQUEST",
+			SendToSlack: errors.Bool(false),
+			Message:     err.Error(),
 		})
 	}
 
@@ -151,11 +149,9 @@ func (sa *Client) Send() error {
 	_, err = http.DefaultClient.Do(request)
 	if err != nil {
 		return errors.New(errors.Input{
-			Code:          "SLACK_SEND_REQUEST",
-			Message:       "Slack send request error",
-			StatusCode:    http.StatusInternalServerError,
-			OriginalError: err.Error(),
-			SendToSlack:   errors.Bool(false),
+			Code:        "SLACK_SEND_REQUEST",
+			SendToSlack: errors.Bool(false),
+			Message:     err.Error(),
 		})
 	}
 

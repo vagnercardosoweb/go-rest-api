@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 )
 
 var (
@@ -17,19 +18,13 @@ var (
 func GetCallerStack(skip int) []string {
 	var lines [][]byte
 	var lastFile string
-	stack := make([]string, 0)
-	for i := skip; ; i++ { // Skip the expected number of frames
+	buf := new(bytes.Buffer)
+	for i := skip; ; i++ {
 		pc, file, line, ok := runtime.Caller(i)
 		if !ok {
 			break
 		}
-		stack = append(
-			stack,
-			fmt.Sprintf(
-				"%s:%d (0x%x)",
-				file, line, pc,
-			),
-		)
+		fmt.Fprintf(buf, "%s:%d (0x%x)\n", file, line, pc)
 		if file != lastFile {
 			data, err := os.ReadFile(file)
 			if err != nil {
@@ -38,19 +33,13 @@ func GetCallerStack(skip int) []string {
 			lines = bytes.Split(data, []byte{'\n'})
 			lastFile = file
 		}
-		stack = append(
-			stack,
-			fmt.Sprintf(
-				"%s: %s",
-				function(pc),
-				source(lines, line),
-			),
-		)
+		fmt.Fprintf(buf, "    %s: %s\n", function(pc), source(lines, line))
 	}
-	return stack
+	return strings.Split(buf.String(), "\n")
 }
 
 func source(lines [][]byte, n int) []byte {
+	n-- // in stack trace, lines are 1-indexed but our array is 0-indexed
 	if n < 0 || n >= len(lines) {
 		return dunno
 	}

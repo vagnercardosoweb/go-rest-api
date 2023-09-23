@@ -2,13 +2,12 @@ FROM golang:1.21-bullseye AS build
 
 WORKDIR /go/src
 
-COPY go.mod go.sum ./
-
-RUN go mod download all && go mod verify
 RUN go install github.com/cosmtrek/air@latest
 
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
 
 EXPOSE ${PORT:-3300}
 
-CMD ["air"]
+CMD ["air", "-c", ".air.toml"]
