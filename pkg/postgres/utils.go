@@ -34,6 +34,9 @@ func (a *ArrayToMap) Scan(value any) error {
 }
 
 func (a ArrayToMap) Value() (driver.Value, error) {
+	if len(a) == 0 {
+		return nil, nil
+	}
 	return json.Marshal(a)
 }
 

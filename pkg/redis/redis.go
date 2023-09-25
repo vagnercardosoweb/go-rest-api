@@ -32,11 +32,18 @@ func (c *Client) Get(key string, dest any) error {
 	if reflect.ValueOf(dest).Kind() != reflect.Ptr {
 		return fmt.Errorf("Redis#Get('%s') dest must be pointer", key)
 	}
-	result, err := c.redis.Get(c.ctx, key).Result()
+
+	bytes, err := c.redis.Get(c.ctx, key).Bytes()
+
+	if err == redis.Nil {
+		return nil
+	}
+
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal([]byte(result), dest)
+
+	return json.Unmarshal(bytes, dest)
 }
 
 func (c *Client) Set(key string, value any, expiration time.Duration) error {

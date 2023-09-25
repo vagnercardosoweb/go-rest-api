@@ -128,7 +128,7 @@ func (i *SesClient) Send() error {
 
 		if value, ok := i.template.Payload.(map[string]any); !ok {
 			payloadAsBytes, _ := json.Marshal(i.template.Payload)
-			json.Unmarshal(payloadAsBytes, &payloadAsMap)
+			_ = json.Unmarshal(payloadAsBytes, &payloadAsMap)
 		} else {
 			payloadAsMap = value
 		}

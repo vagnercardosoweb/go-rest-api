@@ -63,7 +63,7 @@ func shutdown() {
 
 	appLogger.Info("shutdown server")
 
-	timeout := time.Duration(env.GetInt("SHUTDOWN_TIMEOUT", "5")) * time.Second
+	timeout := time.Duration(env.GetInt("SHUTDOWN_TIMEOUT", "0")) * time.Second
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -74,7 +74,7 @@ func shutdown() {
 
 	select {
 	case <-ctx.Done():
-		appLogger.Info("timeout of %d seconds.", timeout)
+		appLogger.Info(`timeout of "%.0f" seconds.`, timeout.Seconds())
 	}
 
 	appLogger.Info("server exiting")
