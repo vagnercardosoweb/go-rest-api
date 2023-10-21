@@ -2,6 +2,7 @@ package aws
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 
@@ -40,10 +41,20 @@ func (s *SqsClient) sendMessage(queueUrl *string, input any) error {
 		return err
 	}
 	s.logger.WithMetadata(map[string]any{"queueUrl": queueUrl, "input": input}).Info("SQS_SEND_MESSAGE_INPUT")
-	output, err := s.client.SendMessage(&sqs.SendMessageInput{
+	sendMessageInput := &sqs.SendMessageInput{
 		QueueUrl:    queueUrl,
 		MessageBody: String(string(bodyAsBytes)),
-	})
+		MessageAttributes: map[string]*sqs.MessageAttributeValue{
+			"SendFrom": {
+				StringValue: String("Api (golang)"),
+				DataType:    String("String"),
+			},
+		},
+	}
+	if strings.HasSuffix(*queueUrl, ".fifo") {
+		sendMessageInput.MessageGroupId = String("dashboard-api-golang")
+	}
+	output, err := s.client.SendMessage(sendMessageInput)
 	if err != nil {
 		s.logger.AddMetadata("error", err.Error()).Info("SQS_SEND_MESSAGE_ERROR")
 		return err

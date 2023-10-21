@@ -13,7 +13,7 @@ var skipPaths = []string{
 }
 
 func RequestLog(c *gin.Context) {
-	path := c.Request.URL.String()
+	path := c.Request.URL.Path
 
 	for _, skipPath := range skipPaths {
 		if path == skipPath {
@@ -39,10 +39,13 @@ func RequestLog(c *gin.Context) {
 	}
 
 	if routePath := c.FullPath(); routePath != "" {
-		metadata["route_path"] = routePath
+		metadata["routePath"] = routePath
 	}
 
-	requestLogger.WithMetadata(metadata).Info("HTTP_REQUEST_STARTED")
+	requestLogger.
+		WithoutRedact().
+		WithMetadata(metadata).
+		Info("HTTP_REQUEST_STARTED")
 
 	// Process request
 	c.Next()

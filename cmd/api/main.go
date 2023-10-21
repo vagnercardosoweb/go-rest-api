@@ -95,6 +95,11 @@ func handler() *gin.Engine {
 	h.Use(middlewares.Cors)
 
 	h.Use(func(c *gin.Context) {
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusOK)
+			return
+		}
+
 		c.Request = c.Request.WithContext(ctx)
 		c.Writer.Header().Set("Content-Type", "application/json")
 

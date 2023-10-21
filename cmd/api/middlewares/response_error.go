@@ -25,7 +25,7 @@ func ResponseError(c *gin.Context) {
 		return
 	}
 
-	path := c.Request.URL.String()
+	path := c.Request.URL.Path
 	statusCode := c.Writer.Status()
 	method := c.Request.Method
 
@@ -91,7 +91,9 @@ func ResponseError(c *gin.Context) {
 	metadata["error"] = appError
 
 	if *appError.Logging {
-		logger.WithMetadata(metadata).Error("HTTP_REQUEST_ERROR")
+		logger.
+			WithMetadata(metadata).
+			Error("HTTP_REQUEST_ERROR")
 	}
 
 	if config.IsLocal() {
@@ -100,7 +102,10 @@ func ResponseError(c *gin.Context) {
 	}
 
 	if *appError.SendToSlack {
-		go slack_alert.NewClient().WithRequestError(method, path, appError).Send()
+		go slack_alert.
+			NewClient().
+			WithRequestError(method, path, appError).
+			Send()
 	}
 
 	errorMessage := appError.Message

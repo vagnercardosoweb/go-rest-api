@@ -30,10 +30,10 @@ start_production: check_build
 start_staging: check_build
 	APP_ENV=staging ~/go/bin/air -c .air.toml
 
-build_docker_local:
+docker_build_local:
 	docker build --rm --no-cache -f ./Dockerfile.production -t ${IMAGE_URL}.${IMAGE_VERSION} .
 
-build_docker_aws:
+docker_build_aws:
 	docker build --rm --no-cache --platform linux/amd64 -f ./Dockerfile.production -t ${IMAGE_URL}.${IMAGE_VERSION} .
 	aws --profile ${AWS_PROFILE} ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_REGISTRY_URL}
 	docker push ${IMAGE_URL}.${IMAGE_VERSION}
@@ -55,4 +55,12 @@ generate_local_bin:
 	rm -rf ./bin && mkdir -p ./bin
 	CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/api ./cmd/api/main.go
 
-.PHONY: run start_docker start_local start_production start_staging build_docker_local build_docker_aws check_build migration_up migration_down generate_linux_bin generate_local_bin
+update_modules:
+	go get -u ./...
+	go mod tidy
+	make check_build
+
+test:
+	go test -v ./...
+
+.PHONY: run start_docker start_local start_production start_staging docker_build_local docker_build_aws check_build migration_up migration_down generate_linux_bin generate_local_bin update_modules test

@@ -40,7 +40,10 @@ func (c *Client) log(log Log) {
 	}
 
 	c.logger.
+		WithoutRedact().
 		WithMetadata(metadata).
-		Log(logLevel, fmt.Sprintf("%s_QUERY", c.config.Prefix))
-
+		Log(
+			logLevel,
+			fmt.Sprintf("%s_QUERY", c.config.Prefix),
+		)
 }

@@ -4,12 +4,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	enTranslation "github.com/go-playground/validator/v10/translations/en"
-	"io"
-	"net/http"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -64,10 +65,7 @@ func FromSql(err error, args ...any) *Input {
 	if Is(err, sql.ErrNoRows) {
 		appError.Message = "Resource not found"
 		appError.StatusCode = http.StatusNotFound
-
-		falsy := Bool(false)
-		appError.SendToSlack = falsy
-		appError.Logging = falsy
+		appError.SendToSlack = Bool(false)
 	}
 
 	if len(args) > 0 {
@@ -80,13 +78,10 @@ func FromSql(err error, args ...any) *Input {
 }
 
 func FromBindJson(err error) *Input {
-	falsy := Bool(false)
 	appError := New(Input{
-		Code:        "BIND_JSON_ERROR",
-		Message:     err.Error(),
-		StatusCode:  http.StatusUnprocessableEntity,
-		SendToSlack: falsy,
-		Logging:     falsy,
+		Message:    err.Error(),
+		StatusCode: http.StatusUnprocessableEntity,
+		Code:       "BIND_JSON_ERROR",
 	})
 
 	if Is(err, io.EOF) {
@@ -129,7 +124,7 @@ func (e *Input) makeStack() {
 	}
 
 	if len(e.Stack) == 0 {
-		e.Stack = GetCallerStack(2)
+		e.Stack = GetCallerStack(3)
 	}
 }
 
@@ -146,21 +141,35 @@ func (e *Input) checkInputValues() {
 		e.StatusCode = http.StatusInternalServerError
 	}
 
-	truthy := Bool(true)
 	if e.Logging == nil {
-		e.Logging = truthy
-	}
-
-	if e.SendToSlack == nil {
-		e.SendToSlack = truthy
+		e.Logging = Bool(true)
 	}
 }
 
 func (e *Input) build() {
 	e.makeMetadata()
 	e.checkInputValues()
+	e.checkSendToSlack()
 	e.checkOriginalError()
 	e.makeMessage()
+}
+
+func (e *Input) checkSendToSlack() {
+	if e.SendToSlack != nil {
+		return
+	}
+
+	switch e.StatusCode {
+	case
+		http.StatusNotFound,
+		http.StatusForbidden,
+		http.StatusUnprocessableEntity,
+		http.StatusBadRequest,
+		http.StatusUnauthorized:
+		e.SendToSlack = Bool(false)
+	default:
+		e.SendToSlack = Bool(true)
+	}
 }
 
 func (e *Input) makeMessage() {

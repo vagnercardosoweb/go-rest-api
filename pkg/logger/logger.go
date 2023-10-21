@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,9 +14,9 @@ import (
 )
 
 var (
-	pid         = os.Getpid()
-	hostname, _ = os.Hostname()
-	logger      = log.New(os.Stdout, "", 0)
+	pid      int
+	hostname string
+	logger   *log.Logger
 )
 
 type level string
@@ -29,9 +30,11 @@ const (
 )
 
 type Logger struct {
-	id       string
-	metadata map[string]any
-	mu       *sync.Mutex
+	id         string
+	metadata   map[string]any
+	redactKeys []string
+	skipRedact bool
+	mu         *sync.Mutex
 }
 
 type Output struct {
@@ -45,11 +48,18 @@ type Output struct {
 	Metadata    map[string]any `json:"metadata,omitempty"`
 }
 
+func init() {
+	logger = log.New(os.Stdout, "", 0)
+	hostname, _ = os.Hostname()
+	pid = os.Getpid()
+}
+
 func New() *Logger {
 	return &Logger{
-		id:       "APP",
-		metadata: make(map[string]any),
-		mu:       new(sync.Mutex),
+		id:         "APP",
+		metadata:   make(map[string]any),
+		redactKeys: strings.Split(env.Get("OBFUSCATE_KEYS", ""), ","),
+		mu:         new(sync.Mutex),
 	}
 }
 
@@ -63,11 +73,17 @@ func (l *Logger) GetID() string {
 	return l.id
 }
 
+func (l *Logger) WithoutRedact() *Logger {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.skipRedact = true
+	return l
+}
+
 func (l *Logger) WithMetadata(metadata map[string]any) *Logger {
 	for key, value := range metadata {
 		l.AddMetadata(key, value)
 	}
-
 	return l
 }
 
@@ -109,6 +125,12 @@ func (l *Logger) Log(level level, message string, arguments ...any) {
 	if len(arguments) > 0 {
 		message = fmt.Sprintf(message, arguments...)
 	}
+	if len(l.metadata) > 0 && len(l.redactKeys) > 0 && l.skipRedact == false {
+		startRedact := time.Now()
+		l.metadata = redactKeys(l.metadata, l.redactKeys)
+		elapsedRedact := time.Since(startRedact)
+		l.metadata["redactTime"] = elapsedRedact.String()
+	}
 	logAsJson, _ := json.Marshal(Output{
 		Id:          l.id,
 		Level:       level,
@@ -119,6 +141,7 @@ func (l *Logger) Log(level level, message string, arguments ...any) {
 		Message:     message,
 		Metadata:    l.metadata,
 	})
+	l.skipRedact = false
 	l.metadata = make(map[string]any)
 	logger.Println(string(logAsJson))
 }

@@ -81,6 +81,10 @@ func (c *Client) Ping() error {
 	return result.Err()
 }
 
+func (c *Client) FlushAll() error {
+	return c.redis.FlushAll(c.ctx).Err()
+}
+
 func (c *Client) Close() error {
 	return c.redis.Close()
 }

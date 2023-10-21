@@ -9,15 +9,10 @@ data:
   PORT: "3300"
   DOCKER_PORT: "3301"
   LOAD_ENV: "false"
-  APP_ENV: "staging"
-  DEBUG: "true"
-
-  JWT_SECRET_KEY: "secret123"
   JWT_EXPIRES_IN_SECONDS: "86400"
-
+  APP_ENV: "staging"
   AWS_REGION: "us-east-1"
-  AWS_ACCESS_KEY_ID: "{CHANGE_ME}"
-  AWS_SECRET_ACCESS_KEY: "{CHANGE_ME}"
+  DEBUG: "true"
 
   AWS_SES_REGION: "us-east-1"
   AWS_SES_CONFIGURATION_NAME: ""
@@ -27,17 +22,14 @@ data:
   DB_PORT: "5432"
   DB_NAME: "development"
   DB_USERNAME: "root"
-  DB_PASSWORD: "root"
   DB_TIMEZONE: "UTC"
   DB_ENABLED_SSL: "false"
   DB_LOGGING: "true"
 
   REDIS_HOST: "localhost"
-  REDIS_PORT: "6379"
-  REDIS_PASSWORD: "{CHANGE_ME}"
   REDIS_DATABASE: "0"
+  REDIS_PORT: "6379"
 
-  SLACK_TOKEN: "{CHANGE_ME}"
   SLACK_CHANNEL: "alerts"
-  SLACK_MEMBERS_ID: "{CHANGE_ME}"
+  SLACK_MEMBERS_ID: "U0174ABMTUH"
   SLACK_USERNAME: "api"

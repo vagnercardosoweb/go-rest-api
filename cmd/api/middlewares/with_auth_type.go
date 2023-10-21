@@ -15,6 +15,7 @@ func WithAuthType(authType string) gin.HandlerFunc {
 
 		if tokenType != authType {
 			c.Error(errors.New(errors.Input{
+				Name:        "UnauthorizedWithLogoutError",
 				Message:     "Access token is not valid, please login again",
 				StatusCode:  http.StatusUnauthorized,
 				SendToSlack: errors.Bool(false),

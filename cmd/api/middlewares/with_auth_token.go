@@ -13,6 +13,7 @@ import (
 func WithAuthToken(c *gin.Context) {
 	authToken := config.AuthTokenFromCtx(c)
 	unauthorized := errors.New(errors.Input{
+		Name:        "UnauthorizedWithLogoutError",
 		StatusCode:  http.StatusUnauthorized,
 		SendToSlack: errors.Bool(false),
 		Message:     "Missing token in request.",

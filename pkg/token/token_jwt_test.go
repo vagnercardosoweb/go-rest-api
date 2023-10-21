@@ -8,32 +8,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var secretKey = []byte("secret_key")
+var secretKey = []byte("secret")
+var jwtInstance Token
 
-func getJwt() Token {
-	return NewJwt(secretKey, time.Hour*2)
+func init() {
+	jwtInstance = NewJwt(secretKey, time.Hour*2)
 }
 
-func TestTokenJwt_Encode(t *testing.T) {
-	jwt := getJwt()
-	token, err := jwt.Encode(&Input{Subject: "any_sub"})
+func TestTokenJwtEncodeWithSubject(t *testing.T) {
+	token, err := jwtInstance.Encode(&Input{Subject: "any_sub"})
 	assert.Nil(t, err)
 	assert.NotNil(t, token)
 	assert.Len(t, strings.Split(token, "."), 3)
 }
 
-func TestTokenJwt_Encode_WithoutSubject(t *testing.T) {
-	jwt := getJwt()
-	_, err := jwt.Encode(&Input{})
+func TestTokenJwtEncodeWithoutSubject(t *testing.T) {
+	_, err := jwtInstance.Encode(&Input{})
 	assert.NotNil(t, err)
 }
 
-func TestTokenJwt_Decode(t *testing.T) {
-	jwt := getJwt()
+func TestTokenJwtDecode(t *testing.T) {
 	issuedAt := time.Now()
 	expiresAt := issuedAt.Add(time.Hour * 2)
 
-	token, err := jwt.Encode(&Input{
+	token, err := jwtInstance.Encode(&Input{
 		Subject:   "any_subject",
 		IssuedAt:  issuedAt,
 		ExpiresAt: expiresAt,
@@ -47,7 +45,7 @@ func TestTokenJwt_Decode(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, token)
 
-	decode, err := jwt.Decode(token)
+	decode, err := jwtInstance.Decode(token)
 	assert.Nil(t, err)
 	assert.Equal(t, decode.Token, token)
 
