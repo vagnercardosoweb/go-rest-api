@@ -89,5 +89,6 @@ func Next(date time.Time, inclusive bool) time.Time {
 		if Is(date) {
 			return date
 		}
+		days = 1
 	}
 }
