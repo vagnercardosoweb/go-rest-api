@@ -23,6 +23,14 @@ func IsStaging() bool {
 	return env.Get("APP_ENV", "local") == "staging"
 }
 
+func IsSchedulerEnabled() bool {
+	return env.Get("SCHEDULER_ENABLED", "true") == "true"
+}
+
+func SchedulerSleep() time.Duration {
+	return time.Duration(env.GetInt("SCHEDULER_SLEEP", "60"))
+}
+
 func AppEnv() string {
 	return env.Get("APP_ENV", "local")
 }

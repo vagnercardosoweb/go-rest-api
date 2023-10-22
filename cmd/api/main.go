@@ -14,7 +14,7 @@ import (
 
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/middlewares"
 	"github.com/vagnercardosoweb/go-rest-api/cmd/api/routes"
-
+	"github.com/vagnercardosoweb/go-rest-api/internal/schedules"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
@@ -134,6 +134,11 @@ func main() {
 	}()
 
 	appLogger.Info("server started on port %s", httpServer.Addr)
+
+	if config.IsSchedulerEnabled() {
+		scheduler := schedules.New(pgClient, redisClient, appLogger.WithID("SCHEDULER"))
+		go scheduler.Run()
+	}
 
 	if config.IsDebug() {
 		monitoring.RunProfiler(appLogger)

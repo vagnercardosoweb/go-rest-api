@@ -38,6 +38,7 @@ func WrapHandler(handler func(c *gin.Context) any) gin.HandlerFunc {
 				"duration":    time.Since(c.Writer.(*XResponseTimer).Start).String(),
 				"hostname":    hostname,
 				"environment": config.AppEnv(),
+				"requestId":   c.Writer.Header().Get("X-Request-Id"),
 				"ipAddress":   c.ClientIP(),
 				"userAgent":   c.Request.UserAgent(),
 				"timezone":    time.UTC.String(),
