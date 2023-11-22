@@ -37,8 +37,8 @@ func NewClient(ctx context.Context, logger *logger.Logger, envPrefix EnvPrefix) 
 		ctx,
 		"postgres",
 		fmt.Sprintf(
-			"host=%s port=%d user=%s password=%s dbname=%s TimeZone=%s application_name=%s sslmode=%s",
-			config.Host, config.Port, config.Username, config.Password, config.Database, config.Timezone, config.AppName, sslMode,
+			"host=%s port=%d user=%s password=%s dbname=%s TimeZone=%s application_name=%s sslmode=%s search_path=%s",
+			config.Host, config.Port, config.Username, config.Password, config.Database, config.Timezone, config.AppName, sslMode, config.Schema,
 		),
 	)
 

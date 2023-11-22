@@ -58,7 +58,7 @@ func New() *Logger {
 	return &Logger{
 		id:         "APP",
 		metadata:   make(map[string]any),
-		redactKeys: strings.Split(env.Get("OBFUSCATE_KEYS", ""), ","),
+		redactKeys: strings.Split(env.Get("REDACT_KEYS", ""), ","),
 		mu:         new(sync.Mutex),
 	}
 }

@@ -1,17 +1,30 @@
-AWS_REGION=us-east-1
-AWS_PROFILE=golang
-AWS_ACCOUNT_ID=000000000000
-AWS_REGISTRY_URL=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+AWS_REGION?=us-east-1
+AWS_ACCOUNT_ID?=000000000000
+AWS_REGISTRY_URL?=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+AWS_PROFILE?=golang
 
-IMAGE_URL=${AWS_REGISTRY_URL}/golang:api
-IMAGE_VERSION=$(shell date +"%Y%m%dT%H%M")
+IMAGE_VERSION=$(shell date +"%Y%m%dT%H%M%S")
+IMAGE_URL?=${AWS_REGISTRY_URL}/golang-api
 
-POSTGRESQL_LOCAL_URL=postgres://root:root@host.docker.internal:5432/development?sslmode=disable&search_path=public
+DB_PORT?=5432
+DB_USERNAME?=root
+DB_PASSWORD?=root
+DB_HOST?=host.docker.internal
+DB_NAME?=development
+DB_ENABLED_SSL?=false
+DB_SCHEMA?=public
+
+ifeq ($(DB_ENABLED_SSL),false)
+	DB_SSL?=disable
+else
+	DB_SSL?=require
+endif
+
+DB_URL?=postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${DB_SSL}&search_path=${DB_SCHEMA}
 
 define run_migration_docker
-	docker run --rm -v $(shell pwd)/migrations:/migrations migrate/migrate -path /migrations/ -database "${POSTGRESQL_LOCAL_URL}" $(1)
+	docker run --rm -v $(shell pwd)/migrations:/migrations migrate/migrate -path /migrations/ -database "${DB_URL}" $(1)
 endef
-
 
 run:
 	go run -race ./cmd/api/main.go
@@ -39,6 +52,7 @@ docker_build_aws:
 	docker push ${IMAGE_URL}.${IMAGE_VERSION}
 
 check_build:
+	go mod tidy
 	go build -v ./...
 
 migration_up:
@@ -60,7 +74,7 @@ update_modules:
 	go mod tidy
 	make check_build
 
-test:
+test: check_build
 	go test -v ./...
 
 .PHONY: run start_docker start_local start_production start_staging docker_build_local docker_build_aws check_build migration_up migration_down generate_linux_bin generate_local_bin update_modules test

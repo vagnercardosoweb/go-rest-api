@@ -67,7 +67,7 @@ func (c *config) getMaxIdleConn() int {
 }
 
 func (c *config) getQueryTimeout() time.Duration {
-	timeout := c.getValueFromEnvToInt("QUERY_TIMEOUT", 60)
+	timeout := c.getValueFromEnvToInt("QUERY_TIMEOUT", 3)
 	return time.Second * time.Duration(timeout)
 }
 

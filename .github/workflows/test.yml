@@ -1,7 +1,7 @@
-name: Check Build
+name: Run Tests
 
 concurrency:
-  group: ${{ github.workflow }}:${{ github.ref }}
+  group: ${{ github.workflow }}:test:${{ github.ref }}
   cancel-in-progress: true
 
 on:
@@ -14,8 +14,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout V3
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
 
@@ -24,6 +24,5 @@ jobs:
         with:
           go-version: 1.21
 
-      - name: Check Build
-        run: |
-          go build -v ./...
+      - name: Run Tests
+        run: make test

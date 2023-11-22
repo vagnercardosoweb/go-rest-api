@@ -52,8 +52,8 @@ func (s *Scheduler) Run() {
 
 		for _, job := range s.jobs {
 			go func(job Job) {
-				defer s.recover()
 				defer s.waiter.Done()
+				defer s.recover()
 
 				if err := job(s); err != nil {
 					s.sendErrorToSlack(err, false)
