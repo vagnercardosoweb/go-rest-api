@@ -11,7 +11,7 @@ type SesClient struct {
 }
 
 func GetSesClient() *SesClient {
-	region := env.Get("AWS_SES_REGION", "us-east-1")
+	region := env.GetAsString("AWS_SES_REGION", "us-east-1")
 	if cached := getServiceFromCache(sesCacheKey, region); cached != nil {
 		return cached.(*SesClient)
 	}

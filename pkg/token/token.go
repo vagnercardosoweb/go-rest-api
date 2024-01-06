@@ -1,6 +1,8 @@
 package token
 
-import "time"
+import (
+	"time"
+)
 
 type Input struct {
 	IssuedAt  time.Time
@@ -11,12 +13,12 @@ type Input struct {
 	Issuer    string
 }
 
-type Decoded struct {
+type Output struct {
 	Input
 	Token string
 }
 
-type Token interface {
-	Encode(input *Input) (string, error)
-	Decode(token string) (*Decoded, error)
+type Client interface {
+	Encode(input *Input) (*Output, error)
+	Decode(token string) (*Output, error)
 }

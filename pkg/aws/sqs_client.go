@@ -2,12 +2,10 @@ package aws
 
 import (
 	"encoding/json"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"strings"
 
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
-
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 )
 
@@ -18,7 +16,7 @@ type SqsClient struct {
 }
 
 func GetSqsClient(logger *logger.Logger) *SqsClient {
-	region := env.Get("AWS_SQS_REGION", "us-east-1")
+	region := env.GetAsString("AWS_SQS_REGION", "us-east-1")
 	if cached := getServiceFromCache(sqsCacheKey, region); cached != nil {
 		return cached.(*SqsClient)
 	}
@@ -32,7 +30,7 @@ func GetSqsClient(logger *logger.Logger) *SqsClient {
 }
 
 func (s *SqsClient) sendMessage(queueUrl *string, input any) error {
-	if config.IsLocal() {
+	if env.GetAppEnv() == env.AppLocal {
 		s.logger.WithMetadata(map[string]any{"queueUrl": queueUrl, "input": input}).Info("SQS_SEND_MESSAGE_SKIPPED")
 		return nil
 	}

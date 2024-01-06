@@ -2,11 +2,10 @@ package aws
 
 import (
 	"bytes"
-	"io"
-	"os"
-
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
+	"io"
+	"os"
 )
 
 type S3Client struct {
@@ -15,7 +14,7 @@ type S3Client struct {
 }
 
 func GetS3Client() *S3Client {
-	region := env.Get("AWS_S3_REGION", "us-east-1")
+	region := env.GetAsString("AWS_S3_REGION", "us-east-1")
 	if cached := getServiceFromCache(sesCacheKey, region); cached != nil {
 		return cached.(*S3Client)
 	}

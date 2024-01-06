@@ -9,29 +9,29 @@ import (
 )
 
 var secretKey = []byte("secret")
-var jwtInstance Token
+var jwtInstance Client
 
 func init() {
-	jwtInstance = NewJwt(secretKey, time.Hour*2)
+	jwtInstance = NewJwt(secretKey)
 }
 
-func TestTokenJwtEncodeWithSubject(t *testing.T) {
-	token, err := jwtInstance.Encode(&Input{Subject: "any_sub"})
+func TestTokenEncodeWithSubject(t *testing.T) {
+	output, err := jwtInstance.Encode(&Input{Subject: "any_sub"})
 	assert.Nil(t, err)
-	assert.NotNil(t, token)
-	assert.Len(t, strings.Split(token, "."), 3)
+	assert.NotNil(t, output)
+	assert.Len(t, strings.Split(output.Token, "."), 3)
 }
 
-func TestTokenJwtEncodeWithoutSubject(t *testing.T) {
+func TestTokenEncodeWithoutSubject(t *testing.T) {
 	_, err := jwtInstance.Encode(&Input{})
 	assert.NotNil(t, err)
 }
 
-func TestTokenJwtDecode(t *testing.T) {
+func TestTokenDecode(t *testing.T) {
 	issuedAt := time.Now()
 	expiresAt := issuedAt.Add(time.Hour * 2)
 
-	token, err := jwtInstance.Encode(&Input{
+	output, err := jwtInstance.Encode(&Input{
 		Subject:   "any_subject",
 		IssuedAt:  issuedAt,
 		ExpiresAt: expiresAt,
@@ -43,11 +43,11 @@ func TestTokenJwtDecode(t *testing.T) {
 	})
 
 	assert.Nil(t, err)
-	assert.NotNil(t, token)
+	assert.NotNil(t, output)
 
-	decode, err := jwtInstance.Decode(token)
+	decode, err := jwtInstance.Decode(output.Token)
 	assert.Nil(t, err)
-	assert.Equal(t, decode.Token, token)
+	assert.Equal(t, decode.Token, output.Token)
 
 	assert.Equal(t, decode.Meta["any_key"], "any_value")
 	assert.Equal(t, decode.Subject, "any_subject")

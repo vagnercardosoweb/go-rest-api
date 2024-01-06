@@ -28,7 +28,7 @@ spec:
           imagePullPolicy: Always
           ports:
             - name: golang-api
-              containerPort: 3300
+              containerPort: 3000
               protocol: TCP
           envFrom:
             - configMapRef:

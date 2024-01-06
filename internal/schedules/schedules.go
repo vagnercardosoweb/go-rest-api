@@ -2,17 +2,16 @@ package schedules
 
 import (
 	"fmt"
-	"runtime"
-	"sync"
-	"time"
-
 	"github.com/google/uuid"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/config"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/slack_alert"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/slack"
+	"runtime"
+	"sync"
+	"time"
 )
 
 type Job func(s *Scheduler) error
@@ -35,7 +34,7 @@ func New(
 		pgClient:    pgClient,
 		cacheClient: redisClient,
 		waiter:      sync.WaitGroup{},
-		sleep:       config.SchedulerSleep(),
+		sleep:       env.GetSchedulerSleep(),
 		logger:      logger,
 	}
 	return scheduler
@@ -66,7 +65,7 @@ func (s *Scheduler) Run() {
 }
 
 func (s *Scheduler) sendErrorToSlack(err any, panic bool) {
-	_, file, line, _ := runtime.Caller(2)
+	_, file, line, _ := runtime.Caller(3)
 	caller := fmt.Sprintf("%s:%d", file, line)
 
 	var trackId string
@@ -89,11 +88,11 @@ func (s *Scheduler) sendErrorToSlack(err any, panic bool) {
 		Error(message)
 
 	go func() {
-		_ = slack_alert.NewClient().
+		_ = slack.NewAlert().
 			AddField("Caller", caller, false).
 			AddField("TrackId", trackId, false).
 			AddField("Message", message, false).
-			AddFieldError("Error", err).
+			AddError("Error", err).
 			Send()
 	}()
 }

@@ -5,10 +5,6 @@ import (
 	"sync"
 )
 
-type Dispatcher struct {
-	handlers map[string][]Handler
-}
-
 func NewDispatcher() DispatcherInterface {
 	return &Dispatcher{handlers: make(map[string][]Handler)}
 }

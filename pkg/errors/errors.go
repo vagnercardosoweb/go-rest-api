@@ -4,44 +4,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
 	"io"
 	"net/http"
-
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/locales/en"
-	ut "github.com/go-playground/universal-translator"
-	enTranslation "github.com/go-playground/validator/v10/translations/en"
-
-	"github.com/go-playground/validator/v10"
 )
-
-type (
-	Metadata map[string]any
-	Input    struct {
-		Name          string   `json:"name"`
-		Code          string   `json:"code"`
-		ErrorId       string   `json:"errorId"`
-		Message       string   `json:"message"`
-		StatusCode    int      `json:"statusCode"`
-		SendToSlack   *bool    `json:"sendToSlack"`
-		Logging       *bool    `json:"logging"`
-		Metadata      Metadata `json:"metadata,omitempty"`
-		Arguments     []any    `json:"-"`
-		OriginalError any      `json:"originalError,omitempty"`
-		SkipStack     bool     `json:"-"`
-		Stack         []string `json:"stack"`
-	}
-)
-
-var translator ut.Translator
-
-func init() {
-	if val, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		lang := en.New()
-		translator, _ = ut.New(lang, lang).GetTranslator("en")
-		_ = enTranslation.RegisterDefaultTranslations(val, translator)
-	}
-}
 
 func New(input Input) *Input {
 	input.build()
@@ -49,12 +16,8 @@ func New(input Input) *Input {
 	return &input
 }
 
-func Is(err, target error) bool {
-	return errors.Is(err, target)
-}
-
-func Bool(value bool) *bool {
-	return &value
+func NewFromString(message string) *Input {
+	return New(Input{Message: message})
 }
 
 // FromSql converts a sql error to an AppError.
@@ -77,7 +40,7 @@ func FromSql(err error, args ...any) *Input {
 	return appError
 }
 
-func FromBindJson(err error) *Input {
+func FromBindJson(err error, translator ut.Translator) *Input {
 	appError := New(Input{
 		Message:    err.Error(),
 		StatusCode: http.StatusUnprocessableEntity,
@@ -87,6 +50,10 @@ func FromBindJson(err error) *Input {
 	if Is(err, io.EOF) {
 		appError.Message = "Error retrieving the request body, please check that the data is correct."
 		appError.OriginalError = err.Error()
+	}
+
+	if translator == nil {
+		return appError
 	}
 
 	var errs validator.ValidationErrors
@@ -173,11 +140,7 @@ func (e *Input) checkSendToSlack() {
 }
 
 func (e *Input) makeMessage() {
-	e.Message = fmt.Sprintf(
-		e.Message,
-		e.Arguments...,
-	)
-
+	e.Message = fmt.Sprintf(e.Message, e.Arguments...)
 	if e.Message == "" {
 		e.Message = http.StatusText(e.StatusCode)
 	}
@@ -207,4 +170,12 @@ func (e *Input) makeMetadata() {
 			e.Metadata[name] = err.Error()
 		}
 	}
+}
+
+func Is(err, target error) bool {
+	return errors.Is(err, target)
+}
+
+func Bool(value bool) *bool {
+	return &value
 }

@@ -3,29 +3,40 @@ package redis
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/redis/go-redis/v9"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"reflect"
 	"time"
-
-	"github.com/redis/go-redis/v9"
 )
 
-type Client struct {
-	redis *redis.Client
-	ctx   context.Context
-}
-
-func NewClient(ctx context.Context) *Client {
-	client := redis.NewClient(newConfig())
+func NewClient(
+	ctx context.Context,
+	logger *logger.Logger,
+	options *redis.Options,
+) *Client {
+	client := redis.NewClient(options)
 	connection := &Client{
-		ctx:   ctx,
-		redis: client,
+		ctx:    ctx,
+		redis:  client,
+		logger: logger,
 	}
 	err := connection.Ping()
 	if err != nil {
 		panic(err)
 	}
 	return connection
+}
+
+func NewFromEnv(ctx context.Context, logger *logger.Logger) *Client {
+	return NewClient(ctx, logger, &redis.Options{
+		Addr:     fmt.Sprintf("%s:%s", env.Required("REDIS_HOST"), env.Required("REDIS_PORT")),
+		Password: env.GetAsString("REDIS_PASSWORD", ""),
+		Username: env.GetAsString("REDIS_USERNAME", ""),
+		DB:       env.GetAsInt("REDIS_DATABASE", "0"),
+	})
 }
 
 func (c *Client) Get(key string, dest any) error {
@@ -35,7 +46,7 @@ func (c *Client) Get(key string, dest any) error {
 
 	bytes, err := c.redis.Get(c.ctx, key).Bytes()
 
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return nil
 	}
 

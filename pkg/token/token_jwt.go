@@ -3,26 +3,30 @@ package token
 import (
 	"errors"
 	"fmt"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 )
 
 type Jwt struct {
-	secretKey []byte
 	expiresIn time.Duration
+	secretKey []byte
 }
 
-func NewJwt(secretKey []byte, expiresIn time.Duration) *Jwt {
-	return &Jwt{
-		expiresIn: expiresIn,
-		secretKey: secretKey,
-	}
+func NewJwt(secretKey []byte) *Jwt {
+	return &Jwt{secretKey: secretKey, expiresIn: time.Hour * 24}
 }
 
-func (j *Jwt) Encode(input *Input) (string, error) {
+func NewJwtFromEnv() *Jwt {
+	secretKey := []byte(env.GetAsString("JWT_SECRET_KEY"))
+	expiresIn := time.Duration(env.GetAsInt("JWT_EXPIRES_IN_SECONDS", "86400"))
+	return &Jwt{secretKey: secretKey, expiresIn: expiresIn}
+}
+
+func (j *Jwt) Encode(input *Input) (*Output, error) {
 	if input.Subject == "" {
-		return "", errors.New("sub needs to be filled to create a token")
+		return nil, errors.New("sub needs to be filled to create a token")
 	}
 
 	if input.IssuedAt.IsZero() {
@@ -38,12 +42,11 @@ func (j *Jwt) Encode(input *Input) (string, error) {
 		"iat":  input.IssuedAt.Unix(),
 		"exp":  input.ExpiresAt.Unix(),
 		"meta": input.Meta,
+		"iss":  "go",
 	}
 
 	if input.Issuer != "" {
 		claims["iss"] = input.Issuer
-	} else {
-		claims["iss"] = "internal-api"
 	}
 
 	if input.Audience != "" {
@@ -52,10 +55,10 @@ func (j *Jwt) Encode(input *Input) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 	signedString, err := token.SignedString(j.secretKey)
-	return signedString, err
+	return &Output{Input: *input, Token: signedString}, err
 }
 
-func (j *Jwt) Decode(token string) (*Decoded, error) {
+func (j *Jwt) Decode(token string) (*Output, error) {
 	jwtToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
@@ -77,7 +80,7 @@ func (j *Jwt) Decode(token string) (*Decoded, error) {
 		return nil, err
 	}
 
-	output := &Decoded{
+	output := &Output{
 		Token: token,
 		Input: Input{
 			Subject:   claims["sub"].(string),

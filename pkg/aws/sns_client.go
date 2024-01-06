@@ -11,7 +11,7 @@ type SnsClient struct {
 }
 
 func GetSnsClient() *SnsClient {
-	region := env.Get("AWS_SNS_REGION", "us-east-1")
+	region := env.GetAsString("AWS_SNS_REGION", "us-east-1")
 	if cached := getServiceFromCache(snsCacheKey, region); cached != nil {
 		return cached.(*SnsClient)
 	}

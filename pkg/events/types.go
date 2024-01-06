@@ -24,3 +24,7 @@ type DispatcherInterface interface {
 	GetByIndex(name string, index int) Handler
 	Clear()
 }
+
+type Dispatcher struct {
+	handlers map[string][]Handler
+}

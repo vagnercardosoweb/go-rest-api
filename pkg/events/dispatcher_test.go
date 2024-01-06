@@ -34,7 +34,7 @@ func (suite *DispatcherTestSuite) SetupTest() {
 	suite.event2 = Event{Name: "test2", Payload: "test2"}
 }
 
-func (suite *DispatcherTestSuite) TestDispatcher_Register() {
+func (suite *DispatcherTestSuite) TestDispatcherRegister() {
 	err := suite.dispatcher.Register(suite.event.Name, &suite.handler)
 	suite.Nil(err)
 	suite.Equal(1, suite.dispatcher.Total(suite.event.Name))
@@ -47,7 +47,7 @@ func (suite *DispatcherTestSuite) TestDispatcher_Register() {
 	assert.Equal(suite.T(), &suite.handler2, suite.dispatcher.GetByIndex(suite.event.Name, 1))
 }
 
-func (suite *DispatcherTestSuite) TestDispatcher_Register_WithSameHandler() {
+func (suite *DispatcherTestSuite) TestDispatcherRegisterWithSameHandler() {
 	err := suite.dispatcher.Register(suite.event.Name, &suite.handler)
 	suite.Nil(err)
 	suite.Equal(1, suite.dispatcher.Total(suite.event.Name))
@@ -57,7 +57,7 @@ func (suite *DispatcherTestSuite) TestDispatcher_Register_WithSameHandler() {
 	suite.Equal(1, suite.dispatcher.Total(suite.event.Name))
 }
 
-func (suite *DispatcherTestSuite) TestDispatcher_Clear() {
+func (suite *DispatcherTestSuite) TestDispatcherClear() {
 	// Event 01
 	err := suite.dispatcher.Register(suite.event.Name, &suite.handler)
 	suite.Nil(err)
@@ -77,7 +77,7 @@ func (suite *DispatcherTestSuite) TestDispatcher_Clear() {
 	suite.Equal(0, suite.dispatcher.Total(""))
 }
 
-func (suite *DispatcherTestSuite) TestDispatcher_Has() {
+func (suite *DispatcherTestSuite) TestDispatcherHas() {
 	err := suite.dispatcher.Register(suite.event.Name, &suite.handler)
 	suite.Nil(err)
 	suite.Equal(1, suite.dispatcher.Total(suite.event.Name))
@@ -100,16 +100,16 @@ func (m *MockHandler) Handle(event Event, wg *sync.WaitGroup) {
 	m.Called(event)
 }
 
-func (suite *DispatcherTestSuite) TestDispatcher_Dispatch() {
+func (suite *DispatcherTestSuite) TestDispatcherDispatch() {
 	handler := &MockHandler{}
 	handler.On("Handle", suite.event)
-	suite.dispatcher.Register(suite.event.Name, handler)
-	suite.dispatcher.Dispatch(suite.event)
+	_ = suite.dispatcher.Register(suite.event.Name, handler)
+	_ = suite.dispatcher.Dispatch(suite.event)
 	handler.AssertExpectations(suite.T())
 	handler.AssertNumberOfCalls(suite.T(), "Handle", 1)
 }
 
-func (suite *DispatcherTestSuite) TestDispatcher_Remove() {
+func (suite *DispatcherTestSuite) TestDispatcherRemove() {
 	err := suite.dispatcher.Register(suite.event.Name, &suite.handler)
 	suite.Nil(err)
 	suite.Equal(1, suite.dispatcher.Total(suite.event.Name))

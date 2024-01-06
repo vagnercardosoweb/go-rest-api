@@ -3,73 +3,34 @@ package logger
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/utils"
 	"log"
 	"os"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
-var (
-	pid      int
-	hostname string
-	logger   *log.Logger
-)
-
-type level string
-
-const (
-	LevelInfo     level = "INFO"
-	LevelDebug    level = "DEBUG"
-	LevelWarn     level = "WARN"
-	LevelCritical level = "CRITICAL"
-	LevelError    level = "ERROR"
-)
-
-type Logger struct {
-	id         string
-	metadata   map[string]any
-	redactKeys []string
-	skipRedact bool
-	mu         *sync.Mutex
-}
-
-type Output struct {
-	Id          string         `json:"id"`
-	Level       level          `json:"level"`
-	Pid         int            `json:"pid"`
-	Hostname    string         `json:"hostname"`
-	Timestamp   time.Time      `json:"timestamp"`
-	Environment string         `json:"environment"`
-	Message     string         `json:"message"`
-	Metadata    map[string]any `json:"metadata,omitempty"`
-}
-
-func init() {
-	logger = log.New(os.Stdout, "", 0)
-	hostname, _ = os.Hostname()
-	pid = os.Getpid()
-}
+var logger = log.New(os.Stdout, "", 0)
 
 func New() *Logger {
 	return &Logger{
 		id:         "APP",
 		metadata:   make(map[string]any),
-		redactKeys: strings.Split(env.Get("REDACT_KEYS", ""), ","),
+		redactKeys: strings.Split(env.GetAsString("REDACT_KEYS", ""), ","),
 		mu:         new(sync.Mutex),
 	}
 }
 
-func (*Logger) WithID(id string) *Logger {
+func (*Logger) WithId(id string) *Logger {
 	l := New()
 	l.id = id
 	return l
 }
 
-func (l *Logger) GetID() string {
+func (l *Logger) GetId() string {
 	return l.id
 }
 
@@ -127,16 +88,15 @@ func (l *Logger) Log(level level, message string, arguments ...any) {
 	}
 	if len(l.metadata) > 0 && len(l.redactKeys) > 0 && l.skipRedact == false {
 		startRedact := time.Now()
-		l.metadata = redactKeys(l.metadata, l.redactKeys)
-		elapsedRedact := time.Since(startRedact)
-		l.metadata["redactTime"] = elapsedRedact.String()
+		l.metadata = utils.RedactKeys(l.metadata, l.redactKeys)
+		l.metadata["redactTime"] = time.Since(startRedact).String()
 	}
 	logAsJson, _ := json.Marshal(Output{
 		Id:          l.id,
 		Level:       level,
-		Environment: env.Get("APP_ENV", "local"),
-		Pid:         pid,
-		Hostname:    hostname,
+		Environment: env.GetAppEnv(),
+		Pid:         utils.Pid,
+		Hostname:    utils.Hostname,
 		Timestamp:   time.Now().UTC(),
 		Message:     message,
 		Metadata:    l.metadata,

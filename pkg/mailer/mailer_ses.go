@@ -3,12 +3,12 @@ package mailer
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"net/http"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/aws"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
@@ -31,7 +31,7 @@ type SesClient struct {
 func NewSesClient() *SesClient {
 	return &SesClient{
 		client:            aws.GetSesClient(),
-		configurationName: env.Get("AWS_SES_CONFIGURATION_NAME"),
+		configurationName: env.GetAsString("AWS_SES_CONFIGURATION_NAME"),
 		source:            env.Required("AWS_SES_SOURCE"),
 	}
 }

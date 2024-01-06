@@ -47,7 +47,7 @@ docker_build_local:
 	docker build --rm --no-cache -f ./Dockerfile.production -t ${IMAGE_URL}.${IMAGE_VERSION} .
 
 docker_build_aws:
-	docker build --rm --no-cache --platform linux/amd64 -f ./Dockerfile.production -t ${IMAGE_URL}.${IMAGE_VERSION} .
+	docker build --rm --no-cache --platform linux/amd64 -f ./Dockerfile.production -t ${IMAGE_URL}-${IMAGE_VERSION} .
 	aws --profile ${AWS_PROFILE} ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_REGISTRY_URL}
 	docker push ${IMAGE_URL}.${IMAGE_VERSION}
 
@@ -75,6 +75,6 @@ update_modules:
 	make check_build
 
 test: check_build
-	go test -v ./...
+	go test -v --race ./...
 
 .PHONY: run start_docker start_local start_production start_staging docker_build_local docker_build_aws check_build migration_up migration_down generate_linux_bin generate_local_bin update_modules test
