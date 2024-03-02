@@ -7,6 +7,7 @@ concurrency:
 on:
   push:
     paths:
+      - '.github/workflows/test.yml'
       - '**/*.go'
 
 jobs:
