@@ -32,7 +32,7 @@ func (s *LoginSvc) Execute(email, password string) (*token.Output, error) {
 
 	if userByEmail.LoginBlockedUntil.Valid && userByEmail.LoginBlockedUntil.Time.After(time.Now()) {
 		return nil, errors.New(errors.Input{
-			Message:    "Your access is blocked until: %s.",
+			Message:    `Your access is blocked until "%s". Try again later.`,
 			Arguments:  []any{userByEmail.LoginBlockedUntil.Time.Format("02/01/2006 at 15:04")},
 			StatusCode: http.StatusUnauthorized,
 		})

@@ -1,43 +1,20 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
-	"database/sql/driver"
-	"encoding/json"
-	"time"
-
 	"github.com/google/uuid"
+	"time"
 )
 
-type JsonToMap map[string]any
+const CtxKey = "PgClientCtxKey"
 
-func (j *JsonToMap) Scan(value any) error {
-	if value == nil {
-		return nil
+func GetFromCtxOrPanic(c context.Context) *Client {
+	value, exists := c.Value(CtxKey).(*Client)
+	if !exists {
+		panic("postgres client not found in context")
 	}
-	var data = value.([]byte)
-	return json.Unmarshal(data, &j)
-}
-
-func (j JsonToMap) Value() (driver.Value, error) {
-	return json.Marshal(j)
-}
-
-type ArrayToMap []map[string]any
-
-func (a *ArrayToMap) Scan(value any) error {
-	if value == nil {
-		return nil
-	}
-	var data = value.([]byte)
-	return json.Unmarshal(data, &a)
-}
-
-func (a ArrayToMap) Value() (driver.Value, error) {
-	if len(a) == 0 {
-		return nil, nil
-	}
-	return json.Marshal(a)
+	return value
 }
 
 func NewNullString(s string) sql.NullString {
@@ -96,6 +73,16 @@ func NewNullUUID(i uuid.UUID) uuid.NullUUID {
 	}
 	return uuid.NullUUID{
 		UUID:  i,
+		Valid: true,
+	}
+}
+
+func NewNullBool(b bool) sql.NullBool {
+	if !b {
+		return sql.NullBool{}
+	}
+	return sql.NullBool{
+		Bool:  b,
 		Valid: true,
 	}
 }

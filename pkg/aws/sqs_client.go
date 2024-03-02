@@ -50,7 +50,7 @@ func (s *SqsClient) sendMessage(queueUrl *string, input any) error {
 		},
 	}
 	if strings.HasSuffix(*queueUrl, ".fifo") {
-		sendMessageInput.MessageGroupId = String("dashboard-api-golang")
+		sendMessageInput.MessageGroupId = String("golang-api")
 	}
 	output, err := s.client.SendMessage(sendMessageInput)
 	if err != nil {

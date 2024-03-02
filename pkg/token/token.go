@@ -1,6 +1,7 @@
 package token
 
 import (
+	"context"
 	"time"
 )
 
@@ -21,4 +22,23 @@ type Output struct {
 type Client interface {
 	Encode(input *Input) (*Output, error)
 	Decode(token string) (*Output, error)
+}
+
+const OutputCtxKey = "TokenOutputCtxKey"
+const ClientCtxKey = "TokenClientCtxKey"
+
+func GetOutputFromCtxOrPanic(ctx context.Context) *Output {
+	decoded, ok := ctx.Value(OutputCtxKey).(*Output)
+	if !ok {
+		panic("token output not found in context")
+	}
+	return decoded
+}
+
+func GetClientFromCtxOrPanic(ctx context.Context) Client {
+	client, ok := ctx.Value(ClientCtxKey).(Client)
+	if !ok {
+		panic("token client not found in context")
+	}
+	return client
 }

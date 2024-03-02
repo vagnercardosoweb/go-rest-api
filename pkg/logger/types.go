@@ -16,11 +16,13 @@ const (
 )
 
 type Logger struct {
-	id         string
-	metadata   map[string]any
-	redactKeys []string
-	skipRedact bool
-	mu         *sync.Mutex
+	id              string
+	metadata        map[string]any
+	isLoggerEnabled bool
+	isDebugEnabled  bool
+	redactKeys      []string
+	skipRedact      bool
+	mu              *sync.Mutex
 }
 
 type Output struct {

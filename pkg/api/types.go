@@ -15,12 +15,13 @@ type Route struct {
 }
 
 type RestApi struct {
-	ctx                    context.Context
-	logger                 *logger.Logger
-	port                   string
-	shutdownTimeout        time.Duration
-	dependencyOnTheRequest map[string]any
-	server                 *http.Server
-	appEnv                 string
-	gin                    *gin.Engine
+	ctx             context.Context
+	logger          *logger.Logger
+	port            string
+	routes          []*Route
+	shutdownTimeout time.Duration
+	dependencies    map[string]any
+	server          *http.Server
+	appEnv          string
+	gin             *gin.Engine
 }

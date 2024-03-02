@@ -48,7 +48,7 @@ func FromBindJson(err error, translator ut.Translator) *Input {
 	})
 
 	if Is(err, io.EOF) {
-		appError.Message = "Error retrieving the request body, please check that the data is correct."
+		appError.Message = "Error retrieving the request body"
 		appError.OriginalError = err.Error()
 	}
 

@@ -11,11 +11,7 @@ import (
 )
 
 func Load() {
-	if os.Getenv("IS_AWS_LAMBDA") == "true" {
-		log.Println("Skipping load the environment, the environment is being executing with lambda")
-		return
-	}
-	if GetAsString("LOAD_ENV", "true") == "false" {
+	if os.Getenv("IS_AWS_LAMBDA") == "true" || GetAsString("LOAD_ENV", "true") == "false" {
 		log.Println("Skipping load the environment")
 		return
 	}

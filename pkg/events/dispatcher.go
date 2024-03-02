@@ -22,13 +22,13 @@ func (d *Dispatcher) GetByIndex(name string, index int) Handler {
 
 func (d *Dispatcher) Register(name string, handler Handler) error {
 	if d.Has(name, handler) {
-		return fmt.Errorf("event handler [%s] already registered", name)
+		return fmt.Errorf(`event handler "%s" already registered`, name)
 	}
 	d.handlers[name] = append(d.handlers[name], handler)
 	return nil
 }
 
-func (d *Dispatcher) Dispatch(event Event) error {
+func (d *Dispatcher) Dispatch(event *Event) error {
 	if handlers, ok := d.handlers[event.Name]; ok {
 		wg := &sync.WaitGroup{}
 		for _, handler := range handlers {

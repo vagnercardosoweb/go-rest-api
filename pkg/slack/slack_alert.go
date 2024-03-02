@@ -21,6 +21,7 @@ func NewAlert() *Client {
 		token:       env.GetAsString("SLACK_TOKEN"),
 		channel:     env.GetAsString("SLACK_CHANNEL", "alerts"),
 		username:    env.GetAsString("SLACK_USERNAME", "golang"),
+		isEnabled:   env.GetAsBool("SLACK_ENABLED", "true"),
 		memberIds:   strings.Split(env.GetAsString("SLACK_MEMBERS_ID"), ","),
 		environment: env.GetAppEnv(),
 		color:       ColorError,
@@ -98,7 +99,7 @@ func (sa *Client) getMemberIds() string {
 }
 
 func (sa *Client) Send() error {
-	if sa.token == "" {
+	if !sa.isEnabled || sa.token == "" {
 		return nil
 	}
 

@@ -87,13 +87,11 @@ func (c *Client) GetDb() *sql.DB {
 }
 
 func (c *Client) Exec(query string, bind ...any) (sql.Result, error) {
-	query = c.normalizeQuery(query)
-
 	ctx, cancel := c.withQueryTimeoutCtx()
 	defer cancel()
 
 	var err error
-	log := &Log{Query: query, Bind: bind}
+	log := &Log{Query: c.normalizeQuery(query), Bind: bind}
 
 	defer func() {
 		c.log(log)
@@ -118,13 +116,11 @@ func (c *Client) Exec(query string, bind ...any) (sql.Result, error) {
 }
 
 func (c *Client) Query(dest any, query string, bind ...any) error {
-	query = c.normalizeQuery(query)
-
 	ctx, cancel := c.withQueryTimeoutCtx()
 	defer cancel()
 
 	var err error
-	log := &Log{Query: query, Bind: bind}
+	log := &Log{Query: c.normalizeQuery(query), Bind: bind}
 
 	defer func() {
 		c.log(log)
@@ -148,13 +144,11 @@ func (c *Client) Query(dest any, query string, bind ...any) error {
 }
 
 func (c *Client) QueryOne(dest any, query string, bind ...any) error {
-	query = c.normalizeQuery(query)
-
 	ctx, cancel := c.withQueryTimeoutCtx()
 	defer cancel()
 
 	var err error
-	log := &Log{Query: query, Bind: bind}
+	log := &Log{Query: c.normalizeQuery(query), Bind: bind}
 
 	defer func() {
 		c.log(log)
@@ -177,6 +171,11 @@ func (c *Client) QueryOne(dest any, query string, bind ...any) error {
 	return err
 }
 
+func (c *Client) TruncateTable(table string) error {
+	_, err := c.Exec(fmt.Sprintf(`TRUNCATE TABLE "%s" RESTART IDENTITY CASCADE`, table))
+	return err
+}
+
 func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
 	tx, err := c.db.BeginTxx(c.ctx, nil)
 	if err != nil {
@@ -186,10 +185,10 @@ func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
 	// prevents database lock in case of panic error
 	defer tx.Rollback()
 
-	newConnection := c.Copy()
-	newConnection.tx = tx
+	client := c.Copy()
+	client.tx = tx
 
-	result, err := fn(newConnection)
+	result, err := fn(client)
 
 	if err != nil {
 		if txError := tx.Rollback(); txError != nil {
@@ -210,9 +209,9 @@ func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
 }
 
 func (c *Client) WithLogger(logger *logger.Logger) *Client {
-	newConnection := c.Copy()
-	newConnection.logger = logger
-	return newConnection
+	client := c.Copy()
+	client.logger = logger
+	return client
 }
 
 func (c *Client) GetLogger() *logger.Logger {

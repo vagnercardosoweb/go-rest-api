@@ -30,8 +30,8 @@ run:
 	go run -race ./cmd/api/main.go
 
 start_docker:
-	docker-compose -f docker-compose.yml down --remove-orphans
-	docker-compose -f docker-compose.yml up --build -d
+	docker compose -f docker-compose.yml down --remove-orphans
+	docker compose -f docker-compose.yml up --build -d
 	docker logs go-rest-api.api -f
 
 start_local: check_build
@@ -55,6 +55,9 @@ check_build:
 	go mod tidy
 	go build -v ./...
 
+create_migration:
+	./resources/scripts/create_migration.sh $(name)
+
 migration_up:
 	$(call run_migration_docker,up)
 
@@ -75,6 +78,7 @@ update_modules:
 	make check_build
 
 test: check_build
-	go test -v --race ./...
+	APP_ENV=test go test -v ./...
 
-.PHONY: run start_docker start_local start_production start_staging docker_build_local docker_build_aws check_build migration_up migration_down generate_linux_bin generate_local_bin update_modules test
+test_race: check_build
+	APP_ENV=test go test -v --race ./...

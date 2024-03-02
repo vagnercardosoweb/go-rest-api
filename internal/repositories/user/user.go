@@ -6,6 +6,7 @@ import (
 
 type RepositoryInterface interface {
 	GetByEmail(email string) (*GetByEmailOutput, error)
+	Create(input *CreateInput) (*CreateOutput, error)
 }
 
 type Repository struct {

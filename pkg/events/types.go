@@ -12,12 +12,12 @@ type Event struct {
 }
 
 type Handler interface {
-	Handle(event Event, wg *sync.WaitGroup)
+	Handle(event *Event, wg *sync.WaitGroup)
 }
 
 type DispatcherInterface interface {
 	Register(name string, handler Handler) error
-	Dispatch(event Event) error
+	Dispatch(event *Event) error
 	Remove(name string, handler Handler) error
 	Has(name string, handler Handler) bool
 	Total(name string) int

@@ -1,5 +1,5 @@
 # stage de build
-FROM golang:1.21-bullseye AS build
+FROM golang:1.22-bullseye AS build
 
 RUN apt-get update -y
 
@@ -16,6 +16,6 @@ FROM gcr.io/distroless/base-debian11
 WORKDIR /go/src
 COPY --from=build /go/src/api ./
 
-EXPOSE ${PORT:-3000}
+EXPOSE ${PORT:-3301}
 
 CMD [ "/go/src/api" ]

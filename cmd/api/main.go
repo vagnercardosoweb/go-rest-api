@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"github.com/vagnercardosoweb/go-rest-api/internal/events"
 	"github.com/vagnercardosoweb/go-rest-api/internal/handlers/user"
 	"github.com/vagnercardosoweb/go-rest-api/internal/schedules"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/api"
-	apiutils "github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/monitoring"
@@ -26,14 +26,17 @@ func main() {
 	redisClient := redis.NewFromEnv(ctx, appLogger)
 	defer redisClient.Close()
 
-	restApi := api.New(ctx, appLogger).
-		WithAppEnv(env.GetAppEnv()).
-		WithPort(env.Required("PORT")).
-		WithShutdownTimeout(env.GetAsFloat64("SHUTDOWN_TIMEOUT", "0")).
-		WithRequestDependency(apiutils.PgClientCtxKey, pgClient).
-		WithRequestDependency(apiutils.RequestLoggerCtxKey, appLogger).
-		WithRequestDependency(apiutils.TokenClientCtxKey, token.NewJwtFromEnv()).
-		WithRequestDependency(apiutils.RedisClientCtxKey, redisClient)
+	restApi := api.New(ctx, appLogger)
+
+	restApi.WithAppEnv(env.GetAppEnv())
+	restApi.WithShutdownTimeout(env.GetAsFloat64("SHUTDOWN_TIMEOUT", "0"))
+	restApi.WithPort(env.Required("PORT"))
+
+	restApi.WithValue(token.ClientCtxKey, token.NewJwtFromEnv())
+	restApi.WithValue(redis.CtxKey, redisClient)
+	restApi.WithValue(logger.CtxKey, appLogger)
+	restApi.WithValue(postgres.CtxKey, pgClient)
+	restApi.WithValue(events.CtxKey, events.New(pgClient, redisClient))
 
 	user.MakeHandlers(restApi)
 

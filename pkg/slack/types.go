@@ -21,6 +21,7 @@ type Client struct {
 	fields      []Field
 	channel     string
 	username    string
+	isEnabled   bool
 	memberIds   []string
 	environment string
 	color       ColorName

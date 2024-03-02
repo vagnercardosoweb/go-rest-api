@@ -26,12 +26,13 @@ services:
       - go-rest-api.network
     ports:
       - "${DOCKER_PORT:-3301}:3301"
+      - "${PORT:-3301}:3301"
     environment:
       - APP_ENV=${APP_ENV:-local}
       - RUN_IN_DOCKER=true
 
   postgres:
-    image: bitnami/postgresql:15
+    image: bitnami/postgresql:16
     container_name: go-rest-api.postgres
     tty: true
     env_file: .env.local

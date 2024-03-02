@@ -12,6 +12,15 @@ import (
 	"time"
 )
 
+type ResponseErrorOutput struct {
+	Code        string           `json:"code"`
+	Name        string           `json:"name"`
+	RequestId   string           `json:"requestId"`
+	StatusCode  int              `json:"statusCode"`
+	Validations []map[string]any `json:"validations"`
+	Message     string           `json:"message"`
+}
+
 func ResponseError(c *gin.Context) {
 	c.Next()
 
@@ -117,12 +126,12 @@ func ResponseError(c *gin.Context) {
 		validations = v.([]map[string]any)
 	}
 
-	c.JSON(appError.StatusCode, map[string]any{
-		"code":        appError.Code,
-		"name":        appError.Name,
-		"requestId":   requestId,
-		"statusCode":  appError.StatusCode,
-		"validations": validations,
-		"message":     errorMessage,
+	c.JSON(appError.StatusCode, &ResponseErrorOutput{
+		Code:        appError.Code,
+		Name:        appError.Name,
+		RequestId:   requestId,
+		StatusCode:  appError.StatusCode,
+		Validations: validations,
+		Message:     errorMessage,
 	})
 }

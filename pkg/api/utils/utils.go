@@ -79,7 +79,7 @@ func GetBodyAsJson(c *gin.Context) map[string]any {
 }
 
 func GetTokenClient(c *gin.Context) token.Client {
-	return c.MustGet(TokenClientCtxKey).(token.Client)
+	return c.MustGet(token.ClientCtxKey).(token.Client)
 }
 
 func GetAuthToken(c *gin.Context) string {
@@ -87,19 +87,19 @@ func GetAuthToken(c *gin.Context) string {
 }
 
 func GetPgClient(c *gin.Context) *postgres.Client {
-	return c.MustGet(PgClientCtxKey).(*postgres.Client)
+	return c.MustGet(postgres.CtxKey).(*postgres.Client)
 }
 
 func GetRedisClient(c *gin.Context) *redis.Client {
-	return c.MustGet(RedisClientCtxKey).(*redis.Client)
+	return c.MustGet(redis.CtxKey).(*redis.Client)
 }
 
-func GetTokenDecoded(c *gin.Context) *token.Output {
-	return c.MustGet(TokenDecodedCtxKey).(*token.Output)
+func GetTokenOutput(c *gin.Context) *token.Output {
+	return c.MustGet(token.OutputCtxKey).(*token.Output)
 }
 
 func GetLogger(c *gin.Context) *logger.Logger {
-	return c.MustGet(RequestLoggerCtxKey).(*logger.Logger)
+	return c.MustGet(logger.CtxKey).(*logger.Logger)
 }
 
 func GetRequestId(c *gin.Context) string {

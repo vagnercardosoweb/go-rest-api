@@ -1,9 +1,9 @@
 package password_hash
 
 import (
-	"errors"
-
+	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
+	"net/http"
 )
 
 type Bcrypt struct {
@@ -29,11 +29,19 @@ func (b *Bcrypt) Create(password string) (string, error) {
 
 func (b *Bcrypt) Compare(hashedPassword string, plainPassword string) error {
 	if len(hashedPassword) == 0 {
-		return errors.New("hashed password is empty")
+		return errors.New(errors.Input{
+			StatusCode: http.StatusUnprocessableEntity,
+			Message:    "Hashed password is empty",
+		})
 	}
+
 	if len(plainPassword) == 0 {
-		return errors.New("plain password is empty")
+		return errors.New(errors.Input{
+			StatusCode: http.StatusUnprocessableEntity,
+			Message:    "Plain password is empty",
+		})
 	}
+
 	return bcrypt.CompareHashAndPassword(
 		[]byte(hashedPassword),
 		[]byte(plainPassword),

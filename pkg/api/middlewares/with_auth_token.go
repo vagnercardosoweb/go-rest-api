@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
+	tokenpkg "github.com/vagnercardosoweb/go-rest-api/pkg/token"
 	"net/http"
 	"strings"
 )
@@ -44,6 +45,6 @@ func WithAuthToken(c *gin.Context) {
 		return
 	}
 
-	c.Set(utils.TokenDecodedCtxKey, decoded)
+	c.Set(tokenpkg.OutputCtxKey, decoded)
 	c.Next()
 }

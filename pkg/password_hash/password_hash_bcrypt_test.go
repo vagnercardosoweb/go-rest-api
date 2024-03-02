@@ -5,20 +5,20 @@ import (
 	"testing"
 )
 
-type TestBcryptSuite struct {
+type BcryptSuite struct {
 	suite.Suite
 	bcrypt         *Bcrypt
 	hashedPassword string
 	plainPassword  string
 }
 
-func (s *TestBcryptSuite) SetupTest() {
+func (s *BcryptSuite) SetupTest() {
 	s.bcrypt = NewBcrypt()
 	s.hashedPassword = "$2a$12$GVL.LgolIy3pHrDcDZjRbuQ0T/3yrE/gjA0cukYCwbC5P76ptruY2"
 	s.plainPassword = "123456"
 }
 
-func (s *TestBcryptSuite) TestBcryptCreate() {
+func (s *BcryptSuite) TestBcryptCreate() {
 	password, err := s.bcrypt.Create(s.plainPassword)
 
 	s.Nil(err)
@@ -31,21 +31,21 @@ func (s *TestBcryptSuite) TestBcryptCreate() {
 	s.NotNil(err)
 }
 
-func (s *TestBcryptSuite) TestBcryptCompare() {
+func (s *BcryptSuite) TestBcryptCompare() {
 	err := s.bcrypt.Compare(s.hashedPassword, s.plainPassword)
 	s.Nil(err)
 }
 
-func (s *TestBcryptSuite) TestBcryptCompareWithEmptyHashedPassword() {
+func (s *BcryptSuite) TestBcryptCompareWithEmptyHashedPassword() {
 	err := s.bcrypt.Compare("", "123456")
 	s.NotNil(err)
 }
 
-func (s *TestBcryptSuite) TestBcryptCompareWithEmptyPlainPassword() {
+func (s *BcryptSuite) TestBcryptCompareWithEmptyPlainPassword() {
 	err := s.bcrypt.Compare(s.hashedPassword, "")
 	s.NotNil(err)
 }
 
-func TestSuite(t *testing.T) {
-	suite.Run(t, new(TestBcryptSuite))
+func TestBcryptSuite(t *testing.T) {
+	suite.Run(t, new(BcryptSuite))
 }

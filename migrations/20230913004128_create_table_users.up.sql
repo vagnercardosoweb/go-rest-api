@@ -1,3 +1,5 @@
+BEGIN;
+
 CREATE TABLE IF NOT EXISTS users (
   id UUID NOT NULL DEFAULT gen_random_uuid(),
   name VARCHAR(70) NOT NULL,
@@ -16,8 +18,8 @@ ALTER TABLE users
   DROP CONSTRAINT IF EXISTS users_id_pk,
   ADD CONSTRAINT users_id_pk PRIMARY KEY (id);
 
-CREATE INDEX IF NOT EXISTS users_id_idx ON users USING btree (id);
-CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users USING btree (email);
-CREATE INDEX IF NOT EXISTS users_code_to_invite_idx ON users USING btree (code_to_invite);
-CREATE INDEX IF NOT EXISTS users_created_at_idx ON users USING btree (created_at);
 CREATE INDEX IF NOT EXISTS users_deleted_at_idx ON users USING btree (deleted_at);
+CREATE INDEX IF NOT EXISTS users_code_to_invite_idx ON users USING btree (code_to_invite);
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users USING btree (email);
+
+COMMIT;

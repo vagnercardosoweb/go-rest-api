@@ -12,6 +12,7 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,16 +21,24 @@ import (
 
 func New(ctx context.Context, logger *logger.Logger) *RestApi {
 	restApi := &RestApi{
-		logger:                 logger,
-		dependencyOnTheRequest: make(map[string]any),
-		appEnv:                 env.AppLocal,
-		port:                   "3000",
-		ctx:                    ctx,
+		logger:       logger,
+		routes:       make([]*Route, 0),
+		dependencies: make(map[string]any),
+		appEnv:       env.AppLocal,
+		port:         "3301",
+		ctx:          ctx,
 	}
 
-	restApi.makeHandlers()
-
 	return restApi
+}
+
+func (r *RestApi) TestRequest(request *http.Request) *httptest.ResponseRecorder {
+	if request.Method == http.MethodPost || request.Method == http.MethodPut {
+		request.Header.Set("Content-Type", "application/json")
+	}
+	rr := httptest.NewRecorder()
+	r.gin.ServeHTTP(rr, request)
+	return rr
 }
 
 func (r *RestApi) WithAppEnv(appEnv string) *RestApi {
@@ -47,36 +56,49 @@ func (r *RestApi) WithShutdownTimeout(timeout float64) *RestApi {
 	return r
 }
 
-func (r *RestApi) WithRequestDependency(key string, value any) *RestApi {
-	r.dependencyOnTheRequest[key] = value
+func (r *RestApi) WithValue(key string, value any) *RestApi {
+	r.dependencies[key] = value
+	r.ctx = context.WithValue(r.ctx, key, value)
 	return r
 }
 
 func (r *RestApi) AddHandler(method string, path string, handlers ...any) *RestApi {
-	ginHandlers := make([]gin.HandlerFunc, len(handlers))
-
-	for i, handler := range handlers {
-		switch handler.(type) {
-		case func(*gin.Context):
-			ginHandlers[i] = handler.(func(*gin.Context))
-		case func(*gin.Context) interface{}:
-			ginHandlers[i] = utils.WrapperHandler(handler.(func(*gin.Context) interface{}))
-		default:
-			panic(errors.New(errors.Input{
-				Message:   `Invalid handler "%s" for route "%s %s"`,
-				Arguments: []any{handler, method, path},
-			}))
-		}
-	}
-
-	r.gin.Handle(method, path, ginHandlers...)
+	r.routes = append(r.routes, &Route{method, handlers, path})
 	return r
 }
 
 func (r *RestApi) Run() {
+	r.Start()
 	go r.listen()
 	r.logger.Info("server started on port %s", r.port)
 	r.shutdown()
+}
+
+func (r *RestApi) Start() {
+	r.makeHandlers()
+	r.makeRoutes()
+}
+
+func (r *RestApi) makeRoutes() {
+	for _, route := range r.routes {
+		ginHandlers := make([]gin.HandlerFunc, len(r.routes))
+
+		for i, handler := range route.Handlers {
+			switch handler.(type) {
+			case func(*gin.Context):
+				ginHandlers[i] = handler.(func(*gin.Context))
+			case func(*gin.Context) interface{}:
+				ginHandlers[i] = utils.WrapperHandler(handler.(func(*gin.Context) interface{}))
+			default:
+				panic(errors.New(errors.Input{
+					Message:   `Invalid handler "%s" for route "%s %s"`,
+					Arguments: []any{handler, route.Method, route.Path},
+				}))
+			}
+		}
+
+		r.gin.Handle(route.Method, route.Path, ginHandlers...)
+	}
 }
 
 func (r *RestApi) listen() {
@@ -134,7 +156,7 @@ func (r *RestApi) makeHandlers() {
 	r.gin.Use(func(c *gin.Context) {
 		c.Request = c.Request.WithContext(r.ctx)
 
-		for key, value := range r.dependencyOnTheRequest {
+		for key, value := range r.dependencies {
 			c.Set(key, value)
 		}
 
