@@ -2,6 +2,11 @@ package tests
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -12,9 +17,6 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
-	"os"
-	"path/filepath"
-	"runtime"
 )
 
 const (
@@ -53,6 +55,9 @@ func (t *ContainerTestSuite) createContainerPostgres() {
 				"POSTGRESQL_PASSWORD": testValue,
 				"POSTGRESQL_USERNAME": testValue,
 				"POSTGRESQL_DATABASE": testValue,
+			},
+			HostConfigModifier: func(config *container.HostConfig) {
+				config.AutoRemove = true
 			},
 		},
 	})
@@ -109,6 +114,9 @@ func (t *ContainerTestSuite) createContainerRedis() {
 				"ALLOW_EMPTY_PASSWORD": "no",
 				"REDIS_PASSWORD":       password,
 			},
+			HostConfigModifier: func(config *container.HostConfig) {
+				config.AutoRemove = true
+			},
 		},
 	})
 
@@ -133,9 +141,9 @@ func (t *ContainerTestSuite) SetupSuite() {
 }
 
 func (t *ContainerTestSuite) TearDownSuite() {
-	//_ = t.PgClient.Close()
-	//_ = t.PgContainer.Terminate(t.Ctx)
+	t.Require().Nil(t.PgClient.Close())
+	t.Require().Nil(t.PgContainer.Terminate(t.Ctx))
 
-	//_ = t.RedisClient.Close()
-	//_ = t.RedisContainer.Terminate(t.Ctx)
+	t.Require().Nil(t.RedisClient.Close())
+	t.Require().Nil(t.RedisContainer.Terminate(t.Ctx))
 }

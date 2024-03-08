@@ -2,9 +2,10 @@ package tests
 
 import (
 	"context"
+	"os"
+
 	"github.com/stretchr/testify/suite"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
-	"os"
 )
 
 var environments = map[string]string{

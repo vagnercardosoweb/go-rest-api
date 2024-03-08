@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/vagnercardosoweb/go-rest-api/internal/events"
 	"github.com/vagnercardosoweb/go-rest-api/internal/handlers/user"
 	"github.com/vagnercardosoweb/go-rest-api/internal/schedules"

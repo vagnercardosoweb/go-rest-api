@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/suite"
 	"github.com/vagnercardosoweb/go-rest-api/internal/repositories/user"
 	"github.com/vagnercardosoweb/go-rest-api/internal/types"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/password_hash"
 	"github.com/vagnercardosoweb/go-rest-api/tests"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-	"testing"
-	"time"
 )
 
 type LoginSuite struct {
