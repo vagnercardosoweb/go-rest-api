@@ -1,12 +1,13 @@
 package user
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/vagnercardosoweb/go-rest-api/internal/repositories/user"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/password_hash"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/token"
-	"net/http"
-	"time"
 )
 
 type LoginSvc struct {

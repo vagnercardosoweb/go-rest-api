@@ -1,9 +1,10 @@
 package handlers
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
-	"net/http"
 )
 
 func Healthy(c *gin.Context) any {

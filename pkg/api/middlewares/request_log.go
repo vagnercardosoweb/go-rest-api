@@ -1,12 +1,13 @@
 package middlewares
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"net/http"
 	"slices"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 )
 
 var skipPaths = []string{"/", "/healthy", "/favicon.ico"}

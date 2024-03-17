@@ -2,8 +2,9 @@ package aws
 
 import (
 	"encoding/json"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"strings"
+
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"

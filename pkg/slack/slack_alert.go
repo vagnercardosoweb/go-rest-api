@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )

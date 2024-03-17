@@ -3,9 +3,10 @@ package mailer
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"net/http"
 	"time"
+
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/aws"

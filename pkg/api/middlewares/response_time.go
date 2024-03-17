@@ -1,9 +1,10 @@
 package middlewares
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
-	"time"
 )
 
 type ResponseTimer struct {

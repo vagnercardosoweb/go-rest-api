@@ -3,6 +3,10 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
@@ -11,9 +15,6 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/token"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/utils"
-	"io"
-	"net/http"
-	"time"
 )
 
 func AbortWithError(c *gin.Context, err error) {

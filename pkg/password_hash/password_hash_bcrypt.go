@@ -1,9 +1,10 @@
 package password_hash
 
 import (
+	"net/http"
+
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
-	"net/http"
 )
 
 type Bcrypt struct {

@@ -2,14 +2,15 @@ package middlewares
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/slack"
-	"net/http"
-	"strings"
-	"time"
 )
 
 type ResponseErrorOutput struct {

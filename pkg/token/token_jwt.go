@@ -3,8 +3,9 @@ package token
 import (
 	"errors"
 	"fmt"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"time"
+
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 
 	"github.com/golang-jwt/jwt"
 )

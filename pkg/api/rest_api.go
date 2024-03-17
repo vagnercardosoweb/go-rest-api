@@ -3,6 +3,13 @@ package api
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/api/handlers"
@@ -11,12 +18,6 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 func New(ctx context.Context, logger *logger.Logger) *RestApi {

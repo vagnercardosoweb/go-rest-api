@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/utils"
 	"log"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/utils"
 )
 
 var logger = log.New(os.Stdout, "", 0)

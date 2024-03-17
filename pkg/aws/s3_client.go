@@ -2,10 +2,11 @@ package aws
 
 import (
 	"bytes"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"io"
 	"os"
+
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 )
 
 type S3Client struct {

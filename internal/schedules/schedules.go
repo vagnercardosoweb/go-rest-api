@@ -2,6 +2,10 @@ package schedules
 
 import (
 	"fmt"
+	"runtime"
+	"sync"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
@@ -9,9 +13,6 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/slack"
-	"runtime"
-	"sync"
-	"time"
 )
 
 type Job func(s *Scheduler) error

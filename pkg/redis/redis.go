@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
+	"time"
+
 	"github.com/redis/go-redis/v9"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
-	"reflect"
-	"time"
 )
 
 func NewClient(

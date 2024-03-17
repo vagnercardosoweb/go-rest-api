@@ -3,8 +3,9 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const CtxKey = "PgClientCtxKey"

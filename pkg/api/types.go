@@ -2,10 +2,11 @@ package api
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 )
 
 type Route struct {

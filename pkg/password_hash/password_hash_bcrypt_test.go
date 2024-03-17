@@ -1,8 +1,9 @@
 package password_hash
 
 import (
-	"github.com/stretchr/testify/suite"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type BcryptSuite struct {

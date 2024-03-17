@@ -1,10 +1,11 @@
 package middlewares
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
-	"net/http"
 )
 
 func WithAuthType(authType string) gin.HandlerFunc {

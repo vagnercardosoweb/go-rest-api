@@ -3,8 +3,9 @@ package utils
 import (
 	"encoding/base64"
 	"encoding/hex"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const size = 32

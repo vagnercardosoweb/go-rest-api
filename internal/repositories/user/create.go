@@ -2,9 +2,10 @@ package user
 
 import (
 	"database/sql"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
-	"time"
 )
 
 type CreateInput struct {

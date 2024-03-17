@@ -1,12 +1,13 @@
 package middlewares
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	tokenpkg "github.com/vagnercardosoweb/go-rest-api/pkg/token"
-	"net/http"
-	"strings"
 )
 
 var unauthorized = errors.New(errors.Input{

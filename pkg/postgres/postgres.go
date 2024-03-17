@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"

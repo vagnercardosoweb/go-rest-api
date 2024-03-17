@@ -4,9 +4,10 @@ import (
 	"context"
 	"database/sql/driver"
 	"encoding/json"
+	"time"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
-	"time"
 )
 
 type Config struct {

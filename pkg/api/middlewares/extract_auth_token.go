@@ -1,9 +1,10 @@
 package middlewares
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
-	"strings"
 )
 
 func ExtractAuthToken(c *gin.Context) {

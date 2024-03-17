@@ -1,9 +1,10 @@
 package events
 
 import (
-	eventspkg "github.com/vagnercardosoweb/go-rest-api/pkg/events"
 	"sync"
 	"time"
+
+	eventspkg "github.com/vagnercardosoweb/go-rest-api/pkg/events"
 )
 
 type AfterLogin struct {
