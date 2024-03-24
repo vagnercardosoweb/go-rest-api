@@ -44,7 +44,7 @@ func (t *ContainerTestSuite) createContainerPostgres() {
 	_ = os.Setenv("DB_USERNAME", testValue)
 
 	port := "5432/tcp"
-	container, err := testcontainers.GenericContainer(t.Ctx, testcontainers.GenericContainerRequest{
+	postgresContainer, err := testcontainers.GenericContainer(t.Ctx, testcontainers.GenericContainerRequest{
 		Started: true,
 		ContainerRequest: testcontainers.ContainerRequest{
 			Name:         fmt.Sprintf("postgres-test-%s", schema),
@@ -63,13 +63,13 @@ func (t *ContainerTestSuite) createContainerPostgres() {
 	})
 
 	t.Require().Nil(err)
-	t.PgContainer = container
+	t.PgContainer = postgresContainer
 
-	host, err := container.Host(t.Ctx)
+	host, err := postgresContainer.Host(t.Ctx)
 	t.Require().Nil(err)
 	_ = os.Setenv("DB_HOST", host)
 
-	mappedPort, err := container.MappedPort(t.Ctx, nat.Port(port))
+	mappedPort, err := postgresContainer.MappedPort(t.Ctx, nat.Port(port))
 	t.Require().Nil(err)
 	_ = os.Setenv("DB_PORT", mappedPort.Port())
 
@@ -103,7 +103,7 @@ func (t *ContainerTestSuite) createContainerRedis() {
 	_ = os.Setenv("REDIS_PASSWORD", password)
 	port := "6379/tcp"
 
-	container, err := testcontainers.GenericContainer(t.Ctx, testcontainers.GenericContainerRequest{
+	redisContainer, err := testcontainers.GenericContainer(t.Ctx, testcontainers.GenericContainerRequest{
 		Started: true,
 		ContainerRequest: testcontainers.ContainerRequest{
 			Name:         fmt.Sprintf("redis-test-%s", uuid.NewString()),
@@ -121,13 +121,13 @@ func (t *ContainerTestSuite) createContainerRedis() {
 	})
 
 	t.Require().Nil(err)
-	t.RedisContainer = container
+	t.RedisContainer = redisContainer
 
-	host, err := container.Host(t.Ctx)
+	host, err := redisContainer.Host(t.Ctx)
 	t.Require().Nil(err)
 	_ = os.Setenv("REDIS_HOST", host)
 
-	mappedPort, err := container.MappedPort(t.Ctx, nat.Port(port))
+	mappedPort, err := redisContainer.MappedPort(t.Ctx, nat.Port(port))
 	t.Require().Nil(err)
 	_ = os.Setenv("REDIS_PORT", mappedPort.Port())
 
