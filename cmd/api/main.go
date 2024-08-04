@@ -42,7 +42,7 @@ func main() {
 	user.MakeHandlers(restApi)
 
 	if env.IsSchedulerEnabled() {
-		go schedules.New(pgClient, redisClient, appLogger).Run()
+		go schedules.New(pgClient, redisClient, appLogger.WithId("SCHEDULER")).Run()
 	}
 
 	if env.GetAsBool("DEBUG") {

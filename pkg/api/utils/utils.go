@@ -111,6 +111,6 @@ func GetRequestStartTime(c *gin.Context) time.Time {
 	return c.MustGet(RequestStartTimeKey).(time.Time)
 }
 
-func GetValidateTranslator(c *gin.Context) ut.Translator {
-	return c.MustGet(ValidateTranslatorCtxKey).(ut.Translator)
+func GetValidateTranslator(c *gin.Context) *ut.Translator {
+	return c.MustGet(ValidateTranslatorCtxKey).(*ut.Translator)
 }

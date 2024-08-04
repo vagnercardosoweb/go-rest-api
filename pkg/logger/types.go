@@ -18,8 +18,8 @@ const (
 type Logger struct {
 	id              string
 	metadata        map[string]any
-	isLoggerEnabled bool
 	isDebugEnabled  bool
+	isLoggerEnabled bool
 	redactKeys      []string
 	skipRedact      bool
 	mu              *sync.Mutex

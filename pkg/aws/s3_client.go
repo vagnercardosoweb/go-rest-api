@@ -16,14 +16,18 @@ type S3Client struct {
 
 func GetS3Client() *S3Client {
 	region := env.GetAsString("AWS_S3_REGION", "us-east-1")
+
 	if cached := getServiceFromCache(sesCacheKey, region); cached != nil {
 		return cached.(*S3Client)
 	}
+
 	client := &S3Client{
 		client: s3.New(GetCurrentSession(region)),
 		region: region,
 	}
+
 	addServiceToCache(sesCacheKey, region, client)
+
 	return client
 }
 
@@ -32,11 +36,14 @@ func (c *S3Client) Download(bucket, key string) ([]byte, error) {
 		Bucket: &bucket,
 		Key:    &key,
 	}
+
 	output, err := c.client.GetObject(input)
 	if err != nil {
 		return nil, err
 	}
+
 	defer output.Body.Close()
+
 	return io.ReadAll(output.Body)
 }
 

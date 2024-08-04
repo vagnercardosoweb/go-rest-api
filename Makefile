@@ -56,7 +56,7 @@ check_build:
 	go build -v ./...
 
 create_migration:
-	./resources/scripts/create_migration.sh $(name)
+	./create-migration-file.sh "$(name)"
 
 migration_up:
 	$(call run_migration_docker,up)

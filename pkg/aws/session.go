@@ -9,11 +9,14 @@ func GetCurrentSession(region string) *session.Session {
 	if cached := getServiceFromCache(sessionCacheKey, region); cached != nil {
 		return cached.(*session.Session)
 	}
+
 	s := session.Must(
 		session.NewSession(
 			awsSdk.NewConfig().WithRegion(region),
 		),
 	)
+
 	addServiceToCache(sessionCacheKey, region, s)
+
 	return s
 }

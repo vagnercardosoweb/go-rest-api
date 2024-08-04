@@ -41,7 +41,7 @@ func FromSql(err error, args ...any) *Input {
 	return appError
 }
 
-func FromBindJson(err error, translator ut.Translator) *Input {
+func FromBindJson(err error, translator *ut.Translator) *Input {
 	appError := New(Input{
 		Message:    err.Error(),
 		StatusCode: http.StatusUnprocessableEntity,
@@ -68,7 +68,7 @@ func FromBindJson(err error, translator ut.Translator) *Input {
 			validations = append(validations, map[string]any{
 				"tag":       e.Tag(),
 				"field":     e.Field(),
-				"message":   e.Translate(translator),
+				"message":   e.Translate(*translator),
 				"namespace": e.Namespace(),
 				"value":     e.Value(),
 				"param":     e.Param(),

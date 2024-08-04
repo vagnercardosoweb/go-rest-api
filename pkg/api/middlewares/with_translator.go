@@ -13,7 +13,7 @@ import (
 	"golang.org/x/text/language"
 )
 
-func ValidateTranslator(c *gin.Context) {
+func WithTranslator(c *gin.Context) {
 	var translator ut.Translator
 
 	acceptLanguage := c.GetHeader("Accept-Language")
@@ -33,7 +33,7 @@ func ValidateTranslator(c *gin.Context) {
 		}
 	}
 
-	c.Set(utils.ValidateTranslatorCtxKey, translator)
+	c.Set(utils.ValidateTranslatorCtxKey, &translator)
 
 	c.Next()
 }

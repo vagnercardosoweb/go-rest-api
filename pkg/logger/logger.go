@@ -21,8 +21,8 @@ func New() *Logger {
 	return &Logger{
 		id:              "APP",
 		metadata:        make(map[string]any),
-		isLoggerEnabled: env.GetAsBool("LOGGER_ENABLED", "true"),
 		isDebugEnabled:  env.GetAsBool("LOGGER_DEBUG", "true"),
+		isLoggerEnabled: env.GetAsBool("LOGGER_ENABLED", "true"),
 		redactKeys:      strings.Split(env.GetAsString("REDACT_KEYS", ""), ","),
 		mu:              new(sync.Mutex),
 	}

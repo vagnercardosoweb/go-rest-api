@@ -20,9 +20,10 @@ func NewJwt(secretKey []byte) *Jwt {
 }
 
 func NewJwtFromEnv() *Jwt {
-	secretKey := []byte(env.GetAsString("JWT_SECRET_KEY"))
-	expiresIn := time.Duration(env.GetAsInt("JWT_EXPIRES_IN_SECONDS", "86400"))
-	return &Jwt{secretKey: secretKey, expiresIn: expiresIn}
+	return &Jwt{
+		secretKey: []byte(env.GetAsString("JWT_SECRET_KEY")),
+		expiresIn: time.Duration(env.GetAsInt("JWT_EXPIRES_IN_SECONDS", "86400")),
+	}
 }
 
 func (j *Jwt) Encode(input *Input) (*Output, error) {
@@ -56,6 +57,7 @@ func (j *Jwt) Encode(input *Input) (*Output, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 	signedString, err := token.SignedString(j.secretKey)
+
 	return &Output{Input: *input, Token: signedString}, err
 }
 

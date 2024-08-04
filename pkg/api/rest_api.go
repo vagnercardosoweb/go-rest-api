@@ -151,8 +151,8 @@ func (r *RestApi) makeHandlers() {
 	r.gin.Use(gzip.Gzip(gzip.BestSpeed))
 
 	r.gin.Use(middlewares.Cors)
-	r.gin.Use(middlewares.ProtectedHeaders)
-	r.gin.Use(middlewares.ValidateTranslator)
+	r.gin.Use(middlewares.WithTranslator)
+	r.gin.Use(middlewares.WithHeaders)
 
 	r.gin.Use(func(c *gin.Context) {
 		c.Request = c.Request.WithContext(r.ctx)
