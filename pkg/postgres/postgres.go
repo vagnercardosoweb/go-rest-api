@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/slack"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
@@ -43,11 +44,12 @@ func NewClient(ctx context.Context, logger *logger.Logger, config *Config) *Clie
 	db.SetMaxIdleConns(config.MaxIdleConn)
 
 	return &Client{
-		db:     db,
-		ctx:    ctx,
-		logger: logger,
-		config: config,
-		tx:     nil,
+		db:          db,
+		ctx:         ctx,
+		afterCommit: make([]func(client *Client) error, 0),
+		logger:      logger,
+		config:      config,
+		tx:          nil,
 	}
 }
 
@@ -177,6 +179,28 @@ func (c *Client) TruncateTable(table string) error {
 	return err
 }
 
+func (c *Client) AfterCommit(fn func(client *Client) error) {
+	if c.tx == nil {
+		return
+	}
+
+	size := len(c.afterCommit)
+
+	c.afterCommit = append(c.afterCommit, func(client *Client) error {
+		err := fn(client)
+
+		if err != nil {
+			_ = slack.NewAlert().
+				AddField("App Name", c.config.AppName, false).
+				AddField("Request Id", c.logger.GetId(), false).
+				AddError(fmt.Sprintf("ExecuteAfterCommitError[%d]", size), err).
+				Send()
+		}
+
+		return err
+	})
+}
+
 func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
 	tx, err := c.db.BeginTxx(c.ctx, nil)
 	if err != nil {
@@ -206,7 +230,17 @@ func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
 		return nil, err
 	}
 
-	return result, tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	for _, fn := range client.afterCommit {
+		go func() {
+			_ = fn(client)
+		}()
+	}
+
+	return result, nil
 }
 
 func (c *Client) WithLogger(logger *logger.Logger) *Client {
@@ -221,10 +255,11 @@ func (c *Client) GetLogger() *logger.Logger {
 
 func (c *Client) Copy() *Client {
 	return &Client{
-		db:     c.db,
-		ctx:    c.ctx,
-		logger: c.logger,
-		config: c.config,
+		db:          c.db,
+		ctx:         c.ctx,
+		afterCommit: make([]func(client *Client) error, 0),
+		logger:      c.logger,
+		config:      c.config,
 	}
 }
 

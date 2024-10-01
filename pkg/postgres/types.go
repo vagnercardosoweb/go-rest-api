@@ -30,12 +30,13 @@ type Config struct {
 }
 
 type Client struct {
-	db      *sqlx.DB
-	tx      *sqlx.Tx
-	lastLog *Log
-	logger  *logger.Logger
-	config  *Config
-	ctx     context.Context
+	db          *sqlx.DB
+	tx          *sqlx.Tx
+	config      *Config
+	afterCommit []func(client *Client) error
+	logger      *logger.Logger
+	lastLog     *Log
+	ctx         context.Context
 }
 
 type JsonToMap map[string]any
