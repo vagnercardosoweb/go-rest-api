@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
@@ -94,14 +92,14 @@ func (c *Client) Exec(query string, bind ...any) (sql.Result, error) {
 	defer cancel()
 
 	var err error
-	log := &Log{Query: c.normalizeQuery(query), Bind: bind}
+	log := &Log{Query: query, Bind: bind}
 
 	defer func() {
 		c.log(log)
 	}()
 
-	var result sql.Result
 	log.StartedAt = time.Now()
+	var result sql.Result
 
 	if c.tx != nil {
 		result, err = c.tx.ExecContext(ctx, query, bind...)
@@ -123,7 +121,7 @@ func (c *Client) Query(dest any, query string, bind ...any) error {
 	defer cancel()
 
 	var err error
-	log := &Log{Query: c.normalizeQuery(query), Bind: bind}
+	log := &Log{Query: query, Bind: bind}
 
 	defer func() {
 		c.log(log)
@@ -151,7 +149,7 @@ func (c *Client) QueryOne(dest any, query string, bind ...any) error {
 	defer cancel()
 
 	var err error
-	log := &Log{Query: c.normalizeQuery(query), Bind: bind}
+	log := &Log{Query: query, Bind: bind}
 
 	defer func() {
 		c.log(log)
@@ -261,14 +259,6 @@ func (c *Client) Copy() *Client {
 		logger:      c.logger,
 		config:      c.config,
 	}
-}
-
-func (c *Client) normalizeQuery(query string) string {
-	q := strings.TrimSpace(query)
-	q = regexp.MustCompile(`\s+|\n|\t`).ReplaceAllString(q, " ")
-	q = regexp.MustCompile(`\(\s`).ReplaceAllString(q, "(")
-	q = regexp.MustCompile(`\s\)`).ReplaceAllString(q, ")")
-	return q
 }
 
 func (c *Client) Close() error {

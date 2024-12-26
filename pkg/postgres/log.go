@@ -1,6 +1,8 @@
 package postgres
 
 import (
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
@@ -30,7 +32,7 @@ func (c *Client) log(log *Log) {
 
 	metadata := map[string]interface{}{
 		"tx":         c.tx != nil,
-		"query":      log.Query,
+		"query":      c.normalizeQuery(log.Query),
 		"duration":   log.Duration,
 		"startedAt":  log.StartedAt,
 		"finishedAt": log.FinishedAt,
@@ -45,4 +47,12 @@ func (c *Client) log(log *Log) {
 		WithoutRedact().
 		WithMetadata(metadata).
 		Log(logLevel, "DB_QUERY")
+}
+
+func (c *Client) normalizeQuery(query string) string {
+	q := strings.TrimSpace(query)
+	q = regexp.MustCompile(`\s+|\n|\t`).ReplaceAllString(q, " ")
+	q = regexp.MustCompile(`\(\s`).ReplaceAllString(q, "(")
+	q = regexp.MustCompile(`\s\)`).ReplaceAllString(q, ")")
+	return q
 }
