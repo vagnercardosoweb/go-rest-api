@@ -52,9 +52,10 @@ func (t *ContainerTestSuite) createContainerPostgres() {
 			ExposedPorts: []string{port},
 			WaitingFor:   wait.ForLog(waitForLogPg),
 			Env: map[string]string{
-				"POSTGRESQL_PASSWORD": testValue,
-				"POSTGRESQL_USERNAME": testValue,
-				"POSTGRESQL_DATABASE": testValue,
+				"POSTGRESQL_PASSWORD":                 testValue,
+				"POSTGRESQL_USERNAME":                 testValue,
+				"POSTGRESQL_REPLICATION_USE_PASSFILE": "no",
+				"POSTGRESQL_DATABASE":                 testValue,
 			},
 			HostConfigModifier: func(config *container.HostConfig) {
 				config.AutoRemove = true
@@ -142,8 +143,8 @@ func (t *ContainerTestSuite) SetupSuite() {
 
 func (t *ContainerTestSuite) TearDownSuite() {
 	t.Require().Nil(t.PgClient.Close())
-	t.Require().Nil(t.PgContainer.Terminate(t.Ctx))
+	_ = t.PgContainer.Terminate(t.Ctx)
 
 	t.Require().Nil(t.RedisClient.Close())
-	t.Require().Nil(t.RedisContainer.Terminate(t.Ctx))
+	_ = t.RedisContainer.Terminate(t.Ctx)
 }
