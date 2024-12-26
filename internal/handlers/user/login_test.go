@@ -25,47 +25,47 @@ type LoginSuite struct {
 	input          *types.UserLoginInput
 }
 
-func (suite *LoginSuite) SetupSuite() {
-	suite.RestApiSuite.SetupSuite()
+func (ls *LoginSuite) SetupSuite() {
+	ls.RestApiSuite.SetupSuite()
 
-	suite.passwordHash = password_hash.NewBcrypt()
-	suite.userRepository = user.NewRepository(suite.PgClient)
+	ls.passwordHash = password_hash.NewBcrypt()
+	ls.userRepository = user.NewRepository(ls.PgClient)
 
-	suite.input = &types.UserLoginInput{
+	ls.input = &types.UserLoginInput{
 		Email:    "test@local.dev",
 		Password: "12345678",
 	}
 }
 
-func (suite *LoginSuite) SetupTest() {
-	passwordHash, err := suite.passwordHash.Create(suite.input.Password)
-	suite.Require().Nil(err)
+func (ls *LoginSuite) SetupTest() {
+	passwordHash, err := ls.passwordHash.Create(ls.input.Password)
+	ls.Require().Nil(err)
 
-	_, err = suite.userRepository.Create(&user.CreateInput{
+	_, err = ls.userRepository.Create(&user.CreateInput{
 		Name:         "Test User",
-		Email:        suite.input.Email,
+		Email:        ls.input.Email,
 		PasswordHash: passwordHash,
 		Birthdate:    time.Date(1994, time.December, 15, 0, 0, 0, 0, time.UTC),
 		CodeToInvite: "ANY_CODE",
 	})
 
-	suite.Require().Nil(err)
+	ls.Require().Nil(err)
 }
 
-func (suite *LoginSuite) TearDownTest() {
-	_ = suite.PgClient.TruncateTable("users")
+func (ls *LoginSuite) TearDownTest() {
+	_ = ls.PgClient.TruncateTable("users")
 }
 
-func (suite *LoginSuite) makeRecorder(input any) *httptest.ResponseRecorder {
+func (ls *LoginSuite) makeRecorder(input any) *httptest.ResponseRecorder {
 	body := new(bytes.Buffer)
 	_ = json.NewEncoder(body).Encode(input)
-	rr := suite.RestApi.TestRequest(httptest.NewRequest(http.MethodPost, "/login", body))
+	rr := ls.RestApi.TestRequest(httptest.NewRequest(http.MethodPost, "/login", body))
 	return rr
 }
 
-func (suite *LoginSuite) TestSuccess() {
-	rr := suite.makeRecorder(suite.input)
-	suite.Require().Equal(http.StatusOK, rr.Code)
+func (ls *LoginSuite) TestSuccess() {
+	rr := ls.makeRecorder(ls.input)
+	ls.Require().Equal(http.StatusOK, rr.Code)
 
 	var output struct {
 		Data types.UserLoginOutput `json:"data"`
@@ -73,49 +73,49 @@ func (suite *LoginSuite) TestSuccess() {
 
 	_ = json.NewDecoder(rr.Body).Decode(&output)
 
-	suite.Require().NotEmpty(output.Data.AccessToken)
-	suite.Require().True(len(strings.Split(output.Data.AccessToken, ".")) == 3)
-	suite.Require().Equal(output.Data.TokenType, "Bearer")
-	suite.Require().NotEmpty(output.Data.ExpiresIn)
+	ls.Require().NotEmpty(output.Data.AccessToken)
+	ls.Require().True(len(strings.Split(output.Data.AccessToken, ".")) == 3)
+	ls.Require().Equal(output.Data.TokenType, "Bearer")
+	ls.Require().NotEmpty(output.Data.ExpiresIn)
 
 }
 
-func (suite *LoginSuite) TestNotFound() {
-	input := suite.input
+func (ls *LoginSuite) TestNotFound() {
+	input := ls.input
 	input.Email = "not_found@local.dev"
 
-	rr := suite.makeRecorder(input)
+	rr := ls.makeRecorder(input)
 
 	var e errors.Input
 	_ = json.NewDecoder(rr.Body).Decode(&e)
 
-	suite.Require().Equal(http.StatusUnauthorized, rr.Code)
-	suite.Require().Equal(e.Message, "Email/Password invalid")
+	ls.Require().Equal(http.StatusUnauthorized, rr.Code)
+	ls.Require().Equal(e.Message, "Email/Password invalid")
 }
 
-func (suite *LoginSuite) TestInvalidPassword() {
-	input := suite.input
+func (ls *LoginSuite) TestInvalidPassword() {
+	input := ls.input
 	input.Password = "invalid_password"
 
-	rr := suite.makeRecorder(input)
+	rr := ls.makeRecorder(input)
 
 	var e errors.Input
 	_ = json.NewDecoder(rr.Body).Decode(&e)
 
-	suite.Require().Equal(http.StatusUnauthorized, rr.Code)
-	suite.Require().Equal(e.Message, "Email/Password invalid")
+	ls.Require().Equal(http.StatusUnauthorized, rr.Code)
+	ls.Require().Equal(e.Message, "Email/Password invalid")
 }
 
-func (suite *LoginSuite) TestBlockedUntil() {
-	_, _ = suite.PgClient.Exec("UPDATE users SET login_blocked_until = NOW() + INTERVAL '1 hour' WHERE email = $1", suite.input.Email)
+func (ls *LoginSuite) TestBlockedUntil() {
+	_, _ = ls.PgClient.Exec("UPDATE users SET login_blocked_until = NOW() + INTERVAL '1 hour' WHERE email = $1", ls.input.Email)
 
-	rr := suite.makeRecorder(suite.input)
+	rr := ls.makeRecorder(ls.input)
 
 	var e errors.Input
 	_ = json.NewDecoder(rr.Body).Decode(&e)
 
-	suite.Require().Equal(http.StatusUnauthorized, rr.Code)
-	suite.Require().Equal(
+	ls.Require().Equal(http.StatusUnauthorized, rr.Code)
+	ls.Require().Equal(
 		e.Message,
 		fmt.Sprintf(
 			`Your access is blocked until "%s". Try again later.`,
