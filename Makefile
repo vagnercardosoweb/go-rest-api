@@ -44,12 +44,12 @@ start_staging: check_build
 	APP_ENV=staging ~/go/bin/air -c .air.toml
 
 docker_build_local:
-	docker build --rm --no-cache -f ./Dockerfile.production -t ${IMAGE_URL}.${IMAGE_VERSION} .
+	docker build --rm --no-cache -f ./Dockerfile.production -t ${IMAGE_URL}-${IMAGE_VERSION} .
 
 docker_build_aws:
 	docker build --rm --no-cache --platform linux/amd64 -f ./Dockerfile.production -t ${IMAGE_URL}-${IMAGE_VERSION} .
 	aws --profile ${AWS_PROFILE} ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_REGISTRY_URL}
-	docker push ${IMAGE_URL}.${IMAGE_VERSION}
+	docker push ${IMAGE_URL}-${IMAGE_VERSION}
 
 check_build:
 	go mod tidy
