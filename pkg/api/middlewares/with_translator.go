@@ -25,7 +25,9 @@ func WithTranslator(c *gin.Context) {
 	acceptLanguage = parseAcceptLanguage[0].String()
 
 	if val, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		translator, _ = ut.New(en.New(), pt_BR.New()).GetTranslator(acceptLanguage)
+		translator, _ = ut.New(en.New(), pt_BR.New()).
+			GetTranslator(acceptLanguage)
+
 		if acceptLanguage == language.BrazilianPortuguese.String() {
 			_ = ptbrtranslations.RegisterDefaultTranslations(val, translator)
 		} else {

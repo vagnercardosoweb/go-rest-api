@@ -60,15 +60,18 @@ func WrapperHandler(handler func(c *gin.Context) any) gin.HandlerFunc {
 
 func GetBodyAsBytes(c *gin.Context) []byte {
 	bodyAsBytes := []byte("{}")
+
 	if val, ok := c.Get(gin.BodyBytesKey); ok && val != nil {
 		bodyAsBytes = val.([]byte)
 	} else {
 		b, _ := io.ReadAll(c.Request.Body)
+
 		if len(b) > 0 {
 			c.Set(gin.BodyBytesKey, b)
 			bodyAsBytes = b
 		}
 	}
+
 	return bodyAsBytes
 }
 
