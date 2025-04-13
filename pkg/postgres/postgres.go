@@ -65,7 +65,7 @@ func NewFromEnv(ctx context.Context, logger *logger.Logger) *Client {
 			Schema:          env.GetAsString("DB_SCHEMA", "public"),
 			AppName:         env.GetAsString("DB_APP_NAME", "app"),
 			EnabledSSL:      env.GetAsString("DB_ENABLED_SSL", "false") == "true",
-			QueryTimeout:    time.Millisecond * time.Duration(env.GetAsInt("DB_QUERY_TIMEOUT", "3000")),
+			QueryTimeout:    time.Millisecond * time.Duration(env.GetAsInt("DB_QUERY_TIMEOUT", "7000")),
 			MaxIdleTimeConn: time.Millisecond * time.Duration(env.GetAsInt("DB_MAX_IDLE_TIME_CONN", "15000")),
 			MaxLifetimeConn: time.Millisecond * time.Duration(env.GetAsInt("DB_MAX_LIFETIME_CONN", "60000")),
 			MaxOpenConn:     env.GetAsInt("DB_MAX_OPEN_CONN", "35"),

@@ -30,11 +30,11 @@ run:
 	go run -race ./cmd/api/main.go
 
 start_docker:
-	docker compose -f docker-compose.yml down --remove-orphans
 	docker compose -f docker-compose.yml up --build -d
-	docker logs go-rest-api.api -f
+	docker logs go-rest-api-api -f
 
 start_local: check_build
+	docker compose -f docker-compose.yml up redis postgres -d
 	APP_ENV=local ~/go/bin/air -c .air.toml
 
 start_production: check_build

@@ -66,6 +66,7 @@ func (j *Jwt) Decode(token string) (*Output, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
+
 		return j.secretKey, nil
 	})
 
@@ -78,8 +79,7 @@ func (j *Jwt) Decode(token string) (*Output, error) {
 		return nil, errors.New("parse jwt claims error")
 	}
 
-	err = claims.Valid()
-	if err != nil {
+	if err = claims.Valid(); err != nil {
 		return nil, err
 	}
 

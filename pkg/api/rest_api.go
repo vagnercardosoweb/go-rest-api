@@ -26,7 +26,7 @@ func New(ctx context.Context, logger *logger.Logger) *RestApi {
 		routes:       make([]*Route, 0),
 		dependencies: make(map[string]any),
 		appEnv:       env.AppLocal,
-		port:         "3301",
+		port:         "3001",
 		ctx:          ctx,
 	}
 
@@ -37,8 +37,10 @@ func (r *RestApi) TestRequest(request *http.Request) *httptest.ResponseRecorder 
 	if request.Method == http.MethodPost || request.Method == http.MethodPut {
 		request.Header.Set("Content-Type", "application/json")
 	}
+
 	rr := httptest.NewRecorder()
 	r.gin.ServeHTTP(rr, request)
+
 	return rr
 }
 
@@ -60,6 +62,7 @@ func (r *RestApi) WithShutdownTimeout(timeout float64) *RestApi {
 func (r *RestApi) WithValue(key string, value any) *RestApi {
 	r.dependencies[key] = value
 	r.ctx = context.WithValue(r.ctx, key, value)
+
 	return r
 }
 
@@ -76,20 +79,20 @@ func (r *RestApi) Run() {
 }
 
 func (r *RestApi) Start() {
-	r.makeHandlers()
+	r.setupGin()
 	r.makeRoutes()
 }
 
 func (r *RestApi) makeRoutes() {
 	for _, route := range r.routes {
-		ginHandlers := make([]gin.HandlerFunc, len(r.routes))
+		handlers := make([]gin.HandlerFunc, len(r.routes))
 
 		for i, handler := range route.Handlers {
-			switch handler.(type) {
+			switch h := handler.(type) {
 			case func(*gin.Context):
-				ginHandlers[i] = handler.(func(*gin.Context))
+				handlers[i] = h
 			case func(*gin.Context) interface{}:
-				ginHandlers[i] = utils.WrapperHandler(handler.(func(*gin.Context) interface{}))
+				handlers[i] = utils.WrapperHandler(h)
 			default:
 				panic(errors.New(errors.Input{
 					Message:   `Invalid handler "%s" for route "%s %s"`,
@@ -98,7 +101,11 @@ func (r *RestApi) makeRoutes() {
 			}
 		}
 
-		r.gin.Handle(route.Method, route.Path, ginHandlers...)
+		r.gin.Handle(
+			route.Method,
+			route.Path,
+			handlers...,
+		)
 	}
 }
 
@@ -126,16 +133,14 @@ func (r *RestApi) shutdown() {
 		os.Exit(1)
 	}
 
-	select {
-	case <-ctx.Done():
-		r.logger.Info(`timeout of "%.0f" seconds.`, r.shutdownTimeout.Seconds())
-	}
+	<-ctx.Done()
+	r.logger.Info(`timeout of "%.0f" seconds.`, r.shutdownTimeout.Seconds())
 
 	r.logger.Info("server exiting")
 	os.Exit(0)
 }
 
-func (r *RestApi) makeHandlers() {
+func (r *RestApi) setupGin() {
 	if r.appEnv == env.AppTest {
 		gin.SetMode(gin.TestMode)
 	} else if r.appEnv != env.AppLocal {
@@ -172,6 +177,7 @@ func (r *RestApi) makeHandlers() {
 
 	r.gin.GET("/healthy", utils.WrapperHandler(handlers.Healthy))
 	r.gin.GET("/favicon.ico", handlers.Favicon)
+	r.gin.GET("/timestamp", handlers.Timestamp)
 
 	r.gin.NoMethod(handlers.NotAllowed)
 	r.gin.NoRoute(handlers.NotFound)

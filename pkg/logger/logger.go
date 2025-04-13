@@ -19,12 +19,12 @@ var logger = log.New(os.Stdout, "", 0)
 
 func New() *Logger {
 	return &Logger{
-		id:              "APP",
-		metadata:        make(map[string]any),
-		isDebugEnabled:  env.GetAsBool("LOGGER_DEBUG", "true"),
-		isLoggerEnabled: env.GetAsBool("LOGGER_ENABLED", "true"),
-		redactKeys:      strings.Split(env.GetAsString("REDACT_KEYS", ""), ","),
-		mu:              new(sync.Mutex),
+		id:             "APP",
+		metadata:       make(map[string]any),
+		redactKeys:     strings.Split(env.GetAsString("REDACT_KEYS", ""), ","),
+		isDebugEnabled: env.GetAsBool("LOGGER_DEBUG", "true"),
+		isEnabled:      env.GetAsBool("LOGGER_ENABLED", "true"),
+		mu:             new(sync.Mutex),
 	}
 }
 
@@ -49,17 +49,20 @@ func (l *Logger) WithMetadata(metadata map[string]any) *Logger {
 	for key, value := range metadata {
 		l.AddMetadata(key, value)
 	}
+
 	return l
 }
 
 func (l *Logger) AddMetadata(key string, value any) *Logger {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+
 	if _, ok := value.(*errors.Input); !ok {
 		if err, ok := value.(error); ok {
 			value = err.Error()
 		}
 	}
+
 	l.metadata[key] = value
 	return l
 }
@@ -89,7 +92,7 @@ func (l *Logger) Error(message string, arguments ...any) {
 }
 
 func (l *Logger) Log(level level, message string, arguments ...any) {
-	if !l.isLoggerEnabled {
+	if !l.isEnabled {
 		return
 	}
 
@@ -100,10 +103,8 @@ func (l *Logger) Log(level level, message string, arguments ...any) {
 		message = fmt.Sprintf(message, arguments...)
 	}
 
-	if len(l.metadata) > 0 && len(l.redactKeys) > 0 && l.skipRedact == false {
-		startRedact := time.Now()
+	if len(l.metadata) > 0 && len(l.redactKeys) > 0 && !l.skipRedact {
 		l.metadata = utils.RedactKeys(l.metadata, l.redactKeys)
-		l.metadata["redactTime"] = time.Since(startRedact).String()
 	}
 
 	logAsJson, _ := json.Marshal(Output{

@@ -16,22 +16,22 @@ const (
 )
 
 type Logger struct {
-	id              string
-	metadata        map[string]any
-	isDebugEnabled  bool
-	isLoggerEnabled bool
-	redactKeys      []string
-	skipRedact      bool
-	mu              *sync.Mutex
+	id             string
+	metadata       map[string]any
+	isEnabled      bool
+	isDebugEnabled bool
+	redactKeys     []string
+	skipRedact     bool
+	mu             *sync.Mutex
 }
 
 type Output struct {
 	Id          string         `json:"id"`
-	Level       level          `json:"level"`
 	Pid         int            `json:"pid"`
+	Level       level          `json:"level"`
 	Hostname    string         `json:"hostname"`
 	Timestamp   time.Time      `json:"timestamp"`
 	Environment string         `json:"environment"`
-	Message     string         `json:"message"`
 	Metadata    map[string]any `json:"metadata,omitempty"`
+	Message     string         `json:"message"`
 }

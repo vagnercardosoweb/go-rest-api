@@ -1,19 +1,17 @@
-version: '3'
-
 networks:
-  go-rest-api.network:
+  go-rest-api-network:
     driver: bridge
 
 volumes:
-  go-rest-api.redis:
-  go-rest-api.postgres:
+  go-rest-api-redis:
+  go-rest-api-postgres:
 
 services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.local
-    container_name: go-rest-api.api
+      dockerfile: Dockerfile.development
+    container_name: go-rest-api-api
     restart: always
     tty: true
     env_file: .env.local
@@ -23,23 +21,23 @@ services:
     volumes:
       - .:/go/src
     networks:
-      - go-rest-api.network
+      - go-rest-api-network
     ports:
-      - "${DOCKER_PORT:-3301}:3301"
-      - "${PORT:-3301}:3301"
+      - "${DOCKER_PORT:-3001}:3001"
+      - "${PORT:-3001}:3001"
     environment:
       - APP_ENV=${APP_ENV:-local}
       - RUN_IN_DOCKER=true
 
   postgres:
     image: bitnami/postgresql:16
-    container_name: go-rest-api.postgres
+    container_name: go-rest-api-postgres
     tty: true
     env_file: .env.local
     volumes:
-      - go-rest-api.postgres:/bitnami/postgresql
+      - go-rest-api-postgres:/bitnami/postgresql
     networks:
-      - go-rest-api.network
+      - go-rest-api-network
     ports:
       - "${DB_PORT:-5432}:5432"
     environment:
@@ -49,13 +47,13 @@ services:
 
   redis:
     image: bitnami/redis:latest
-    container_name: go-rest-api.redis
+    container_name: go-rest-api-redis
     tty: true
     env_file: .env.local
     volumes:
-      - go-rest-api.redis:/bitnami/redis/data
+      - go-rest-api-redis:/bitnami/redis/data
     networks:
-      - go-rest-api.network
+      - go-rest-api-network
     ports:
       - "${REDIS_PORT:-6379}:6379"
     environment:

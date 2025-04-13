@@ -10,7 +10,7 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 )
 
-var skipPaths = []string{"/", "/healthy", "/favicon.ico"}
+var skipPaths = []string{"/", "/healthy", "/timestamp", "/favicon.ico"}
 
 func RequestLog(c *gin.Context) {
 	path := c.Request.URL.Path

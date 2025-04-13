@@ -13,16 +13,17 @@ func isBase64(str string) bool {
 	return regexp.MustCompile(`^data:([a-z]+\/[a-z]+(;[a-z]+=[a-z]+)?)?(;base64)?,([a-zA-Z0-9+/]+={0,2})+$`).MatchString(str)
 }
 
-func RedactKeys(metadata map[string]any, keys []string) map[string]any {
+func RedactKeys(data map[string]any, keys []string) map[string]any {
 	if len(keys) == 0 {
-		return metadata
+		return data
 	}
 
-	metadataAsBytes, _ := json.Marshal(metadata)
-	var metadataAsMap map[string]any
-	_ = json.Unmarshal(metadataAsBytes, &metadataAsMap)
+	encodedData, _ := json.Marshal(data)
 
-	for key, value := range metadataAsMap {
+	var redactedData map[string]any
+	_ = json.Unmarshal(encodedData, &redactedData)
+
+	for key, value := range redactedData {
 		if value == nil {
 			continue
 		}
@@ -30,10 +31,10 @@ func RedactKeys(metadata map[string]any, keys []string) map[string]any {
 		switch reflect.TypeOf(value).Kind() {
 		case reflect.String:
 			if isBase64(value.(string)) {
-				metadataAsMap[key] = censorText
+				redactedData[key] = censorText
 			}
 		case reflect.Slice, reflect.Array:
-			for i, v := range value.([]interface{}) {
+			for i, v := range value.([]any) {
 				if valueAsString, ok := v.(string); ok && isBase64(valueAsString) {
 					v = censorText
 				}
@@ -42,20 +43,20 @@ func RedactKeys(metadata map[string]any, keys []string) map[string]any {
 					v = RedactKeys(valueAsMap, keys)
 				}
 
-				value.([]interface{})[i] = v
+				value.([]any)[i] = v
 			}
 		case reflect.Map:
 			if input, ok := value.(map[string]any); ok {
-				metadataAsMap[key] = RedactKeys(input, keys)
+				redactedData[key] = RedactKeys(input, keys)
 			}
 		}
 
 		for _, k := range keys {
-			if strings.ToLower(key) == strings.ToLower(k) {
-				metadataAsMap[key] = censorText
+			if strings.EqualFold(k, key) {
+				redactedData[key] = censorText
 			}
 		}
 	}
 
-	return metadataAsMap
+	return redactedData
 }
