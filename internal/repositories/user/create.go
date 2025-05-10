@@ -23,12 +23,35 @@ type CreateOutput struct {
 	Id uuid.UUID
 }
 
+const createQuery = `
+	INSERT INTO
+		users (
+			id,
+			NAME,
+			email,
+			password_hash,
+			code_to_invite,
+			confirmed_email_at,
+			login_blocked_until,
+			birth_date
+		)
+	VALUES
+		($1, $2, $3, $4, $5, $6, $7, $8);
+`
+
 func (r *Repository) Create(input *CreateInput) (*CreateOutput, error) {
 	id := uuid.New()
 
 	_, err := r.pgClient.Exec(
-		"INSERT INTO users (id, name, email, password_hash, code_to_invite, confirmed_email_at, login_blocked_until, birth_date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8);",
-		id, input.Name, input.Email, input.PasswordHash, input.CodeToInvite, input.ConfirmedEmailAt, input.LoginBlockedUntil, input.Birthdate,
+		createQuery,
+		id,
+		input.Name,
+		input.Email,
+		input.PasswordHash,
+		input.CodeToInvite,
+		input.ConfirmedEmailAt,
+		input.LoginBlockedUntil,
+		input.Birthdate,
 	)
 
 	if err != nil {
