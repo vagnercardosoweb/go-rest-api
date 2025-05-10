@@ -27,22 +27,26 @@ func main() {
 	redisClient := redis.NewFromEnv(ctx, appLogger)
 	defer redisClient.Close()
 
-	restApi := api.New(ctx, appLogger)
+	restApi := api.
+		New(ctx, appLogger).
+		WithAppEnv(env.GetAppEnv()).
+		WithShutdownTimeout(env.GetAsFloat64("SHUTDOWN_TIMEOUT", "0")).
+		WithPort(env.Required("PORT")).
+		WithValue(token.ClientCtxKey, token.NewJwtFromEnv()).
+		WithValue(events.CtxKey, events.New(pgClient, redisClient)).
+		WithValue(redis.CtxKey, redisClient).
+		WithValue(postgres.CtxKey, pgClient).
+		WithValue(logger.CtxKey, appLogger)
 
-	restApi.WithAppEnv(env.GetAppEnv())
-	restApi.WithShutdownTimeout(env.GetAsFloat64("SHUTDOWN_TIMEOUT", "0"))
-	restApi.WithPort(env.Required("PORT"))
-
-	restApi.WithValue(token.ClientCtxKey, token.NewJwtFromEnv())
-	restApi.WithValue(redis.CtxKey, redisClient)
-	restApi.WithValue(logger.CtxKey, appLogger)
-	restApi.WithValue(postgres.CtxKey, pgClient)
-	restApi.WithValue(events.CtxKey, events.New(pgClient, redisClient))
-
+	// Setup handlers
 	user.MakeHandlers(restApi)
 
 	if env.IsSchedulerEnabled() {
-		go schedules.New(pgClient, redisClient, appLogger.WithId("SCHEDULER")).Run()
+		go schedules.New(
+			pgClient,
+			redisClient,
+			appLogger.WithId("SCHEDULER"),
+		).Run()
 	}
 
 	if env.GetAsBool("DEBUG") {

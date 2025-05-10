@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
-
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
@@ -96,7 +95,11 @@ func (sa *Client) getMemberIds() string {
 	if len(sa.memberIds) == 0 {
 		return "hey"
 	}
-	return fmt.Sprintf("<@%s>", strings.Join(sa.memberIds, ">, <@"))
+
+	return fmt.Sprintf(
+		"<@%s>",
+		strings.Join(sa.memberIds, ">, <@"),
+	)
 }
 
 func (sa *Client) Send() error {
@@ -129,7 +132,7 @@ func (sa *Client) Send() error {
 
 	if err != nil {
 		return errors.New(errors.Input{
-			Code:        "SLACK_NEW_REQUEST",
+			Code:        "SLACK_CREATE_REQUEST_ERROR",
 			SendToSlack: errors.Bool(false),
 			Message:     err.Error(),
 		})
@@ -141,7 +144,7 @@ func (sa *Client) Send() error {
 	_, err = http.DefaultClient.Do(request)
 	if err != nil {
 		return errors.New(errors.Input{
-			Code:        "SLACK_SEND_REQUEST",
+			Code:        "SLACK_SEND_REQUEST_ERROR",
 			SendToSlack: errors.Bool(false),
 			Message:     err.Error(),
 		})

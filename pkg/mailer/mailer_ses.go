@@ -180,11 +180,17 @@ func (i *SesClient) Send() error {
 
 func (*SesClient) parseAddress(addresses []Address) []*string {
 	var results []*string
+
 	for _, address := range addresses {
 		results = append(
 			results,
-			aws.String(fmt.Sprintf("%s <%s>", address.Name, address.Address)),
+			aws.String(fmt.Sprintf(
+				"%s <%s>",
+				address.Name,
+				address.Address,
+			)),
 		)
 	}
+
 	return results
 }

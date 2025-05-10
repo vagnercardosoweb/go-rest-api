@@ -3,18 +3,19 @@ networks:
     driver: bridge
 
 volumes:
-  go-rest-api-redis:
-  go-rest-api-postgres:
+  go-rest-api-redis-vl:
+  go-rest-api-postgres-vl:
 
 services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile.development
+      dockerfile: Dockerfile
+      target: dev
     container_name: go-rest-api-api
     restart: always
     tty: true
-    env_file: .env.local
+    env_file: .env.development
     depends_on:
       - redis
       - postgres
@@ -23,8 +24,7 @@ services:
     networks:
       - go-rest-api-network
     ports:
-      - "${DOCKER_PORT:-3001}:3001"
-      - "${PORT:-3001}:3001"
+      - "${DOCKER_PORT:-3000}:3000"
     environment:
       - APP_ENV=${APP_ENV:-local}
       - RUN_IN_DOCKER=true
@@ -33,9 +33,9 @@ services:
     image: bitnami/postgresql:16
     container_name: go-rest-api-postgres
     tty: true
-    env_file: .env.local
+    env_file: .env.development
     volumes:
-      - go-rest-api-postgres:/bitnami/postgresql
+      - go-rest-api-postgres-vl:/bitnami/postgresql
     networks:
       - go-rest-api-network
     ports:
@@ -49,9 +49,9 @@ services:
     image: bitnami/redis:latest
     container_name: go-rest-api-redis
     tty: true
-    env_file: .env.local
+    env_file: .env.development
     volumes:
-      - go-rest-api-redis:/bitnami/redis/data
+      - go-rest-api-redis-vl:/bitnami/redis/data
     networks:
       - go-rest-api-network
     ports:

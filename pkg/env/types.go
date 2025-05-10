@@ -1,8 +1,8 @@
 package env
 
 const (
-	AppLocal      = "local"
-	AppStaging    = "staging"
-	AppProduction = "production"
-	AppTest       = "test"
+	AppLocal       = "local"
+	AppProduction  = "production"
+	AppDevelopment = "development"
+	AppTest        = "test"
 )

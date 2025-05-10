@@ -1,0 +1,9 @@
+**/.idea
+**/.vscode
+**/readme.md
+**/Dockerfile*
+**/create-migration-file.sh
+**/Makefile
+**/docker-compose*
+**/resources
+**/.github

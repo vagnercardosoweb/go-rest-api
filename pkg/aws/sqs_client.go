@@ -33,9 +33,13 @@ func GetSqsClient(logger *logger.Logger) *SqsClient {
 	return client
 }
 
-func (s *SqsClient) sendMessage(queueUrl *string, input any) error {
+func (s *SqsClient) SendMessage(url *string, input any) error {
 	if env.GetAppEnv() == env.AppLocal {
-		s.logger.WithMetadata(map[string]any{"queueUrl": queueUrl, "input": input}).Info("SQS_SEND_MESSAGE_SKIPPED")
+		s.logger.
+			AddMetadata("url", url).
+			AddMetadata("input", input).
+			Info("SQS_SEND_MESSAGE_LOCAL")
+
 		return nil
 	}
 
@@ -44,20 +48,23 @@ func (s *SqsClient) sendMessage(queueUrl *string, input any) error {
 		return err
 	}
 
-	s.logger.WithMetadata(map[string]any{"queueUrl": queueUrl, "input": input}).Info("SQS_SEND_MESSAGE_INPUT")
+	s.logger.
+		AddMetadata("url", url).
+		AddMetadata("input", input).
+		Info("SQS_SEND_MESSAGE_INPUT")
 
 	sendMessageInput := &sqs.SendMessageInput{
-		QueueUrl:    queueUrl,
+		QueueUrl:    url,
 		MessageBody: String(string(bodyAsBytes)),
 		MessageAttributes: map[string]*sqs.MessageAttributeValue{
 			"SendFrom": {
-				StringValue: String("Dash Api (golang)"),
+				StringValue: String("Go Rest API"),
 				DataType:    String("String"),
 			},
 		},
 	}
 
-	if strings.HasSuffix(*queueUrl, ".fifo") {
+	if strings.HasSuffix(*url, ".fifo") {
 		sendMessageInput.MessageGroupId = String("default")
 	}
 

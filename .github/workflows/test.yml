@@ -1,17 +1,23 @@
 name: Run Tests
 
 concurrency:
-  group: ${{ github.workflow }}:${{ github.ref }}
+  group: "${{ github.workflow }}:${{ github.ref }}"
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 on:
   push:
+    branches-ignore:
+      - production
+      - staging
     paths:
-      - '.github/workflows/test.yml'
-      - '**/*.go'
+      - ".github/workflows/test.yml"
+      - "**/*.go"
 
 jobs:
-  main:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,9 +27,9 @@ jobs:
           ref: ${{ github.ref }}
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.22
+          go-version: 1.24
 
       - name: Run Tests
         run: make test

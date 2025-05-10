@@ -17,7 +17,7 @@ type S3Client struct {
 func GetS3Client() *S3Client {
 	region := env.GetAsString("AWS_S3_REGION", "us-east-1")
 
-	if cached := getServiceFromCache(sesCacheKey, region); cached != nil {
+	if cached := getServiceFromCache(s3CacheKey, region); cached != nil {
 		return cached.(*S3Client)
 	}
 
@@ -26,7 +26,7 @@ func GetS3Client() *S3Client {
 		region: region,
 	}
 
-	addServiceToCache(sesCacheKey, region, client)
+	addServiceToCache(s3CacheKey, region, client)
 
 	return client
 }
