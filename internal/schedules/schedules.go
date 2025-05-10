@@ -90,10 +90,10 @@ func (s *Scheduler) sendErrorToSlack(err any, panic bool) {
 
 	go func() {
 		_ = slack.NewAlert().
-			AddField("Caller", caller, false).
-			AddField("TrackId", trackId, false).
-			AddField("Message", message, false).
-			AddError("Error", err).
+			AddField("caller", caller, false).
+			AddField("trackId", trackId, false).
+			AddField("message", message, false).
+			AddError("error", err).
 			Send()
 	}()
 }
