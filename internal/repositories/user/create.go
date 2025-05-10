@@ -26,14 +26,14 @@ type CreateOutput struct {
 const createQuery = `
 	INSERT INTO
 		users (
-			id,
-			NAME,
-			email,
-			password_hash,
-			code_to_invite,
-			confirmed_email_at,
-			login_blocked_until,
-			birth_date
+			"id",
+			"name",
+			"email",
+			"password_hash",
+			"code_to_invite",
+			"confirmed_email_at",
+			"login_blocked_until",
+			"birth_date"
 		)
 	VALUES
 		($1, $2, $3, $4, $5, $6, $7, $8);

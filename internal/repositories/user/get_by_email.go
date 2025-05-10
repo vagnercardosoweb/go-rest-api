@@ -15,16 +15,16 @@ type GetByEmailOutput struct {
 
 const getByEmailQuery = `
 	SELECT
-		id,
-		email,
-		password_hash,
-		login_blocked_until
+		"id",
+		"email",
+		"password_hash",
+		"login_blocked_until"
 	FROM
-		users
+		"users"
 	WHERE
-		LOWER(email) = LOWER($1)
+		LOWER("email") = LOWER($1)
 	LIMIT
-		1
+		1;
 `
 
 func (r *Repository) GetByEmail(email string) (*GetByEmailOutput, error) {
