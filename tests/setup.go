@@ -10,9 +10,9 @@ import (
 
 var environments = map[string]string{
 	"APP_ENV":          "test",
-	"DB_LOGGING":       "true",
+	"DB_LOGGING":       "false",
 	"PROFILER_ENABLED": "false",
-	"LOGGER_ENABLED":   "true",
+	"LOGGER_ENABLED":   "false",
 	"TZ":               "UTC",
 }
 
