@@ -4,7 +4,7 @@ Uma API REST robusta e escalável desenvolvida em Golang, seguindo boas prática
 
 ## Tecnologias Utilizadas
 
-- **Go 1.22+**: Linguagem de programação principal
+- **Go 1.24+**: Linguagem de programação principal
 - **Gin**: Framework web para construção de APIs REST
 - **PostgreSQL**: Banco de dados relacional
 - **Redis**: Armazenamento em cache e gerenciamento de filas
@@ -18,7 +18,7 @@ Uma API REST robusta e escalável desenvolvida em Golang, seguindo boas prática
 
 ## Pré-requisitos
 
-- Go 1.22 ou superior
+- Go 1.24 ou superior
 - Docker e Docker Compose
 - Make (opcional, para facilitar o uso dos comandos)
 
@@ -34,10 +34,10 @@ Uma API REST robusta e escalável desenvolvida em Golang, seguindo boas prática
 2. Copie o arquivo de exemplo de variáveis de ambiente:
 
    ```bash
-   cp .env.example .env.local
+   cp .env.example .env.development
    ```
 
-3. Ajuste as variáveis de ambiente conforme necessário no arquivo `.env.local`
+3. Ajuste as variáveis de ambiente conforme necessário no arquivo `.env.development`
 
 ## Executando o Projeto
 
@@ -52,17 +52,10 @@ Este comando irá iniciar todos os serviços necessários (API, PostgreSQL e Red
 ### Localmente com Hot-Reload
 
 ```bash
-make start_local
+make start_development
 ```
 
 Este comando utiliza o Air para fornecer hot-reload durante o desenvolvimento.
-
-### Outros ambientes
-
-```bash
-make start_production  # Para ambiente de produção
-make start_staging     # Para ambiente de staging
-```
 
 ## Banco de Dados
 
@@ -143,7 +136,7 @@ make docker_build_aws
   - **env**: Gerenciamento de variáveis de ambiente
   - **errors**: Tratamento padronizado de erros
   - **logger**: Sistema de logging
-  - **password_hash**: Utilitários para hash de senhas
+  - **password**: Utilitários para hash de senhas
   - **postgres**: Cliente e utilitários para PostgreSQL
   - **redis**: Cliente e utilitários para Redis
   - **token**: Implementação de JWT
