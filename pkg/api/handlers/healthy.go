@@ -4,19 +4,21 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
+	apicontext "github.com/vagnercardosoweb/go-rest-api/pkg/api/context"
 )
 
 func Healthy(c *gin.Context) any {
-	redisPingError := utils.GetRedisClient(c).Ping()
-	pgPingError := utils.GetPgClient(c).Ping()
+	pgPingError := apicontext.PgClient(c).Ping()
+	redisPingError := apicontext.RedisClient(c).Ping()
 
 	if redisPingError != nil || pgPingError != nil {
-		utils.GetLogger(c).
-			AddMetadata("redisPingError", redisPingError).
+		apicontext.Logger(c).
 			AddMetadata("pgPingError", pgPingError).
+			AddMetadata("redisPingError", redisPingError).
 			Error("HEALTHY_ERROR")
+
 		c.Writer.WriteHeader(http.StatusServiceUnavailable)
+
 		return "UNAVAILABLE"
 	}
 

@@ -1,4 +1,4 @@
-package password_hash
+package password
 
 import (
 	"net/http"
@@ -28,7 +28,7 @@ func (b *Bcrypt) Create(password string) (string, error) {
 	return "", err
 }
 
-func (b *Bcrypt) Compare(hashedPassword string, plainPassword string) error {
+func (b *Bcrypt) Compare(hashedPassword string, password string) error {
 	if len(hashedPassword) == 0 {
 		return errors.New(errors.Input{
 			StatusCode: http.StatusUnprocessableEntity,
@@ -36,15 +36,15 @@ func (b *Bcrypt) Compare(hashedPassword string, plainPassword string) error {
 		})
 	}
 
-	if len(plainPassword) == 0 {
+	if len(password) == 0 {
 		return errors.New(errors.Input{
 			StatusCode: http.StatusUnprocessableEntity,
-			Message:    "Plain password is empty",
+			Message:    "Password is empty",
 		})
 	}
 
 	return bcrypt.CompareHashAndPassword(
 		[]byte(hashedPassword),
-		[]byte(plainPassword),
+		[]byte(password),
 	)
 }

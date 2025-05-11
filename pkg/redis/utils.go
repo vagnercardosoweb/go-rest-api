@@ -1,13 +1,18 @@
 package redis
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
-const CtxKey = "RedisClientCtxKey"
+const CtxKey = "RedisClientKey"
 
-func GetFromCtxOrPanic(c context.Context) *Client {
+func FromCtx(c context.Context) *Client {
 	value, exists := c.Value(CtxKey).(*Client)
+
 	if !exists {
-		panic("redis client not found in context")
+		panic(fmt.Sprintf(`context key "%s" does not exist`, CtxKey))
 	}
+
 	return value
 }

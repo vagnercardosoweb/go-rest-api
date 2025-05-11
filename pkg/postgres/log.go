@@ -26,21 +26,18 @@ func (c *Client) log(log *Log) {
 	}
 
 	logLevel := logger.LevelInfo
-	if log.ErrorMessage != "" {
-		logLevel = logger.LevelError
-	}
-
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"tx":         c.tx != nil,
 		"query":      c.normalizeQuery(log.Query),
-		"duration":   log.Duration,
 		"startedAt":  log.StartedAt,
 		"finishedAt": log.FinishedAt,
+		"duration":   log.Duration,
 		"bind":       log.Bind,
 	}
 
 	if log.ErrorMessage != "" {
 		metadata["errorMessage"] = log.ErrorMessage
+		logLevel = logger.LevelError
 	}
 
 	c.logger.
@@ -51,8 +48,10 @@ func (c *Client) log(log *Log) {
 
 func (c *Client) normalizeQuery(query string) string {
 	q := strings.TrimSpace(query)
+
 	q = regexp.MustCompile(`\s+|\n|\t`).ReplaceAllString(q, " ")
 	q = regexp.MustCompile(`\(\s`).ReplaceAllString(q, "(")
 	q = regexp.MustCompile(`\s\)`).ReplaceAllString(q, ")")
+
 	return q
 }

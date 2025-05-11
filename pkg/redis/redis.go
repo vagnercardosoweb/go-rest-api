@@ -10,29 +10,25 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 )
 
 func NewClient(
 	ctx context.Context,
-	logger *logger.Logger,
 	options *redis.Options,
 ) *Client {
 	client := redis.NewClient(options)
-	connection := &Client{
-		ctx:    ctx,
-		redis:  client,
-		logger: logger,
-	}
+	connection := &Client{ctx: ctx, redis: client}
+
 	err := connection.Ping()
 	if err != nil {
 		panic(err)
 	}
+
 	return connection
 }
 
-func NewFromEnv(ctx context.Context, logger *logger.Logger) *Client {
-	return NewClient(ctx, logger, &redis.Options{
+func FromEnv(ctx context.Context) *Client {
+	return NewClient(ctx, &redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", env.Required("REDIS_HOST"), env.Required("REDIS_PORT")),
 		Password: env.GetAsString("REDIS_PASSWORD", ""),
 		Username: env.GetAsString("REDIS_USERNAME", ""),

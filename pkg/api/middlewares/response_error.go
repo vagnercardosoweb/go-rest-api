@@ -7,20 +7,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
+	apicontext "github.com/vagnercardosoweb/go-rest-api/pkg/api/context"
+	apirequest "github.com/vagnercardosoweb/go-rest-api/pkg/api/request"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/slack"
 )
-
-type ResponseErrorOutput struct {
-	Code        string           `json:"code"`
-	Name        string           `json:"name"`
-	RequestId   string           `json:"requestId"`
-	StatusCode  int              `json:"statusCode"`
-	Validations []map[string]any `json:"validations"`
-	Message     string           `json:"message"`
-}
 
 func ResponseError(c *gin.Context) {
 	c.Next()
@@ -44,7 +36,7 @@ func ResponseError(c *gin.Context) {
 	var metadata = make(map[string]any)
 
 	metadata["ip"] = c.ClientIP()
-	metadata["time"] = time.Since(utils.GetRequestStartTime(c)).String()
+	metadata["time"] = time.Since(apicontext.StartTime(c)).String()
 	metadata["path"] = path
 
 	if routePath := c.FullPath(); routePath != "" {
@@ -66,7 +58,7 @@ func ResponseError(c *gin.Context) {
 	metadata["method"] = method
 	metadata["query"] = c.Request.URL.Query()
 	metadata["version"] = c.Request.Proto
-	metadata["body"] = utils.GetBodyAsJson(c)
+	metadata["body"] = apirequest.BodyAsJson(c)
 
 	if forwardedUser := c.GetHeader("X-Forwarded-User"); forwardedUser != "" {
 		metadata["forwardedUser"] = forwardedUser
@@ -77,7 +69,7 @@ func ResponseError(c *gin.Context) {
 	}
 
 	var appError *errors.Input
-	logger := utils.GetLogger(c)
+	logger := apicontext.Logger(c)
 	requestId := logger.GetId()
 
 	if !hasRequestError {
@@ -86,8 +78,8 @@ func ResponseError(c *gin.Context) {
 	}
 
 	originalError := requestErrors[0].Err
-	if valueAsError, ok := originalError.(*errors.Input); ok {
-		appError = valueAsError
+	if valueAsAppError, ok := originalError.(*errors.Input); ok {
+		appError = valueAsAppError
 	} else {
 		appError = errors.New(errors.Input{
 			Message:    originalError.Error(),
@@ -102,7 +94,7 @@ func ResponseError(c *gin.Context) {
 		logger.WithMetadata(metadata).Error("HTTP_REQUEST_ERROR")
 	}
 
-	if env.GetAppEnv() == env.AppLocal {
+	if env.IsLocal() {
 		c.JSON(appError.StatusCode, appError)
 		return
 	}
@@ -127,7 +119,7 @@ func ResponseError(c *gin.Context) {
 		validations = v.([]map[string]any)
 	}
 
-	c.JSON(appError.StatusCode, &ResponseErrorOutput{
+	c.JSON(appError.StatusCode, &response{
 		Code:        appError.Code,
 		Name:        appError.Name,
 		RequestId:   requestId,
@@ -135,4 +127,13 @@ func ResponseError(c *gin.Context) {
 		Validations: validations,
 		Message:     errorMessage,
 	})
+}
+
+type response struct {
+	Code        string           `json:"code"`
+	Name        string           `json:"name"`
+	RequestId   string           `json:"requestId"`
+	Validations []map[string]any `json:"validations"`
+	StatusCode  int              `json:"statusCode"`
+	Message     string           `json:"message"`
 }

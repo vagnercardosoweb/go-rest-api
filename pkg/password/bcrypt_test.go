@@ -1,4 +1,4 @@
-package password_hash
+package password
 
 import (
 	"testing"

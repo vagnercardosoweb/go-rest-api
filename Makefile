@@ -33,15 +33,12 @@ start_docker:
 	docker compose -f docker-compose.yml up --build -d
 	docker logs go-rest-api-api -f
 
-start_local: check_build
+start_development: check_build
 	docker compose -f docker-compose.yml up redis postgres -d
-	APP_ENV=local ~/go/bin/air -c .air.toml
+	APP_ENV=development ~/go/bin/air -c .air.toml
 
 start_production: check_build
 	APP_ENV=production ~/go/bin/air -c .air.toml
-
-start_staging: check_build
-	APP_ENV=staging ~/go/bin/air -c .air.toml
 
 docker_build_local:
 	docker build --rm --no-cache -f ./Dockerfile.production -t ${IMAGE_URL}-${IMAGE_VERSION} .

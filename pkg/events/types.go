@@ -1,18 +1,18 @@
 package events
 
 import (
-	"sync"
 	"time"
 )
 
 type Event struct {
-	Name      string    `json:"name"`
-	Payload   any       `json:"payload"`
-	CreatedAt time.Time `json:"createdAt"`
+	Name          string    `json:"name"`
+	CreatedAt     time.Time `json:"createdAt"`
+	CorrelationId string    `json:"correlationId"`
+	Input         any       `json:"input"`
 }
 
 type Handler interface {
-	Handle(event *Event, wg *sync.WaitGroup)
+	Handle(event *Event)
 }
 
 type DispatcherInterface interface {

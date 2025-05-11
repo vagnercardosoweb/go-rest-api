@@ -19,7 +19,7 @@ func NewJwt(secretKey []byte) *Jwt {
 	return &Jwt{secretKey: secretKey, expiresIn: time.Hour * 24}
 }
 
-func NewJwtFromEnv() *Jwt {
+func JwtFromEnv() *Jwt {
 	return &Jwt{
 		secretKey: []byte(env.GetAsString("JWT_SECRET_KEY")),
 		expiresIn: time.Duration(env.GetAsInt("JWT_EXPIRES_IN_SECONDS", "86400")),

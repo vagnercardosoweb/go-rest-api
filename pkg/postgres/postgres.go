@@ -51,7 +51,7 @@ func NewClient(ctx context.Context, logger *logger.Logger, config *Config) *Clie
 	}
 }
 
-func NewFromEnv(ctx context.Context, logger *logger.Logger) *Client {
+func FromEnv(ctx context.Context, logger *logger.Logger) *Client {
 	return NewClient(
 		ctx,
 		logger,
@@ -208,7 +208,7 @@ func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
 	// prevents database lock in case of panic error
 	defer tx.Rollback()
 
-	client := c.Copy()
+	client := c.Clone()
 	client.tx = tx
 
 	result, err := fn(client)
@@ -242,8 +242,9 @@ func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
 }
 
 func (c *Client) WithLogger(logger *logger.Logger) *Client {
-	client := c.Copy()
+	client := c.Clone()
 	client.logger = logger
+
 	return client
 }
 
@@ -251,7 +252,7 @@ func (c *Client) GetLogger() *logger.Logger {
 	return c.logger
 }
 
-func (c *Client) Copy() *Client {
+func (c *Client) Clone() *Client {
 	return &Client{
 		db:          c.db,
 		ctx:         c.ctx,

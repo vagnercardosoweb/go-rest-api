@@ -7,13 +7,13 @@ import (
 	"github.com/go-playground/locales/pt_BR"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
-	entranslations "github.com/go-playground/validator/v10/translations/en"
-	ptbrtranslations "github.com/go-playground/validator/v10/translations/pt_BR"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
+	en_translation "github.com/go-playground/validator/v10/translations/en"
+	pt_br_translation "github.com/go-playground/validator/v10/translations/pt_BR"
+	apicontext "github.com/vagnercardosoweb/go-rest-api/pkg/api/context"
 	"golang.org/x/text/language"
 )
 
-func WithTranslator(c *gin.Context) {
+func Translator(c *gin.Context) {
 	var translator ut.Translator
 
 	acceptLanguage := c.GetHeader("Accept-Language")
@@ -28,14 +28,15 @@ func WithTranslator(c *gin.Context) {
 		translator, _ = ut.New(en.New(), pt_BR.New()).
 			GetTranslator(acceptLanguage)
 
-		if acceptLanguage == language.BrazilianPortuguese.String() {
-			_ = ptbrtranslations.RegisterDefaultTranslations(val, translator)
-		} else {
-			_ = entranslations.RegisterDefaultTranslations(val, translator)
+		switch acceptLanguage {
+		case language.BrazilianPortuguese.String():
+			_ = pt_br_translation.RegisterDefaultTranslations(val, translator)
+		default:
+			_ = en_translation.RegisterDefaultTranslations(val, translator)
 		}
 	}
 
-	c.Set(utils.ValidateTranslatorCtxKey, &translator)
+	c.Set(apicontext.TranslatorKey, &translator)
 
 	c.Next()
 }

@@ -19,18 +19,18 @@ var logger = log.New(os.Stdout, "", 0)
 
 func New() *Logger {
 	return &Logger{
-		id:             "APP",
-		metadata:       make(map[string]any),
-		redactKeys:     strings.Split(env.GetAsString("REDACT_KEYS", ""), ","),
-		isDebugEnabled: env.GetAsBool("LOGGER_DEBUG", "true"),
-		isEnabled:      env.GetAsBool("LOGGER_ENABLED", "true"),
-		mu:             new(sync.Mutex),
+		id:         "APP",
+		metadata:   make(map[string]any),
+		redactKeys: strings.Split(env.GetAsString("REDACT_KEYS", ""), ","),
+		enabled:    env.GetAsBool("LOGGER_ENABLED", "true"),
+		mu:         new(sync.Mutex),
 	}
 }
 
 func (*Logger) WithId(id string) *Logger {
 	l := New()
 	l.id = id
+
 	return l
 }
 
@@ -39,10 +39,7 @@ func (l *Logger) GetId() string {
 }
 
 func (l *Logger) WithoutRedact() *Logger {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	l.skipRedact = true
-	return l
+	return l.AddMetadata("skipRedact", "true")
 }
 
 func (l *Logger) WithMetadata(metadata map[string]any) *Logger {
@@ -71,28 +68,12 @@ func (l *Logger) Info(message string, arguments ...any) {
 	l.Log(LevelInfo, message, arguments...)
 }
 
-func (l *Logger) Warn(message string, arguments ...any) {
-	l.Log(LevelWarn, message, arguments...)
-}
-
-func (l *Logger) Debug(message string, arguments ...any) {
-	if !l.isDebugEnabled {
-		return
-	}
-
-	l.Log(LevelDebug, message, arguments...)
-}
-
-func (l *Logger) Critical(message string, arguments ...any) {
-	l.Log(LevelCritical, message, arguments...)
-}
-
 func (l *Logger) Error(message string, arguments ...any) {
 	l.Log(LevelError, message, arguments...)
 }
 
 func (l *Logger) Log(level level, message string, arguments ...any) {
-	if !l.isEnabled {
+	if !l.enabled {
 		return
 	}
 
@@ -103,33 +84,43 @@ func (l *Logger) Log(level level, message string, arguments ...any) {
 		message = fmt.Sprintf(message, arguments...)
 	}
 
-	if len(l.metadata) > 0 && len(l.redactKeys) > 0 && !l.skipRedact {
+	if l.isRedact() {
 		l.metadata = utils.RedactKeys(l.metadata, l.redactKeys)
 	}
 
 	logAsJson, _ := json.Marshal(Output{
 		Id:          l.id,
 		Level:       level,
-		Environment: env.GetAppEnv(),
-		Pid:         utils.Pid,
 		Hostname:    utils.Hostname,
+		Environment: env.GetAppEnv(),
 		Timestamp:   time.Now().UTC(),
-		Message:     message,
 		Metadata:    l.metadata,
+		Message:     message,
 	})
 
-	l.skipRedact = false
 	l.metadata = make(map[string]any)
-
 	logger.Println(string(logAsJson))
 }
 
-const CtxKey = "LoggerCtxKey"
+func (l *Logger) isRedact() bool {
+	if _, ok := l.metadata["skipRedact"]; ok {
+		delete(l.metadata, "skipRedact")
+
+		return false
+	}
+
+	return len(l.metadata) > 0 &&
+		len(l.redactKeys) > 0
+}
+
+const CtxKey = "LoggerKey"
 
 func GetFromCtxOrPanic(ctx context.Context) *Logger {
 	l, ok := ctx.Value(CtxKey).(*Logger)
+
 	if !ok {
-		panic("Logger not found in context")
+		panic(fmt.Sprintf(`context key "%s" does not exist`, CtxKey))
 	}
+
 	return l
 }

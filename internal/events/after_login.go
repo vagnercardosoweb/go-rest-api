@@ -1,32 +1,29 @@
 package events
 
 import (
-	"sync"
 	"time"
 
-	eventspkg "github.com/vagnercardosoweb/go-rest-api/pkg/events"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/events"
 )
 
-type AfterLogin struct {
-	eventManager *EventManager
+type AfterLogin struct{ *EventManager }
+
+func (e *AfterLogin) Handle(event *events.Event) {
+	e.logger.Info("Handling after login event")
 }
 
-const eventName = "afterLogin"
-
-func RegisterAfterLogin(eventManager *EventManager) *AfterLogin {
-	event := &AfterLogin{eventManager: eventManager}
-	eventManager.Register(eventName, event)
-	return event
+type AfterLoginInput struct {
+	UserId string `json:"user_id"`
 }
 
-func MakeAfterLogin(userId string) *eventspkg.Event {
-	return &eventspkg.Event{
-		Name:      eventName,
-		CreatedAt: time.Now(),
-		Payload:   userId,
+func (e *EventManager) AfterLogin(input AfterLoginInput) *events.Event {
+	event := &events.Event{
+		Name:          AfterLoginName,
+		CorrelationId: e.logger.GetId(),
+		CreatedAt:     time.Now(),
+		Input:         input,
 	}
-}
 
-func (e *AfterLogin) Handle(event *eventspkg.Event, wg *sync.WaitGroup) {
-	defer wg.Done()
+	e.dispatch(event)
+	return event
 }

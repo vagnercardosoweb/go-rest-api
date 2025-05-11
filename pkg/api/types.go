@@ -15,7 +15,7 @@ type Route struct {
 	Path     string
 }
 
-type RestApi struct {
+type Api struct {
 	ctx             context.Context
 	logger          *logger.Logger
 	port            string
@@ -23,6 +23,6 @@ type RestApi struct {
 	shutdownTimeout time.Duration
 	dependencies    map[string]any
 	server          *http.Server
-	appEnv          string
+	environment     string
 	gin             *gin.Engine
 }

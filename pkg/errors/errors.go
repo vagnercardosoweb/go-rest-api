@@ -87,7 +87,7 @@ func (e *Input) Error() string {
 }
 
 func (e *Input) makeStack() {
-	if e.SkipStack == true {
+	if e.SkipStack {
 		return
 	}
 

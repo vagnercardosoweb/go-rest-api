@@ -11,61 +11,65 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/suite"
+
 	"github.com/vagnercardosoweb/go-rest-api/internal/repositories/user"
 	"github.com/vagnercardosoweb/go-rest-api/internal/types"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/password_hash"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/password"
 	"github.com/vagnercardosoweb/go-rest-api/tests"
 )
 
-type LoginSuite struct {
+type LoginTest struct {
 	tests.RestApiSuite
-	passwordHash   password_hash.PasswordHash
-	userRepository user.RepositoryInterface
-	input          types.UserLoginInput
+	passwordHash   password.PasswordHasher
+	userRepository user.Repository
+	validInput     types.UserLoginInput
 }
 
-func (ls *LoginSuite) SetupSuite() {
-	ls.RestApiSuite.SetupSuite()
+func (t *LoginTest) createRecorder(input any) *httptest.ResponseRecorder {
+	body := new(bytes.Buffer)
+	_ = json.NewEncoder(body).Encode(input)
 
-	ls.passwordHash = password_hash.NewBcrypt()
-	ls.userRepository = user.NewRepository(ls.PgClient)
+	request := httptest.NewRequest(http.MethodPost, "/login", body)
+	rr := t.RestApi.TestRequest(request)
 
-	ls.input = types.UserLoginInput{
+	return rr
+}
+
+func (t *LoginTest) SetupSuite() {
+	t.RestApiSuite.SetupSuite()
+
+	t.passwordHash = password.NewBcrypt()
+	t.userRepository = user.New(t.PgClient)
+
+	t.validInput = types.UserLoginInput{
 		Email:    "test@local.dev",
 		Password: "12345678",
 	}
 }
 
-func (ls *LoginSuite) SetupTest() {
-	passwordHash, err := ls.passwordHash.Create(ls.input.Password)
-	ls.Require().Nil(err)
+func (t *LoginTest) SetupTest() {
+	passwordHash, err := t.passwordHash.Create(t.validInput.Password)
+	t.Require().Nil(err)
 
-	_, err = ls.userRepository.Create(&user.CreateInput{
+	_, err = t.userRepository.Create(&user.CreateInput{
 		Name:         "Test User",
-		Email:        ls.input.Email,
+		Email:        t.validInput.Email,
 		PasswordHash: passwordHash,
 		Birthdate:    time.Date(1994, time.December, 15, 0, 0, 0, 0, time.UTC),
 		CodeToInvite: "ANY_CODE",
 	})
 
-	ls.Require().Nil(err)
+	t.Require().Nil(err)
 }
 
-func (ls *LoginSuite) TearDownTest() {
-	_ = ls.PgClient.TruncateTable("users")
+func (t *LoginTest) TearDownTest() {
+	_ = t.PgClient.TruncateTable("users")
 }
 
-func (ls *LoginSuite) createResponseRecorder(input any) *httptest.ResponseRecorder {
-	body := new(bytes.Buffer)
-	_ = json.NewEncoder(body).Encode(input)
-	rr := ls.RestApi.TestRequest(httptest.NewRequest(http.MethodPost, "/login", body))
-	return rr
-}
-
-func (ls *LoginSuite) TestSuccess() {
-	rr := ls.createResponseRecorder(ls.input)
-	ls.Require().Equal(http.StatusOK, rr.Code)
+func (t *LoginTest) TestSuccess() {
+	rr := t.createRecorder(t.validInput)
+	t.Require().Equal(http.StatusOK, rr.Code)
 
 	var output struct {
 		Data types.UserLoginOutput `json:"data"`
@@ -73,48 +77,52 @@ func (ls *LoginSuite) TestSuccess() {
 
 	_ = json.NewDecoder(rr.Body).Decode(&output)
 
-	ls.Require().NotEmpty(output.Data.AccessToken)
-	ls.Require().True(len(strings.Split(output.Data.AccessToken, ".")) == 3)
-	ls.Require().Equal(output.Data.TokenType, "Bearer")
-	ls.Require().NotEmpty(output.Data.ExpiresIn)
+	t.Require().NotEmpty(output.Data.AccessToken)
+	t.Require().True(len(strings.Split(output.Data.AccessToken, ".")) == 3)
+	t.Require().Equal(output.Data.TokenType, "Bearer")
+	t.Require().NotEmpty(output.Data.ExpiresIn)
 
 }
 
-func (ls *LoginSuite) TestNotFound() {
-	ls.input.Email = "not_found@local.dev"
-	rr := ls.createResponseRecorder(ls.input)
+func (t *LoginTest) TestNotFound() {
+	rr := t.createRecorder(types.UserLoginInput{
+		Email:    "not_found@local.dev",
+		Password: t.validInput.Password,
+	})
 
 	var e errors.Input
 	_ = json.NewDecoder(rr.Body).Decode(&e)
 
-	ls.Require().Equal(http.StatusUnauthorized, rr.Code)
-	ls.Require().Equal(e.Message, "Email/Password invalid")
+	t.Require().Equal(http.StatusUnauthorized, rr.Code)
+	t.Require().Equal(e.Message, "Email/Password invalid")
 }
 
-func (ls *LoginSuite) TestInvalidPassword() {
-	ls.input.Password = "invalid_password"
-	rr := ls.createResponseRecorder(ls.input)
+func (t *LoginTest) TestInvalidPassword() {
+	rr := t.createRecorder(types.UserLoginInput{
+		Email:    t.validInput.Email,
+		Password: "invalid_password",
+	})
 
 	var e errors.Input
 	_ = json.NewDecoder(rr.Body).Decode(&e)
 
-	ls.Require().Equal(http.StatusUnauthorized, rr.Code)
-	ls.Require().Equal(e.Message, "Email/Password invalid")
+	t.Require().Equal(http.StatusUnauthorized, rr.Code)
+	t.Require().Equal(e.Message, "Email/Password invalid")
 }
 
-func (ls *LoginSuite) TestBlockedUntil() {
-	_, _ = ls.PgClient.Exec(
-		"UPDATE users SET login_blocked_until = NOW() + INTERVAL '1 hour' WHERE email = $1",
-		ls.input.Email,
+func (t *LoginTest) TestBlockedUntil() {
+	_, _ = t.PgClient.Exec(
+		"UPDATE users SET login_blocked_until = NOW() + INTERVAL '1 HOUR' WHERE email = $1",
+		t.validInput.Email,
 	)
 
-	rr := ls.createResponseRecorder(ls.input)
+	rr := t.createRecorder(t.validInput)
 
 	var e errors.Input
 	_ = json.NewDecoder(rr.Body).Decode(&e)
 
-	ls.Require().Equal(http.StatusUnauthorized, rr.Code)
-	ls.Require().Equal(
+	t.Require().Equal(http.StatusUnauthorized, rr.Code)
+	t.Require().Equal(
 		e.Message,
 		fmt.Sprintf(
 			`Your access is blocked until "%s". Try again later.`,
@@ -123,10 +131,10 @@ func (ls *LoginSuite) TestBlockedUntil() {
 	)
 }
 
-func TestLoginSuite(t *testing.T) {
+func TestUserLogin(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	}
 
-	suite.Run(t, new(LoginSuite))
+	suite.Run(t, new(LoginTest))
 }

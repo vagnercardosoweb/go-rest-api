@@ -2,6 +2,7 @@ package token
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
@@ -24,21 +25,25 @@ type Client interface {
 	Decode(token string) (*Output, error)
 }
 
-const OutputCtxKey = "TokenOutputCtxKey"
-const ClientCtxKey = "TokenClientCtxKey"
+const CtxClientKey = "TokenClientKey"
+const CtxDecodedKey = "DecodedTokenKey"
 
-func GetOutputFromCtxOrPanic(ctx context.Context) *Output {
-	decoded, ok := ctx.Value(OutputCtxKey).(*Output)
+func DecodedFromCtx(ctx context.Context) *Output {
+	value, ok := ctx.Value(CtxDecodedKey).(*Output)
+
 	if !ok {
-		panic("token output not found in context")
+		panic(fmt.Sprintf(`context key "%s" does not exist`, CtxDecodedKey))
 	}
-	return decoded
+
+	return value
 }
 
-func GetClientFromCtxOrPanic(ctx context.Context) Client {
-	client, ok := ctx.Value(ClientCtxKey).(Client)
+func ClientFromCtx(ctx context.Context) Client {
+	value, ok := ctx.Value(CtxClientKey).(Client)
+
 	if !ok {
-		panic("token client not found in context")
+		panic(fmt.Sprintf(`context key "%s" does not exist`, CtxClientKey))
 	}
-	return client
+
+	return value
 }

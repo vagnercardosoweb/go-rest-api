@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
 )
@@ -74,14 +75,14 @@ func (t *ContainerTestSuite) createContainerPostgres() {
 	t.Require().Nil(err)
 	_ = os.Setenv("DB_PORT", mappedPort.Port())
 
-	t.PgClient = postgres.NewFromEnv(t.Ctx, t.Logger)
+	t.PgClient = postgres.FromEnv(t.Ctx, t.Logger)
 	_, err = t.PgClient.Exec(fmt.Sprintf(`CREATE SCHEMA IF NOT EXISTS "%s";`, schema))
 	t.Require().Nil(err)
 
 	driver, err := migratepostgres.WithInstance(t.PgClient.GetDb(), &migratepostgres.Config{
-		MigrationsTable: "migrations",
-		DatabaseName:    testValue,
 		SchemaName:      schema,
+		MigrationsTable: env.GetAsString("DB_MIGRATIONS_TABLE", "migrations"),
+		DatabaseName:    testValue,
 	})
 	t.Require().Nil(err)
 
@@ -132,7 +133,7 @@ func (t *ContainerTestSuite) createContainerRedis() {
 	t.Require().Nil(err)
 	_ = os.Setenv("REDIS_PORT", mappedPort.Port())
 
-	t.RedisClient = redis.NewFromEnv(t.Ctx, t.Logger)
+	t.RedisClient = redis.FromEnv(t.Ctx)
 }
 
 func (t *ContainerTestSuite) SetupSuite() {

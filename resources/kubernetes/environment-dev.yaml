@@ -7,19 +7,23 @@ metadata:
     app: golang-api
 data:
   PORT: "3000"
+  IS_LOCAL: "false"
   LOAD_ENV: "false"
-  APP_ENV: "development"
-  REDACT_KEYS: "password,passwordConfirm,authorization,x-api-key"
   JWT_EXPIRES_IN_SECONDS: "86400"
+  REDACT_KEYS: "password,passwordConfirm,authorization,x-api-key"
+  APP_ENV: "development"
+
   SCHEDULER_ENABLED: "true"
   SCHEDULER_SLEEP: "60"
-  DEBUG: "false"
+
+  LOGGER_ENABLED: "true"
+  PROFILER_ENABLED: "true"
 
   AWS_REGION: "us-east-1"
 
   AWS_SES_REGION: "us-east-1"
-  AWS_SES_CONFIGURATION_NAME: ""
-  AWS_SES_SOURCE: ""
+  AWS_SES_CONFIGURATION_NAME: "default"
+  AWS_SES_SOURCE: "AppName <noreply@test.com>"
 
   DB_HOST: "localhost"
   DB_PORT: "5432"
@@ -33,6 +37,7 @@ data:
   REDIS_DATABASE: "0"
   REDIS_PORT: "6379"
 
+  SLACK_ENABLED: "true"
   SLACK_CHANNEL: "alerts"
   SLACK_MEMBERS_ID: "U0174ABMTUH"
   SLACK_USERNAME: "golang-api"

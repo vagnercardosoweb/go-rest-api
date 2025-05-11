@@ -4,11 +4,11 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
+	apicontext "github.com/vagnercardosoweb/go-rest-api/pkg/api/context"
 )
 
-func ExtractAuthToken(c *gin.Context) {
-	token := c.Query("token")
+func BearerToken(c *gin.Context) {
+	token := c.Query("bearerToken")
 	authorization := c.GetHeader("Authorization")
 
 	if authorization != "" {
@@ -19,6 +19,6 @@ func ExtractAuthToken(c *gin.Context) {
 		}
 	}
 
-	c.Set(utils.AuthTokenCtxKey, token)
+	c.Set(apicontext.BearerTokenKey, token)
 	c.Next()
 }

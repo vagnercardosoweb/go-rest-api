@@ -3,18 +3,21 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-const CtxKey = "PgClientCtxKey"
+const CtxKey = "PgClientKey"
 
-func GetFromCtxOrPanic(c context.Context) *Client {
+func FromCtx(c context.Context) *Client {
 	value, exists := c.Value(CtxKey).(*Client)
+
 	if !exists {
-		panic("postgres client not found in context")
+		panic(fmt.Sprintf(`context key "%s" does not exist`, CtxKey))
 	}
+
 	return value
 }
 

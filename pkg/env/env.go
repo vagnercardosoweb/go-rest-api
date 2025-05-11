@@ -16,7 +16,8 @@ func Load() {
 		return
 	}
 
-	if err := godotenv.Load(fmt.Sprintf(".env.%s", GetAsString("APP_ENV", "development"))); err != nil {
+	envName := fmt.Sprintf(".env.%s", GetAsString("APP_ENV", "development"))
+	if err := godotenv.Load(envName); err != nil {
 		panic(err)
 	}
 }
@@ -73,6 +74,22 @@ func Required(name string) string {
 
 func GetAppEnv() string {
 	return GetAsString("APP_ENV", "development")
+}
+
+func IsTest() bool {
+	return GetAppEnv() == Test
+}
+
+func IsDevelopment() bool {
+	return GetAppEnv() == Development
+}
+
+func IsProduction() bool {
+	return GetAppEnv() == Production
+}
+
+func IsLocal() bool {
+	return GetAsString("IS_LOCAL", "false") == "true"
 }
 
 func IsSchedulerEnabled() bool {

@@ -34,7 +34,7 @@ func GetSqsClient(logger *logger.Logger) *SqsClient {
 }
 
 func (s *SqsClient) SendMessage(url *string, input any) error {
-	if env.GetAppEnv() == env.AppLocal {
+	if env.IsLocal() {
 		s.logger.
 			AddMetadata("url", url).
 			AddMetadata("input", input).

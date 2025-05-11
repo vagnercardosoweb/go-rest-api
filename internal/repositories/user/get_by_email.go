@@ -27,7 +27,7 @@ const getByEmailQuery = `
 		1;
 `
 
-func (r *Repository) GetByEmail(email string) (*GetByEmailOutput, error) {
+func (r *instance) GetByEmail(email string) (*GetByEmailOutput, error) {
 	var output GetByEmailOutput
 
 	err := r.pgClient.QueryOne(&output, getByEmailQuery, email)

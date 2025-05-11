@@ -1,19 +1,15 @@
 package events
 
 import (
-	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )
 
-type TestEventHandler struct {
-	ID int
-}
+type TestEventHandler struct{ ID int }
 
-func (e *TestEventHandler) Handle(event *Event, wg *sync.WaitGroup) {}
+func (e *TestEventHandler) Handle(event *Event) {}
 
 type DispatcherSuite struct {
 	suite.Suite
@@ -30,109 +26,108 @@ func (suite *DispatcherSuite) SetupTest() {
 	suite.handler = &TestEventHandler{1}
 	suite.handler2 = &TestEventHandler{2}
 	suite.handler3 = &TestEventHandler{3}
-	suite.event = &Event{Name: "test", Payload: "test"}
-	suite.event2 = &Event{Name: "test2", Payload: "test2"}
+	suite.event = &Event{Name: "test", Input: "test"}
+	suite.event2 = &Event{Name: "test2", Input: "test2"}
 }
 
-func (suite *DispatcherSuite) TestDispatcherRegister() {
-	err := suite.dispatcher.Register(suite.event.Name, suite.handler)
-	suite.Nil(err)
-	suite.Equal(1, suite.dispatcher.Total(suite.event.Name))
+func (t *DispatcherSuite) TestRegisterEventHandlers() {
+	err := t.dispatcher.Register(t.event.Name, t.handler)
+	t.Nil(err)
+	t.Equal(1, t.dispatcher.Total(t.event.Name))
 
-	err = suite.dispatcher.Register(suite.event.Name, suite.handler2)
-	suite.Nil(err)
-	suite.Equal(2, suite.dispatcher.Total(suite.event.Name))
+	err = t.dispatcher.Register(t.event.Name, t.handler2)
+	t.Nil(err)
+	t.Equal(2, t.dispatcher.Total(t.event.Name))
 
-	assert.Equal(suite.T(), suite.handler, suite.dispatcher.GetByIndex(suite.event.Name, 0))
-	assert.Equal(suite.T(), suite.handler2, suite.dispatcher.GetByIndex(suite.event.Name, 1))
+	t.Equal(t.handler, t.dispatcher.GetByIndex(t.event.Name, 0))
+	t.Equal(t.handler2, t.dispatcher.GetByIndex(t.event.Name, 1))
 }
 
-func (suite *DispatcherSuite) TestDispatcherRegisterWithSameHandler() {
-	err := suite.dispatcher.Register(suite.event.Name, suite.handler)
-	suite.Nil(err)
-	suite.Equal(1, suite.dispatcher.Total(suite.event.Name))
+func (t *DispatcherSuite) TestRegisterWithSameHandler() {
+	err := t.dispatcher.Register(t.event.Name, t.handler)
+	t.Nil(err)
+	t.Equal(1, t.dispatcher.Total(t.event.Name))
 
-	err = suite.dispatcher.Register(suite.event.Name, suite.handler)
-	suite.NotNil(err)
-	suite.Equal(1, suite.dispatcher.Total(suite.event.Name))
+	err = t.dispatcher.Register(t.event.Name, t.handler)
+	t.NotNil(err)
+	t.Equal(1, t.dispatcher.Total(t.event.Name))
 }
 
-func (suite *DispatcherSuite) TestDispatcherClear() {
+func (t *DispatcherSuite) TestClearEventHandlers() {
 	// Event 01
-	err := suite.dispatcher.Register(suite.event.Name, suite.handler)
-	suite.Nil(err)
-	suite.Equal(1, suite.dispatcher.Total(suite.event.Name))
+	err := t.dispatcher.Register(t.event.Name, t.handler)
+	t.Nil(err)
+	t.Equal(1, t.dispatcher.Total(t.event.Name))
 
-	err = suite.dispatcher.Register(suite.event.Name, suite.handler2)
-	suite.Nil(err)
-	suite.Equal(2, suite.dispatcher.Total(suite.event.Name))
+	err = t.dispatcher.Register(t.event.Name, t.handler2)
+	t.Nil(err)
+	t.Equal(2, t.dispatcher.Total(t.event.Name))
 
 	// Event 02
-	err = suite.dispatcher.Register(suite.event2.Name, suite.handler3)
-	suite.Nil(err)
-	suite.Equal(1, suite.dispatcher.Total(suite.event2.Name))
+	err = t.dispatcher.Register(t.event2.Name, t.handler3)
+	t.Nil(err)
+	t.Equal(1, t.dispatcher.Total(t.event2.Name))
 
 	// Clear
-	suite.dispatcher.Clear()
-	suite.Equal(0, suite.dispatcher.Total(""))
+	t.dispatcher.Clear()
+	t.Equal(0, t.dispatcher.Total(""))
 }
 
-func (suite *DispatcherSuite) TestDispatcherHas() {
-	err := suite.dispatcher.Register(suite.event.Name, suite.handler)
-	suite.Nil(err)
-	suite.Equal(1, suite.dispatcher.Total(suite.event.Name))
+func (t *DispatcherSuite) TestHasEventHandlers() {
+	err := t.dispatcher.Register(t.event.Name, t.handler)
+	t.Nil(err)
+	t.Equal(1, t.dispatcher.Total(t.event.Name))
 
-	err = suite.dispatcher.Register(suite.event.Name, suite.handler2)
-	suite.Nil(err)
-	suite.Equal(2, suite.dispatcher.Total(suite.event.Name))
+	err = t.dispatcher.Register(t.event.Name, t.handler2)
+	t.Nil(err)
+	t.Equal(2, t.dispatcher.Total(t.event.Name))
 
-	assert.True(suite.T(), suite.dispatcher.Has(suite.event.Name, suite.handler))
-	assert.True(suite.T(), suite.dispatcher.Has(suite.event.Name, suite.handler2))
-	assert.False(suite.T(), suite.dispatcher.Has(suite.event.Name, suite.handler3))
+	t.True(t.dispatcher.Has(t.event.Name, t.handler))
+	t.True(t.dispatcher.Has(t.event.Name, t.handler2))
+	t.False(t.dispatcher.Has(t.event.Name, t.handler3))
 }
 
-type MockHandler struct {
-	mock.Mock
-}
+type MockHandler struct{ mock.Mock }
 
-func (m *MockHandler) Handle(event *Event, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (m *MockHandler) Handle(event *Event) {
 	m.Called(event)
 }
 
-func (suite *DispatcherSuite) TestDispatcherDispatch() {
+func (t *DispatcherSuite) TestDispatchEventRegistration() {
 	handler := &MockHandler{}
-	handler.On("Handle", suite.event)
-	_ = suite.dispatcher.Register(suite.event.Name, handler)
-	_ = suite.dispatcher.Dispatch(suite.event)
-	handler.AssertExpectations(suite.T())
-	handler.AssertNumberOfCalls(suite.T(), "Handle", 1)
+	handler.On("Handle", t.event)
+
+	_ = t.dispatcher.Register(t.event.Name, handler)
+	_ = t.dispatcher.Dispatch(t.event)
+
+	handler.AssertExpectations(t.T())
+	handler.AssertNumberOfCalls(t.T(), "Handle", 1)
 }
 
-func (suite *DispatcherSuite) TestDispatcherRemove() {
-	err := suite.dispatcher.Register(suite.event.Name, suite.handler)
-	suite.Nil(err)
-	suite.Equal(1, suite.dispatcher.Total(suite.event.Name))
+func (t *DispatcherSuite) TestRemoveEventHandlers() {
+	err := t.dispatcher.Register(t.event.Name, t.handler)
+	t.Nil(err)
+	t.Equal(1, t.dispatcher.Total(t.event.Name))
 
-	err = suite.dispatcher.Register(suite.event.Name, suite.handler2)
-	suite.Nil(err)
-	suite.Equal(2, suite.dispatcher.Total(suite.event.Name))
+	err = t.dispatcher.Register(t.event.Name, t.handler2)
+	t.Nil(err)
+	t.Equal(2, t.dispatcher.Total(t.event.Name))
 
-	err = suite.dispatcher.Register(suite.event2.Name, suite.handler3)
-	suite.Nil(err)
-	suite.Equal(1, suite.dispatcher.Total(suite.event2.Name))
+	err = t.dispatcher.Register(t.event2.Name, t.handler3)
+	t.Nil(err)
+	t.Equal(1, t.dispatcher.Total(t.event2.Name))
 
-	err = suite.dispatcher.Remove(suite.event2.Name, suite.handler3)
-	suite.Nil(err)
-	suite.Equal(0, suite.dispatcher.Total(suite.event2.Name))
+	err = t.dispatcher.Remove(t.event2.Name, t.handler3)
+	t.Nil(err)
+	t.Equal(0, t.dispatcher.Total(t.event2.Name))
 
-	err = suite.dispatcher.Remove(suite.event.Name, suite.handler2)
-	suite.Nil(err)
-	suite.Equal(1, suite.dispatcher.Total(suite.event.Name))
+	err = t.dispatcher.Remove(t.event.Name, t.handler2)
+	t.Nil(err)
+	t.Equal(1, t.dispatcher.Total(t.event.Name))
 
-	err = suite.dispatcher.Remove(suite.event.Name, suite.handler)
-	suite.Nil(err)
-	suite.Equal(0, suite.dispatcher.Total(suite.event.Name))
+	err = t.dispatcher.Remove(t.event.Name, t.handler)
+	t.Nil(err)
+	t.Equal(0, t.dispatcher.Total(t.event.Name))
 }
 
 func TestDispatcherSuite(t *testing.T) {

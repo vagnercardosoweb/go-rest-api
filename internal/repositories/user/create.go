@@ -39,7 +39,7 @@ const createQuery = `
 		($1, $2, $3, $4, $5, $6, $7, $8);
 `
 
-func (r *Repository) Create(input *CreateInput) (*CreateOutput, error) {
+func (r *instance) Create(input *CreateInput) (*CreateOutput, error) {
 	id := uuid.New()
 
 	_, err := r.pgClient.Exec(

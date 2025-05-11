@@ -4,33 +4,31 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/vagnercardosoweb/go-rest-api/internal/events"
-	repository "github.com/vagnercardosoweb/go-rest-api/internal/repositories/user"
-	service "github.com/vagnercardosoweb/go-rest-api/internal/services/user"
+	userRepository "github.com/vagnercardosoweb/go-rest-api/internal/repositories/user"
+	userService "github.com/vagnercardosoweb/go-rest-api/internal/services/user"
 	"github.com/vagnercardosoweb/go-rest-api/internal/types"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
+	apicontext "github.com/vagnercardosoweb/go-rest-api/pkg/api/context"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/password_hash"
 )
 
 func Login(c *gin.Context) any {
-	var input types.UserLoginInput
+	var input *types.UserLoginInput
+
 	if err := c.ShouldBindBodyWith(&input, binding.JSON); err != nil {
-		return errors.FromBindJson(err, utils.GetValidateTranslator(c))
+		return errors.FromBindJson(err, apicontext.Translator(c))
 	}
 
-	loginSvc := service.NewLoginSvc(
-		repository.NewRepository(utils.GetPgClient(c)),
-		password_hash.NewBcrypt(),
-		utils.GetTokenClient(c),
+	loginSvc := userService.NewLoginSvc(
+		apicontext.TokenClient(c),
+		apicontext.PasswordHasher(c),
+		userRepository.New(apicontext.PgClient(c)),
+		events.FromGin(c),
 	)
 
-	result, err := loginSvc.Execute(input.Email, input.Password)
+	result, err := loginSvc.Execute(input)
 	if err != nil {
 		return err
 	}
-
-	eventManager := events.GetFromGinCtx(c)
-	eventManager.Dispatch(events.MakeAfterLogin(result.Subject))
 
 	return types.UserLoginOutput{
 		AccessToken: result.Token,

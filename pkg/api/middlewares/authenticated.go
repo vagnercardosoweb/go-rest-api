@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
+	apicontext "github.com/vagnercardosoweb/go-rest-api/pkg/api/context"
+	apiresponse "github.com/vagnercardosoweb/go-rest-api/pkg/api/response"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
-	tokenpkg "github.com/vagnercardosoweb/go-rest-api/pkg/token"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/token"
 )
 
 var unauthorized = errors.New(errors.Input{
@@ -18,34 +19,34 @@ var unauthorized = errors.New(errors.Input{
 	Code:        "INVALID_JWT_TOKEN",
 })
 
-func WithAuthToken(c *gin.Context) {
-	authToken := utils.GetAuthToken(c)
-	if authToken == "" {
-		utils.AbortWithError(c, unauthorized)
+func Authenticated(c *gin.Context) {
+	bearerToken := apicontext.BearerToken(c)
+	if bearerToken == "" {
+		apiresponse.Error(c, unauthorized)
 		return
 	}
 
-	if len(strings.Split(authToken, ".")) != 3 {
+	if len(strings.Split(bearerToken, ".")) != 3 {
 		unauthorized.Message = "The token is badly formatted."
-		utils.AbortWithError(c, unauthorized)
+		apiresponse.Error(c, unauthorized)
 		return
 	}
 
-	token := utils.GetTokenClient(c)
+	tokenClient := apicontext.TokenClient(c)
 	unauthorized.Message = "Your access token is not valid, please login again."
-	decoded, err := token.Decode(authToken)
+	decoded, err := tokenClient.Decode(bearerToken)
 
 	if err != nil {
 		unauthorized.OriginalError = err.Error()
-		utils.AbortWithError(c, unauthorized)
+		apiresponse.Error(c, unauthorized)
 		return
 	}
 
 	if _, ok := decoded.Meta["type"]; !ok {
-		utils.AbortWithError(c, unauthorized)
+		apiresponse.Error(c, unauthorized)
 		return
 	}
 
-	c.Set(tokenpkg.OutputCtxKey, decoded)
+	c.Set(token.CtxDecodedKey, decoded)
 	c.Next()
 }

@@ -18,11 +18,11 @@ import (
 type Job func(s *Scheduler) error
 
 type Scheduler struct {
+	logger      *logger.Logger
 	pgClient    *postgres.Client
 	cacheClient *redis.Client
-	logger      *logger.Logger
-	sleep       time.Duration
 	waiter      sync.WaitGroup
+	sleep       time.Duration
 	jobs        []Job
 }
 
@@ -31,14 +31,18 @@ func New(
 	redisClient *redis.Client,
 	logger *logger.Logger,
 ) *Scheduler {
-	scheduler := &Scheduler{
+	return &Scheduler{
 		pgClient:    pgClient,
 		cacheClient: redisClient,
-		waiter:      sync.WaitGroup{},
+		logger:      logger.WithId("SCHEDULER"),
 		sleep:       env.GetSchedulerSleep(),
-		logger:      logger,
+		waiter:      sync.WaitGroup{},
+		jobs:        make([]Job, 0),
 	}
-	return scheduler
+}
+
+func (s *Scheduler) AddJob(job Job) {
+	s.jobs = append(s.jobs, job)
 }
 
 func (s *Scheduler) Run() {
@@ -52,11 +56,11 @@ func (s *Scheduler) Run() {
 
 		for _, job := range s.jobs {
 			go func(job Job) {
-				defer s.waiter.Done()
 				defer s.recover()
+				defer s.waiter.Done()
 
 				if err := job(s); err != nil {
-					s.sendErrorToSlack(err, false)
+					s.notifySlackOfError(err, false)
 				}
 			}(job)
 		}
@@ -65,7 +69,7 @@ func (s *Scheduler) Run() {
 	}
 }
 
-func (s *Scheduler) sendErrorToSlack(err any, panic bool) {
+func (s *Scheduler) notifySlackOfError(err any, panic bool) {
 	_, file, line, _ := runtime.Caller(3)
 	caller := fmt.Sprintf("%s:%d", file, line)
 
@@ -100,10 +104,6 @@ func (s *Scheduler) sendErrorToSlack(err any, panic bool) {
 
 func (s *Scheduler) recover() {
 	if r := recover(); r != nil {
-		s.sendErrorToSlack(r, true)
+		s.notifySlackOfError(r, true)
 	}
-}
-
-func (s *Scheduler) AddJob(job Job) {
-	s.jobs = append(s.jobs, job)
 }

@@ -9,11 +9,11 @@ import (
 )
 
 var environments = map[string]string{
-	"APP_ENV":        "test",
-	"LOGGER_ENABLED": "false",
-	"LOGGER_DEBUG":   "false",
-	"DEBUG":          "false",
-	"TZ":             "UTC",
+	"APP_ENV":          "test",
+	"DB_LOGGING":       "true",
+	"PROFILER_ENABLED": "false",
+	"LOGGER_ENABLED":   "true",
+	"TZ":               "UTC",
 }
 
 type GlobalTestSuite struct {
@@ -28,5 +28,5 @@ func (s *GlobalTestSuite) SetupSuite() {
 	}
 
 	s.Ctx = context.Background()
-	s.Logger = logger.New()
+	s.Logger = logger.New().WithId("TEST")
 }

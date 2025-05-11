@@ -1,16 +1,22 @@
 package middlewares
 
 import (
+	"fmt"
 	"net/http"
 	"slices"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/api/utils"
+	apicontext "github.com/vagnercardosoweb/go-rest-api/pkg/api/context"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
 )
 
-var skipPaths = []string{"/", "/healthy", "/timestamp", "/favicon.ico"}
+var skipPaths = []string{
+	"/healthy",
+	"/favicon.ico",
+	"/timestamp",
+	"/",
+}
 
 func RequestLog(c *gin.Context) {
 	path := c.Request.URL.Path
@@ -21,23 +27,14 @@ func RequestLog(c *gin.Context) {
 	}
 
 	method := c.Request.Method
-	requestLogger := utils.GetLogger(c)
+	requestLogger := apicontext.Logger(c)
 	clientIP := c.ClientIP()
-	metadata := map[string]any{
-		"ip":      clientIP,
-		"method":  method,
-		"path":    path,
-		"query":   c.Request.URL.Query(),
-		"version": c.Request.Proto,
-		"referer": c.GetHeader("referer"),
-		"agent":   c.Request.UserAgent(),
-		"time":    time.Since(utils.GetRequestStartTime(c)).String(),
-		"length":  0,
-		"status":  0,
-	}
 
-	if routePath := c.FullPath(); routePath != "" {
-		metadata["routePath"] = routePath
+	metadata := map[string]any{
+		"ip":        clientIP,
+		"request":   fmt.Sprintf("%s %s", method, path),
+		"userAgent": c.Request.UserAgent(),
+		"time":      time.Since(apicontext.StartTime(c)).String(),
 	}
 
 	requestLogger.
@@ -50,13 +47,8 @@ func RequestLog(c *gin.Context) {
 
 	status := c.Writer.Status()
 
+	metadata["statusCode"] = status
 	metadata["time"] = c.Writer.Header().Get("X-Response-Time")
-	metadata["length"] = c.Writer.Size()
-	metadata["status"] = status
-
-	if method != http.MethodGet {
-		metadata["body"] = utils.GetBodyAsJson(c)
-	}
 
 	level := logger.LevelInfo
 	if status < http.StatusOK || status >= http.StatusBadRequest {
@@ -64,6 +56,7 @@ func RequestLog(c *gin.Context) {
 	}
 
 	requestLogger.
+		WithoutRedact().
 		WithMetadata(metadata).
 		Log(level, "HTTP_REQUEST_COMPLETED")
 }

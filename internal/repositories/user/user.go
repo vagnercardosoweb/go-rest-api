@@ -4,15 +4,15 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 )
 
-type RepositoryInterface interface {
+type instance struct {
+	pgClient *postgres.Client
+}
+
+type Repository interface {
 	GetByEmail(email string) (*GetByEmailOutput, error)
 	Create(input *CreateInput) (*CreateOutput, error)
 }
 
-type Repository struct {
-	pgClient *postgres.Client
-}
-
-func NewRepository(db *postgres.Client) RepositoryInterface {
-	return &Repository{pgClient: db}
+func New(pgClient *postgres.Client) Repository {
+	return &instance{pgClient: pgClient}
 }

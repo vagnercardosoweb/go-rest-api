@@ -2,7 +2,7 @@ package middlewares
 
 import "github.com/gin-gonic/gin"
 
-func WithHeaders(c *gin.Context) {
+func Headers(c *gin.Context) {
 	// Not Expose Server Information
 	c.Header("Server", "Go-API")
 
