@@ -3,7 +3,9 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -89,4 +91,15 @@ func NewNullBool(b bool) sql.NullBool {
 		Bool:  b,
 		Valid: true,
 	}
+}
+
+func UnmarshalArray(src any, target any) error {
+	data := src.([]byte)
+
+	goArrayString := fmt.Sprintf("[%s]", data[1:len(data)-1])
+	goArrayString = strings.ReplaceAll(goArrayString, "\"{", "{")
+	goArrayString = strings.ReplaceAll(goArrayString, "}\"", "}")
+	goArrayString = strings.ReplaceAll(goArrayString, "\\\"", "\"")
+
+	return json.Unmarshal([]byte(goArrayString), target)
 }
