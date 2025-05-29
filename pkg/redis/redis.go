@@ -16,15 +16,14 @@ func NewClient(
 	ctx context.Context,
 	options *redis.Options,
 ) *Client {
-	client := redis.NewClient(options)
-	connection := &Client{ctx: ctx, redis: client}
+	redisClient := redis.NewClient(options)
+	client := &Client{ctx: ctx, redis: redisClient}
 
-	err := connection.Ping()
-	if err != nil {
+	if err := client.Ping(); err != nil {
 		panic(err)
 	}
 
-	return connection
+	return client
 }
 
 func FromEnv(ctx context.Context) *Client {
@@ -41,7 +40,7 @@ func (c *Client) Get(key string, dest any) error {
 		return fmt.Errorf("Redis#Get('%s') dest must be pointer", key)
 	}
 
-	bytes, err := c.redis.Get(c.ctx, key).Bytes()
+	valueAsBytes, err := c.redis.Get(c.ctx, key).Bytes()
 
 	if errors.Is(err, redis.Nil) {
 		return nil
@@ -51,18 +50,20 @@ func (c *Client) Get(key string, dest any) error {
 		return err
 	}
 
-	return json.Unmarshal(bytes, dest)
+	return json.Unmarshal(valueAsBytes, dest)
 }
 
 func (c *Client) Set(key string, value any, expiration time.Duration) error {
-	jsonValue, err := json.Marshal(value)
+	valueAsBytes, err := json.Marshal(value)
+
 	if err != nil {
 		return err
 	}
+
 	return c.redis.Set(
 		c.ctx,
 		key,
-		jsonValue,
+		valueAsBytes,
 		expiration,
 	).Err()
 }
@@ -70,13 +71,6 @@ func (c *Client) Set(key string, value any, expiration time.Duration) error {
 func (c *Client) Has(key string) (bool, error) {
 	cmd := c.redis.Exists(c.ctx, key)
 	return c.checkResultCmd(cmd)
-}
-
-func (c *Client) checkResultCmd(cmd *redis.IntCmd) (bool, error) {
-	if cmd.Err() != nil {
-		return false, cmd.Err()
-	}
-	return cmd.Val() > 0, nil
 }
 
 func (c *Client) Del(key string) (bool, error) {
@@ -95,4 +89,12 @@ func (c *Client) FlushAll() error {
 
 func (c *Client) Close() error {
 	return c.redis.Close()
+}
+
+func (c *Client) checkResultCmd(cmd *redis.IntCmd) (bool, error) {
+	if cmd.Err() != nil {
+		return false, cmd.Err()
+	}
+
+	return cmd.Val() > 0, nil
 }

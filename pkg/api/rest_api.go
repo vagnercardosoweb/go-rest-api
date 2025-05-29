@@ -190,6 +190,11 @@ func (api *Api) setupGin() {
 	api.gin.Use(middlewares.Headers)
 
 	api.gin.Use(func(c *gin.Context) {
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusOK)
+			return
+		}
+
 		c.Request = c.Request.WithContext(api.ctx)
 
 		requestId := apicontext.RequestId(c)
