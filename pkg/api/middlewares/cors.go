@@ -15,6 +15,7 @@ const (
 func Cors(c *gin.Context) {
 	c.Header("Access-Control-Allow-Origin", origin)
 	c.Header("Access-Control-Allow-Methods", methods)
+	c.Header("Access-Control-Max-Age", "86400") // 24 hours
 	c.Header("Access-Control-Allow-Credentials", "true")
 	c.Header("Access-Control-Allow-Headers", headers)
 
