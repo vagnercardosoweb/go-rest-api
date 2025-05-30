@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -98,4 +99,14 @@ func IsSchedulerEnabled() bool {
 
 func GetSchedulerSleep() time.Duration {
 	return time.Duration(GetAsInt("SCHEDULER_SLEEP", "60"))
+}
+
+func GetRedactKeys() []string {
+	keys := strings.Split(GetAsString("REDACT_KEYS", ""), ",")
+
+	if len(keys) == 0 {
+		keys = []string{"password", "passwordConfirm", "x-internal-key", "x-api-key"}
+	}
+
+	return keys
 }
