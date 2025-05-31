@@ -13,11 +13,15 @@ import (
 )
 
 const (
-	StartTimeKey   = "StartTimeKey"
-	BearerTokenKey = "BearerTokenKey"
-	TranslatorKey  = "TranslatorKey"
-	RequestIdKey   = "RequestIdKey"
+	StartTimeKey           = "StartTimeKey"
+	BearerTokenKey         = "BearerTokenKey"
+	ValidatorTranslatorKey = "ValidatorTranslatorKey"
+	RequestIdKey           = "RequestIdKey"
 )
+
+func PgClient(c *gin.Context) *postgres.Client {
+	return c.MustGet(postgres.CtxKey).(*postgres.Client)
+}
 
 func TokenClient(c *gin.Context) token.Client {
 	return c.MustGet(token.CtxClientKey).(token.Client)
@@ -35,12 +39,12 @@ func BearerToken(c *gin.Context) string {
 	return c.GetString(BearerTokenKey)
 }
 
-func PgClient(c *gin.Context) *postgres.Client {
-	return c.MustGet(postgres.CtxKey).(*postgres.Client)
-}
-
 func RedisClient(c *gin.Context) *redis.Client {
 	return c.MustGet(redis.CtxKey).(*redis.Client)
+}
+
+func ValidatorTranslator(c *gin.Context) *ut.Translator {
+	return c.MustGet(ValidatorTranslatorKey).(*ut.Translator)
 }
 
 func Logger(c *gin.Context) *logger.Logger {
@@ -53,8 +57,4 @@ func RequestId(c *gin.Context) string {
 
 func StartTime(c *gin.Context) time.Time {
 	return c.MustGet(StartTimeKey).(time.Time)
-}
-
-func Translator(c *gin.Context) *ut.Translator {
-	return c.MustGet(TranslatorKey).(*ut.Translator)
 }

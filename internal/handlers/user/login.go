@@ -15,7 +15,7 @@ func Login(c *gin.Context) any {
 	var input *types.UserLoginInput
 
 	if err := c.ShouldBindBodyWith(&input, binding.JSON); err != nil {
-		return errors.FromBindJson(err, apicontext.Translator(c))
+		return errors.FromTranslator(err, apicontext.ValidatorTranslator(c))
 	}
 
 	loginSvc := userService.NewLoginSvc(

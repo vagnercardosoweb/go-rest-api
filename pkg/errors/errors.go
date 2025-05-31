@@ -17,12 +17,10 @@ func New(input Input) *Input {
 	return &input
 }
 
-func NewFromString(message string) *Input {
-	return New(Input{Message: message})
+func FromMessage(message string, args ...any) *Input {
+	return New(Input{Message: message, Arguments: args})
 }
 
-// FromSql converts a sql error to an AppError.
-// First argument is the error, the rest are arguments to be used in the message
 func FromSql(err error, args ...any) *Input {
 	appError := New(Input{OriginalError: err})
 
@@ -41,7 +39,7 @@ func FromSql(err error, args ...any) *Input {
 	return appError
 }
 
-func FromBindJson(err error, translator *ut.Translator) *Input {
+func FromTranslator(err error, translator *ut.Translator) *Input {
 	appError := New(Input{
 		Message:    err.Error(),
 		StatusCode: http.StatusUnprocessableEntity,

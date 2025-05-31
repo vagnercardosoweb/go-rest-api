@@ -158,14 +158,15 @@ func (api *Api) shutdown() {
 	defer cancel()
 
 	if err := api.server.Shutdown(ctx); err != nil {
-		api.logger.AddMetadata("error", err).Error("server forced shutdown")
+		api.logger.AddMetadata("error", err).Error("server shutdown error")
 		os.Exit(1)
 	}
 
 	<-ctx.Done()
-	api.logger.Info(`timeout of "%.0f" seconds.`, api.shutdownTimeout.Seconds())
 
+	api.logger.Info(`timeout of "%.0f" seconds.`, api.shutdownTimeout.Seconds())
 	api.logger.Info("server exiting")
+
 	os.Exit(0)
 }
 
@@ -190,12 +191,12 @@ func (api *Api) setupGin() {
 	api.gin.Use(middlewares.Headers)
 
 	api.gin.Use(func(c *gin.Context) {
+		c.Request = c.Request.WithContext(api.ctx)
+
 		if c.Request.Method == http.MethodOptions {
 			c.AbortWithStatus(http.StatusOK)
 			return
 		}
-
-		c.Request = c.Request.WithContext(api.ctx)
 
 		requestId := apicontext.RequestId(c)
 		c.Set(logger.CtxKey, api.logger.WithId(requestId))
@@ -212,7 +213,7 @@ func (api *Api) setupGin() {
 	})
 
 	api.gin.Use(middlewares.RequestLog)
-	api.gin.Use(middlewares.Translator)
+	api.gin.Use(middlewares.ValidatorTranslator)
 
 	api.gin.Use(gin.CustomRecovery(middlewares.Recovery))
 	api.gin.Use(middlewares.ResponseError)
