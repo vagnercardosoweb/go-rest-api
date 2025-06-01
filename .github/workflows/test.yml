@@ -11,11 +11,11 @@ on:
   workflow_dispatch:
   push:
     branches-ignore:
-      - production
-      - staging
+      - main
     paths:
       - "go.mod"
       - ".github/workflows/test.yml"
+      - "Makefile"
       - "**/*.go"
       - "go.sum"
 
