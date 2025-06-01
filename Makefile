@@ -47,10 +47,10 @@ start_docker:
 
 start_development: check_build
 	docker compose -f docker-compose.yml up redis postgres -d
-	APP_ENV=development $(GOPATH)/bin/air -c .air.toml
+	APP_ENV=development air -c .air.toml
 
 start_production: check_build
-	APP_ENV=production $(GOPATH)/bin/air -c .air.toml
+	APP_ENV=production air -c .air.toml
 
 docker_build:
 	@if [ "$(word 2,$(ARGS))" != "dev" ] && [ "$(word 2,$(ARGS))" != "prod" ]; then \
@@ -111,7 +111,7 @@ update_modules:
 
 lint:
 	@echo "🔍 Running golangci-lint..."
-	$(GOPATH)/bin/golangci-lint run ./...
+	golangci-lint run ./...
 
 lint_install:
 	@echo "📦 Installing golangci-lint..."
@@ -120,9 +120,9 @@ lint_install:
 security:
 	@echo "🔒 Running security checks..."
 	@echo "Running gosec..."
-	$(GOPATH)/bin/gosec ./...
+	gosec ./...
 	@echo "Running govulncheck..."
-	$(GOPATH)/bin/govulncheck -show verbose ./...
+	govulncheck -show verbose ./...
 
 security_install:
 	@echo "📦 Installing security tools..."
@@ -131,7 +131,7 @@ security_install:
 
 staticcheck:
 	@echo "🔍 Running staticcheck..."
-	$(GOPATH)/bin/staticcheck ./...
+	staticcheck ./...
 
 staticcheck_install:
 	@echo "📦 Installing staticcheck..."
@@ -140,7 +140,7 @@ staticcheck_install:
 format:
 	@echo "🎨 Formatting code..."
 	gofmt -s -w .
-	$(GOPATH)/bin/goimports -w .
+	goimports -w .
 
 format_install:
 	@echo "📦 Installing formatting tools..."
