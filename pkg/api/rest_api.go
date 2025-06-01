@@ -22,18 +22,36 @@ import (
 )
 
 func New(ctx context.Context, logger *logger.Logger) *Api {
-	return &Api{
-		ctx:          ctx,
-		port:         "3001",
-		environment:  env.Development,
-		dependencies: make(map[string]any),
-		routes:       make([]*Route, 0),
-		logger:       logger,
+
+	api := &Api{
+		ctx:         ctx,
+		logger:      logger,
+		environment: env.Development,
+		values:      make(map[string]any),
+		onStart:     make([]func(api *Api), 0),
+		onShutdown:  make([]func(api *Api, code string), 0),
+		routes:      make([]*Route, 0),
+		server: &http.Server{
+			ReadTimeout:       30 * time.Second,
+			MaxHeaderBytes:    2 << 20, // 2 MB
+			ReadHeaderTimeout: 5 * time.Second,
+			WriteTimeout:      30 * time.Second,
+			IdleTimeout:       60 * time.Second,
+		},
 	}
+
+	api.WithPort(env.GetAsString("PORT", "3000"))
+	api.WithShutdownTimeout(env.GetAsFloat64("SHUTDOWN_TIMEOUT", "0"))
+
+	return api
 }
 
 func (api *Api) Logger() *logger.Logger {
 	return api.logger
+}
+
+func (api *Api) GetServer() *http.Server {
+	return api.server
 }
 
 func (api *Api) WithEnv(env string) *Api {
@@ -42,7 +60,7 @@ func (api *Api) WithEnv(env string) *Api {
 }
 
 func (api *Api) WithPort(port string) *Api {
-	api.port = port
+	api.server.Addr = fmt.Sprintf(":%s", port)
 	return api
 }
 
@@ -52,7 +70,7 @@ func (api *Api) WithShutdownTimeout(timeout float64) *Api {
 }
 
 func (api *Api) WithValue(key string, value any) *Api {
-	api.dependencies[key] = value
+	api.values[key] = value
 
 	type keyType string
 	api.ctx = context.WithValue(api.ctx, keyType(key), value)
@@ -100,19 +118,41 @@ func (api *Api) TestRequest(request *http.Request) *httptest.ResponseRecorder {
 	return rr
 }
 
+func (api *Api) OnStart(fn func(api *Api)) *Api {
+	api.onStart = append(api.onStart, fn)
+	return api
+}
+
+func (api *Api) OnShutdown(fn func(api *Api, code string)) *Api {
+	api.onShutdown = append(api.onShutdown, fn)
+	return api
+}
+
 func (api *Api) Run() {
 	api.Start()
-	go api.listen()
-	api.logger.Info("server started on port %s", api.port)
+
+	go func() {
+		if err := api.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			api.logger.AddMetadata("error", err).Error("server listen error")
+			os.Exit(1)
+		}
+	}()
+
+	api.logger.Info(`server is running on port "%s"`, api.server.Addr)
 	api.shutdown()
 }
 
 func (api *Api) Start() {
 	api.setupGin()
-	api.makeRoutes()
+	api.setupHandlers()
+
+	// Run onStart callbacks
+	for _, fn := range api.onStart {
+		fn(api)
+	}
 }
 
-func (api *Api) makeRoutes() {
+func (api *Api) setupHandlers() {
 	for _, route := range api.routes {
 		handlers := make([]gin.HandlerFunc, len(api.routes))
 
@@ -123,10 +163,10 @@ func (api *Api) makeRoutes() {
 			case func(*gin.Context) interface{}:
 				handlers[i] = apiresponse.Wrapper(h)
 			default:
-				panic(errors.New(errors.Input{
-					Message:   `Invalid handler "%s" for route "%s %s"`,
-					Arguments: []any{handler, route.Method, route.Path},
-				}))
+				panic(fmt.Errorf(
+					`invalid handler "%s" for route "%s %s"`,
+					handler, route.Method, route.Path,
+				))
 			}
 		}
 
@@ -138,34 +178,31 @@ func (api *Api) makeRoutes() {
 	}
 }
 
-func (api *Api) listen() {
-	api.server = &http.Server{Addr: fmt.Sprintf(":%s", api.port), Handler: api.gin}
-
-	if err := api.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		api.logger.AddMetadata("error", err).Error("server listen error")
-		os.Exit(1)
-	}
-}
-
 func (api *Api) shutdown() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-	<-quit
 
-	api.logger.Info("shutdown server")
+	code := <-quit
+	api.logger.Info(`server exited with code "%d"`, code)
+
+	// Run onShutdown callbacks
+	for _, fn := range api.onShutdown {
+		fn(api, code.String())
+	}
 
 	ctx, cancel := context.WithTimeout(api.ctx, api.shutdownTimeout)
 	defer cancel()
 
 	if err := api.server.Shutdown(ctx); err != nil {
-		api.logger.AddMetadata("error", err).Error("server shutdown error")
-		os.Exit(1)
+		api.logger.
+			AddMetadata("error", err).
+			Error("shutdown server error")
 	}
 
+	// Wait for the context to be done
 	<-ctx.Done()
 
-	api.logger.Info(`timeout of "%.0f" seconds.`, api.shutdownTimeout.Seconds())
-	api.logger.Info("server exiting")
+	api.logger.Info(`server exiting with timeout of "%s"`, api.shutdownTimeout.String())
 
 	os.Exit(0)
 }
@@ -178,6 +215,7 @@ func (api *Api) setupGin() {
 	}
 
 	api.gin = gin.New()
+	api.server.Handler = api.gin
 
 	api.gin.RedirectTrailingSlash = true
 	api.gin.RemoveExtraSlash = true
@@ -187,11 +225,15 @@ func (api *Api) setupGin() {
 
 	api.gin.Use(middlewares.Cors)
 	api.gin.Use(middlewares.RequestId)
+	api.gin.Use(middlewares.SecurityHeaders)
+	api.gin.Use(middlewares.NoCacheHeaders)
 	api.gin.Use(middlewares.BearerToken)
-	api.gin.Use(middlewares.Headers)
 
 	api.gin.Use(func(c *gin.Context) {
 		c.Request = c.Request.WithContext(api.ctx)
+
+		// Response always JSON
+		c.Header("Content-Type", "application/json; charset=utf-8")
 
 		if c.Request.Method == http.MethodOptions {
 			c.AbortWithStatus(http.StatusOK)
@@ -201,7 +243,7 @@ func (api *Api) setupGin() {
 		requestId := apicontext.RequestId(c)
 		c.Set(logger.CtxKey, api.logger.WithId(requestId))
 
-		for key, value := range api.dependencies {
+		for key, value := range api.values {
 			if handler, ok := value.(func(*gin.Context) any); ok {
 				value = handler(c)
 			}

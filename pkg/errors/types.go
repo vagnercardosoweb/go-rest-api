@@ -3,17 +3,17 @@ package errors
 type (
 	Metadata map[string]any
 	Input    struct {
-		Name          string   `json:"name"`
-		Code          string   `json:"code"`
-		ErrorId       string   `json:"errorId"`
-		Message       string   `json:"message"`
-		StatusCode    int      `json:"statusCode"`
-		SendToSlack   *bool    `json:"sendToSlack"`
-		Logging       *bool    `json:"logging"`
+		Code          string   `json:"code,omitempty"`
+		Name          string   `json:"name,omitempty"`
+		Message       string   `json:"message,omitempty"`
+		StatusCode    int      `json:"statusCode,omitempty"`
+		SendToSlack   *bool    `json:"-"`
+		RequestId     string   `json:"-"`
+		Logging       *bool    `json:"-"`
 		Metadata      Metadata `json:"metadata,omitempty"`
 		Arguments     []any    `json:"-"`
 		OriginalError any      `json:"originalError,omitempty"`
 		SkipStack     bool     `json:"-"`
-		Stack         []string `json:"stack"`
+		Stack         []string `json:"stack,omitempty"`
 	}
 )

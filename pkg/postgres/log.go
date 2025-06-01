@@ -9,12 +9,12 @@ import (
 )
 
 type Log struct {
-	Query        string        `json:"query"`
-	Duration     string        `json:"duration"`
-	ErrorMessage string        `json:"errorMessage,omitempty"`
-	StartedAt    time.Time     `json:"startedAt"`
-	FinishedAt   time.Time     `json:"finishedAt"`
-	Bind         []interface{} `json:"bind"`
+	Query        string    `json:"query"`
+	Duration     string    `json:"duration"`
+	ErrorMessage string    `json:"errorMessage,omitempty"`
+	FinishedAt   time.Time `json:"finishedAt"`
+	StartedAt    time.Time `json:"startedAt"`
+	Bind         []any     `json:"bind"`
 }
 
 func (c *Client) log(log *Log) {
@@ -28,7 +28,7 @@ func (c *Client) log(log *Log) {
 	logLevel := logger.LevelInfo
 	metadata := map[string]any{
 		"tx":         c.tx != nil,
-		"query":      c.normalizeQuery(log.Query),
+		"query":      log.getQuery(),
 		"startedAt":  log.StartedAt,
 		"finishedAt": log.FinishedAt,
 		"duration":   log.Duration,
@@ -41,13 +41,12 @@ func (c *Client) log(log *Log) {
 	}
 
 	c.logger.
-		WithoutRedact().
 		WithMetadata(metadata).
 		Log(logLevel, "DB_QUERY")
 }
 
-func (c *Client) normalizeQuery(query string) string {
-	q := strings.TrimSpace(query)
+func (l *Log) getQuery() string {
+	q := strings.TrimSpace(l.Query)
 
 	q = regexp.MustCompile(`\s+|\n|\t`).ReplaceAllString(q, " ")
 	q = regexp.MustCompile(`\(\s`).ReplaceAllString(q, "(")

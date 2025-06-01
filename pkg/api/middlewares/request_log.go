@@ -29,16 +29,15 @@ func RequestLog(c *gin.Context) {
 	method := c.Request.Method
 	requestLogger := apicontext.Logger(c)
 	clientIP := c.ClientIP()
-
 	metadata := map[string]any{
-		"ip":        clientIP,
-		"request":   fmt.Sprintf("%s %s", method, path),
-		"userAgent": c.Request.UserAgent(),
-		"time":      time.Since(apicontext.StartTime(c)).String(),
+		"ip":          clientIP,
+		"request":     fmt.Sprintf("%s %s", method, path),
+		"queryParams": c.Request.URL.Query(),
+		"userAgent":   c.Request.UserAgent(),
+		"time":        time.Since(apicontext.StartTime(c)).String(),
 	}
 
 	requestLogger.
-		WithoutRedact().
 		WithMetadata(metadata).
 		Info("HTTP_REQUEST_STARTED")
 
@@ -56,7 +55,6 @@ func RequestLog(c *gin.Context) {
 	}
 
 	requestLogger.
-		WithoutRedact().
 		WithMetadata(metadata).
 		Log(level, "HTTP_REQUEST_COMPLETED")
 }

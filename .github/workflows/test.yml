@@ -1,4 +1,4 @@
-name: Run Tests
+name: CI Pipeline
 
 concurrency:
   group: "${{ github.workflow }}:${{ github.ref }}"
@@ -13,8 +13,10 @@ on:
       - production
       - staging
     paths:
+      - "go.mod"
       - ".github/workflows/test.yml"
       - "**/*.go"
+      - "go.sum"
 
 jobs:
   test:
@@ -30,6 +32,10 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: 1.24
+          cache: true
 
-      - name: Run Tests
-        run: make test
+      - name: Install development tools
+        run: make install_tools
+
+      - name: Run CI
+        run: make ci

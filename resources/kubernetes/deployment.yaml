@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: golang-api
-  namespace: golang-api
+  name: go-rest-api
+  namespace: default
   labels:
-    app: golang-api
+    app: go-rest-api
 spec:
   selector:
     matchLabels:
-      app: golang-api
+      app: go-rest-api
   replicas: 3
   strategy:
     type: RollingUpdate
@@ -17,24 +17,24 @@ spec:
       maxSurge: 1
   template:
     metadata:
-      name: golang-api
-      namespace: golang-api
+      name: go-rest-api
+      namespace: default
       labels:
-        app: golang-api
+        app: go-rest-api
     spec:
       containers:
-        - name: golang-api
+        - name: go-rest-api
           image: IMAGE_URL
           imagePullPolicy: Always
           ports:
-            - name: golang-api
+            - name: go-rest-api
               containerPort: 3001
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: golang-api
+                name: go-rest-api
             - secretRef:
-                name: golang-api
+                name: go-rest-api
           resources:
             limits:
               memory: 256Mi

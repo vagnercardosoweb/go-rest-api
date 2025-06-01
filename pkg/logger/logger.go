@@ -38,8 +38,8 @@ func (l *Logger) GetId() string {
 	return l.id
 }
 
-func (l *Logger) WithoutRedact() *Logger {
-	return l.AddMetadata("skipRedact", "true")
+func (l *Logger) WithRedact() *Logger {
+	return l.AddMetadata("withRedact", "true")
 }
 
 func (l *Logger) WithMetadata(metadata map[string]any) *Logger {
@@ -64,15 +64,15 @@ func (l *Logger) AddMetadata(key string, value any) *Logger {
 	return l
 }
 
-func (l *Logger) Info(message string, arguments ...any) {
-	l.Log(LevelInfo, message, arguments...)
+func (l *Logger) Info(message string, args ...any) {
+	l.Log(LevelInfo, message, args...)
 }
 
-func (l *Logger) Error(message string, arguments ...any) {
-	l.Log(LevelError, message, arguments...)
+func (l *Logger) Error(message string, args ...any) {
+	l.Log(LevelError, message, args...)
 }
 
-func (l *Logger) Log(level level, message string, arguments ...any) {
+func (l *Logger) Log(level level, message string, args ...any) {
 	if !l.enabled {
 		return
 	}
@@ -80,37 +80,33 @@ func (l *Logger) Log(level level, message string, arguments ...any) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	if len(arguments) > 0 {
-		message = fmt.Sprintf(message, arguments...)
-	}
+	l.redactMetadata()
 
-	if l.isRedact() {
-		l.metadata = utils.RedactKeys(l.metadata, l.redactKeys)
+	if len(args) > 0 {
+		message = fmt.Sprintf(message, args...)
 	}
 
 	logAsJson, _ := json.Marshal(Output{
 		Id:          l.id,
 		Level:       level,
 		Hostname:    utils.Hostname,
+		Message:     message,
 		Environment: env.GetAppEnv(),
 		Timestamp:   time.Now().UTC(),
 		Metadata:    l.metadata,
-		Message:     message,
 	})
 
 	l.metadata = make(map[string]any)
 	logger.Println(string(logAsJson))
 }
 
-func (l *Logger) isRedact() bool {
-	if _, ok := l.metadata["skipRedact"]; ok {
-		delete(l.metadata, "skipRedact")
-
-		return false
+func (l *Logger) redactMetadata() {
+	if _, ok := l.metadata["withRedact"]; !ok {
+		return
 	}
 
-	return len(l.metadata) > 0 &&
-		len(l.redactKeys) > 0
+	delete(l.metadata, "withRedact")
+	l.metadata = utils.RedactKeys(l.metadata, l.redactKeys)
 }
 
 const CtxKey = "LoggerKey"
@@ -119,7 +115,7 @@ func GetFromCtxOrPanic(ctx context.Context) *Logger {
 	l, ok := ctx.Value(CtxKey).(*Logger)
 
 	if !ok {
-		panic(fmt.Sprintf(`context key "%s" does not exist`, CtxKey))
+		panic(fmt.Errorf(`context key "%s" does not exist`, CtxKey))
 	}
 
 	return l

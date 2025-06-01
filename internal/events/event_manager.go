@@ -34,7 +34,6 @@ func (e *EventManager) WithLogger(logger *logger.Logger) *EventManager {
 func (e *EventManager) dispatch(event *events.Event) {
 	if err := e.dispatcher.Dispatch(event); err != nil {
 		e.logger.
-			WithoutRedact().
 			AddMetadata("eventName", event.Name).
 			AddMetadata("originalError", err).
 			Error("EVENT_MANAGER_DISPATCH_ERROR")
@@ -44,7 +43,6 @@ func (e *EventManager) dispatch(event *events.Event) {
 func (e *EventManager) register(name string, handler events.Handler) {
 	if err := e.dispatcher.Register(name, handler); err != nil {
 		e.logger.
-			WithoutRedact().
 			AddMetadata("eventName", name).
 			AddMetadata("originalError", err).
 			Error("EVENT_MANAGER_REGISTER_ERROR")

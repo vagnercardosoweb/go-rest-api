@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vagnercardosoweb/go-rest-api/internal/events"
@@ -15,6 +16,7 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/password"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/slack"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/token"
 )
 
@@ -30,26 +32,39 @@ func main() {
 	pgClient := postgres.FromEnv(ctx, appLogger)
 	defer pgClient.Close()
 
-	restApi := api.New(ctx, appLogger)
-
-	restApi.WithEnv(env.GetAppEnv())
-	restApi.WithPort(env.Required("PORT"))
-
-	restApi.WithShutdownTimeout(env.GetAsFloat64("SHUTDOWN_TIMEOUT", "0"))
-
-	restApi.WithValue(token.CtxClientKey, token.JwtFromEnv())
-	restApi.WithValue(password.CtxKey, password.NewBcrypt())
-	restApi.WithValue(redis.CtxKey, redisClient)
-
-	restApi.WithValue(postgres.CtxKey, func(c *gin.Context) any {
-		return pgClient.WithLogger(apicontext.Logger(c))
-	})
-
 	eventManager := events.NewManager(pgClient, redisClient)
-	restApi.WithValue(events.CtxKey, func(c *gin.Context) any {
-		return eventManager.WithLogger(apicontext.Logger(c))
-	})
+	restApi := api.New(ctx, appLogger).
+		WithEnv(env.GetAppEnv()).
+		WithValue(redis.CtxKey, redisClient).
+		WithValue(token.CtxClientKey, token.JwtFromEnv()).
+		WithValue(password.CtxKey, password.NewBcrypt()).
+		WithValue(postgres.CtxKey, func(c *gin.Context) any {
+			return pgClient.WithLogger(apicontext.Logger(c))
+		}).
+		WithValue(events.CtxKey, func(c *gin.Context) any {
+			return eventManager.WithLogger(apicontext.Logger(c))
+		}).
+		OnStart(func(api *api.Api) {
+			go func() {
+				if env.IsAlertOnServerStart() {
+					_ = slack.NewAlert().
+						AddField("message", fmt.Sprintf(`server is running on port "%s"`, api.GetServer().Addr), false).
+						Send()
+				}
+			}()
+		}).
+		OnShutdown(func(api *api.Api, code string) {
+			go func() {
+				if env.IsAlertOnServerClose() {
+					_ = slack.NewAlert().
+						WithColor(slack.ColorError).
+						AddField("message", fmt.Sprintf(`server exited with code "%s"`, code), false).
+						Send()
+				}
+			}()
+		})
 
+	// Make handlers
 	user.MakeHandlers(restApi)
 
 	if env.IsSchedulerEnabled() {

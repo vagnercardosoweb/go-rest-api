@@ -9,7 +9,7 @@ import (
 func TestNewEncryptKey(t *testing.T) {
 	bytes, err := NewEncryptKey()
 	assert.Nil(t, err)
-	assert.Equal(t, 32, len(bytes))
+	assert.Equal(t, 32, len(bytes[:]))
 }
 
 func TestEncryptDecrypt(t *testing.T) {

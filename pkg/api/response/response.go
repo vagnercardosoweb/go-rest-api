@@ -12,7 +12,7 @@ import (
 )
 
 func Error(c *gin.Context, err error) {
-	c.Error(err)
+	_ = c.Error(err)
 	c.Abort()
 }
 
@@ -25,15 +25,19 @@ func Wrapper(handler func(c *gin.Context) any) gin.HandlerFunc {
 			return
 		}
 
-		success(c, result)
+		Json(c, result)
 	}
 }
 
-func success(c *gin.Context, data any) {
+func Json(c *gin.Context, data any) {
 	status := c.Writer.Status()
 
 	if data == nil && (status == http.StatusOK || status == 0) {
 		c.Writer.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if data == nil {
 		return
 	}
 
@@ -47,7 +51,7 @@ func success(c *gin.Context, data any) {
 		"ipAddress":   c.ClientIP(),
 		"userAgent":   c.Request.UserAgent(),
 		"timezone":    time.UTC.String(),
-		"brlDate":     time.Now().In(utils.LocationBrl),
-		"utcDate":     time.Now().UTC(),
+		"brlDate":     utils.NowBrl(),
+		"utcDate":     utils.NowUtc(),
 	})
 }

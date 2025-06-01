@@ -5,9 +5,10 @@ import (
 	"io"
 
 	"github.com/gin-gonic/gin"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/utils"
 )
 
-func BodyAsBytes(c *gin.Context) []byte {
+func GetBodyAsBytes(c *gin.Context) []byte {
 	bodyAsBytes := []byte("{}")
 
 	if val, ok := c.Get(gin.BodyBytesKey); ok && val != nil {
@@ -24,9 +25,12 @@ func BodyAsBytes(c *gin.Context) []byte {
 	return bodyAsBytes
 }
 
-func BodyAsJson(c *gin.Context) map[string]any {
-	bodyAsBytes := BodyAsBytes(c)
+func GetBodyAsMap(c *gin.Context) map[string]any {
 	result := make(map[string]any)
-	_ = json.Unmarshal(bodyAsBytes, &result)
+	_ = json.Unmarshal(GetBodyAsBytes(c), &result)
 	return result
+}
+
+func GetBodyAsRedacted(c *gin.Context) map[string]any {
+	return utils.RedactKeys(GetBodyAsMap(c), nil)
 }

@@ -20,7 +20,7 @@ func NewClient(
 	client := &Client{ctx: ctx, redis: redisClient}
 
 	if err := client.Ping(); err != nil {
-		panic(err)
+		panic(fmt.Errorf("error pinging redis: %v", err))
 	}
 
 	return client

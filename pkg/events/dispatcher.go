@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
 func NewDispatcher() DispatcherInterface {
@@ -26,7 +28,7 @@ func (d *Dispatcher) GetByIndex(name string, index int) Handler {
 
 func (d *Dispatcher) Register(name string, handler Handler) error {
 	if d.Has(name, handler) {
-		return fmt.Errorf(`event handler "%s" already registered`, name)
+		return errors.FromMessage(`event handler "%s" already registered`, name)
 	}
 
 	d.handlers[name] = append(d.handlers[name], handler)

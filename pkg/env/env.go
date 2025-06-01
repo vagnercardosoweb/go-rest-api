@@ -12,14 +12,14 @@ import (
 )
 
 func Load() {
-	if os.Getenv("IS_AWS_LAMBDA") == "true" || GetAsString("LOAD_ENV", "true") == "false" {
-		log.Println("Skipping load the environment")
+	if os.Getenv("IS_AWS_LAMBDA") == "true" || IsLocal() {
+		log.Println("skipping load the environment")
 		return
 	}
 
 	envName := fmt.Sprintf(".env.%s", GetAsString("APP_ENV", "development"))
 	if err := godotenv.Load(envName); err != nil {
-		panic(err)
+		panic(fmt.Errorf("error loading .env file: %v", err))
 	}
 }
 
@@ -37,7 +37,7 @@ func GetAsBool(name string, defaultValue ...string) bool {
 	value, err := strconv.ParseBool(GetAsString(name, defaultValue...))
 
 	if err != nil {
-		panic(fmt.Sprintf(`Environment "%s" is not a boolean`, name))
+		panic(fmt.Errorf(`environment "%s" is not a boolean`, name))
 	}
 
 	return value
@@ -47,7 +47,7 @@ func GetAsInt(name string, defaultValue ...string) int {
 	value, err := strconv.Atoi(GetAsString(name, defaultValue...))
 
 	if err != nil {
-		panic(fmt.Sprintf(`Environment "%s" is not a integer`, name))
+		panic(fmt.Errorf(`environment "%s" is not a integer`, name))
 	}
 
 	return value
@@ -57,7 +57,7 @@ func GetAsFloat64(name string, defaultValue ...string) float64 {
 	value, err := strconv.ParseFloat(GetAsString(name, defaultValue...), 64)
 
 	if err != nil {
-		panic(fmt.Sprintf(`Environment "%s" is not a float64`, name))
+		panic(fmt.Errorf(`environment "%s" is not a float64`, name))
 	}
 
 	return value
@@ -67,7 +67,7 @@ func Required(name string) string {
 	value, exist := os.LookupEnv(name)
 
 	if !exist {
-		panic(fmt.Sprintf(`Environment "%s" is required`, name))
+		panic(fmt.Errorf(`environment "%s" is required`, name))
 	}
 
 	return value
@@ -75,6 +75,20 @@ func Required(name string) string {
 
 func GetAppEnv() string {
 	return GetAsString("APP_ENV", "development")
+}
+
+func GetSchedulerSleep() time.Duration {
+	return time.Duration(GetAsInt("SCHEDULER_SLEEP", "60"))
+}
+
+func GetRedactKeys() []string {
+	keys := strings.Split(GetAsString("REDACT_KEYS", ""), ",")
+
+	if len(keys) == 0 {
+		keys = []string{"password", "passwordConfirm", "x-internal-key", "x-api-key"}
+	}
+
+	return keys
 }
 
 func IsTest() bool {
@@ -90,23 +104,17 @@ func IsProduction() bool {
 }
 
 func IsLocal() bool {
-	return GetAsString("IS_LOCAL", "false") == "true"
+	return GetAsBool("IS_LOCAL", "false")
 }
 
 func IsSchedulerEnabled() bool {
-	return GetAsString("SCHEDULER_ENABLED", "true") == "true"
+	return GetAsBool("SCHEDULER_ENABLED", "false")
 }
 
-func GetSchedulerSleep() time.Duration {
-	return time.Duration(GetAsInt("SCHEDULER_SLEEP", "60"))
+func IsAlertOnServerStart() bool {
+	return GetAsBool("SLACK_ALERT_ON_SERVER_START", "false")
 }
 
-func GetRedactKeys() []string {
-	keys := strings.Split(GetAsString("REDACT_KEYS", ""), ",")
-
-	if len(keys) == 0 {
-		keys = []string{"password", "passwordConfirm", "x-internal-key", "x-api-key"}
-	}
-
-	return keys
+func IsAlertOnServerClose() bool {
+	return GetAsBool("SLACK_ALERT_ON_SERVER_CLOSE", "false")
 }

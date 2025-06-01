@@ -32,7 +32,7 @@ func DecodedFromCtx(ctx context.Context) *Output {
 	value, ok := ctx.Value(CtxDecodedKey).(*Output)
 
 	if !ok {
-		panic(fmt.Sprintf(`context key "%s" does not exist`, CtxDecodedKey))
+		panic(fmt.Errorf(`context key "%s" does not exist`, CtxDecodedKey))
 	}
 
 	return value
@@ -42,7 +42,7 @@ func ClientFromCtx(ctx context.Context) Client {
 	value, ok := ctx.Value(CtxClientKey).(Client)
 
 	if !ok {
-		panic(fmt.Sprintf(`context key "%s" does not exist`, CtxClientKey))
+		panic(fmt.Errorf(`context key "%s" does not exist`, CtxClientKey))
 	}
 
 	return value

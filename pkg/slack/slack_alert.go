@@ -24,7 +24,7 @@ func NewAlert() *Client {
 		isEnabled:   env.GetAsBool("SLACK_ENABLED", "true"),
 		memberIds:   strings.Split(env.GetAsString("SLACK_MEMBERS_ID"), ","),
 		environment: env.GetAppEnv(),
-		color:       ColorError,
+		color:       ColorInfo,
 		fields:      make([]Field, 0),
 		mu:          &sync.Mutex{},
 	}
@@ -43,7 +43,9 @@ func (sa *Client) AddError(title string, err any) *Client {
 }
 
 func (sa *Client) WithError(err *errors.Input) *Client {
-	sa.AddField("ErrorCode / ErrorId", fmt.Sprintf("%s / %s", err.Code, err.ErrorId), false)
+	sa.WithColor(ColorError)
+
+	sa.AddField("[Code] RequestId", fmt.Sprintf("%s / %s", err.Code, err.RequestId), false)
 	sa.AddField("Message", err.Message, false)
 
 	if err.OriginalError != nil {
@@ -71,22 +73,27 @@ func (sa *Client) WithColor(color ColorName) *Client {
 }
 
 func (sa *Client) getColor() string {
-	errorColor := "#D32F2F"
+	infoColor := "#0288D1"
 	colors := map[ColorName]string{
-		"error":   errorColor,
+		"error":   "#D32F2F",
 		"warning": "#F57C00",
 		"success": "#388E3C",
-		"info":    "#0288D1",
+		"info":    infoColor,
 	}
 	if value, ok := colors[sa.color]; ok {
 		return value
 	}
-	return errorColor
+	return infoColor
 }
 
 func (sa *Client) WithMemberId(memberId string) *Client {
 	sa.mu.Lock()
 	defer sa.mu.Unlock()
+
+	if memberId == "" {
+		return sa
+	}
+
 	sa.memberIds = append(sa.memberIds, memberId)
 	return sa
 }

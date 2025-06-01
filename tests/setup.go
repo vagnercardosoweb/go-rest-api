@@ -11,6 +11,7 @@ import (
 var environments = map[string]string{
 	"APP_ENV":          "test",
 	"DB_LOGGING":       "false",
+	"DB_AUTO_MIGRATE":  "true",
 	"PROFILER_ENABLED": "false",
 	"LOGGER_ENABLED":   "false",
 	"TZ":               "UTC",

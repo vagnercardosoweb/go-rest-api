@@ -18,11 +18,12 @@ type Route struct {
 type Api struct {
 	ctx             context.Context
 	logger          *logger.Logger
-	port            string
 	routes          []*Route
-	shutdownTimeout time.Duration
-	dependencies    map[string]any
-	server          *http.Server
 	environment     string
+	shutdownTimeout time.Duration
+	onStart         []func(api *Api)
+	onShutdown      []func(api *Api, code string)
+	values          map[string]any
+	server          *http.Server
 	gin             *gin.Engine
 }

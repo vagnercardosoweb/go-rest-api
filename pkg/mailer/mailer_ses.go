@@ -1,6 +1,7 @@
 package mailer
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,7 +9,8 @@ import (
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 
-	"github.com/aws/aws-sdk-go/service/ses"
+	"github.com/aws/aws-sdk-go-v2/service/ses"
+	awsTypes "github.com/aws/aws-sdk-go-v2/service/ses/types"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/aws"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
@@ -29,9 +31,9 @@ type SesClient struct {
 	files             []File
 }
 
-func NewSesClient() *SesClient {
+func NewSesClient(ctx context.Context) *SesClient {
 	return &SesClient{
-		client:            aws.GetSesClient(),
+		client:            aws.GetSesClient(ctx),
 		configurationName: env.GetAsString("AWS_SES_CONFIGURATION_NAME"),
 		source:            env.Required("AWS_SES_SOURCE"),
 	}
@@ -113,7 +115,7 @@ func (i *SesClient) Send() error {
 	input := &ses.SendEmailInput{
 		Source:           aws.String(i.source),
 		ReplyToAddresses: i.parseAddress(i.replyTo),
-		Destination: &ses.Destination{
+		Destination: &awsTypes.Destination{
 			CcAddresses:  i.parseAddress(i.cc),
 			BccAddresses: i.parseAddress(i.bcc),
 			ToAddresses:  i.parseAddress(i.to),
@@ -125,28 +127,26 @@ func (i *SesClient) Send() error {
 	}
 
 	if i.template.Name != "" {
-		payloadAsMap := make(map[string]any)
+		templateData := make(map[string]any)
 
 		if value, ok := i.template.Payload.(map[string]any); !ok {
 			payloadAsBytes, _ := json.Marshal(i.template.Payload)
-			_ = json.Unmarshal(payloadAsBytes, &payloadAsMap)
+			_ = json.Unmarshal(payloadAsBytes, &templateData)
 		} else {
-			payloadAsMap = value
+			templateData = value
 		}
 
-		payloadAsMap["year"] = time.Now().Year()
-		payloadAsMap["subject"] = i.subject
-		payloadAsMap["title"] = i.subject
+		templateData["year"] = time.Now().Year()
+		templateData["subject"] = i.subject
 
-		payloadAsBytes, _ := json.Marshal(payloadAsMap)
-
-		if _, err := i.client.SendTemplatedEmail(&ses.SendTemplatedEmailInput{
+		templateDataAsBytes, _ := json.Marshal(templateData)
+		if _, err := i.client.SendEmailWithTemplate(&ses.SendTemplatedEmailInput{
 			Source:               input.Source,
 			Template:             aws.String(i.template.Name),
 			Destination:          input.Destination,
 			ConfigurationSetName: input.ConfigurationSetName,
 			ReplyToAddresses:     input.ReplyToAddresses,
-			TemplateData:         aws.String(string(payloadAsBytes)),
+			TemplateData:         aws.String(string(templateDataAsBytes)),
 		}); err != nil {
 			return err
 		}
@@ -154,18 +154,18 @@ func (i *SesClient) Send() error {
 		return nil
 	}
 
-	input.Message = &ses.Message{
-		Body: &ses.Body{
-			Html: &ses.Content{
+	input.Message = &awsTypes.Message{
+		Body: &awsTypes.Body{
+			Html: &awsTypes.Content{
 				Charset: charset,
 				Data:    aws.String(i.html),
 			},
-			Text: &ses.Content{
+			Text: &awsTypes.Content{
 				Charset: charset,
 				Data:    aws.String(i.text),
 			},
 		},
-		Subject: &ses.Content{
+		Subject: &awsTypes.Content{
 			Charset: charset,
 			Data:    aws.String(i.subject),
 		},
@@ -178,17 +178,17 @@ func (i *SesClient) Send() error {
 	return nil
 }
 
-func (*SesClient) parseAddress(addresses []Address) []*string {
-	var results []*string
+func (*SesClient) parseAddress(addresses []Address) []string {
+	var results []string
 
 	for _, address := range addresses {
 		results = append(
 			results,
-			aws.String(fmt.Sprintf(
+			fmt.Sprintf(
 				"%s <%s>",
 				address.Name,
 				address.Address,
-			)),
+			),
 		)
 	}
 

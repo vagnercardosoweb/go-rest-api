@@ -11,16 +11,18 @@ import (
 )
 
 type Config struct {
-	Port       int
-	Host       string
-	Database   string
-	Username   string
-	Password   string
-	Timezone   string
-	Schema     string
-	AppName    string
-	EnabledSSL bool
-	Logging    bool
+	Port         int
+	Host         string
+	Database     string
+	Username     string
+	Password     string
+	Timezone     string
+	Schema       string
+	AppName      string
+	MigrationDir string
+	AutoMigrate  bool
+	EnabledSSL   bool
+	Logging      bool
 
 	MaxIdleConn     int
 	QueryTimeout    time.Duration

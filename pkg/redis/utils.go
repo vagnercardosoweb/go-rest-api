@@ -11,7 +11,7 @@ func FromCtx(c context.Context) *Client {
 	value, exists := c.Value(CtxKey).(*Client)
 
 	if !exists {
-		panic(fmt.Sprintf(`context key "%s" does not exist`, CtxKey))
+		panic(fmt.Errorf(`context key "%s" does not exist`, CtxKey))
 	}
 
 	return value

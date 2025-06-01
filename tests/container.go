@@ -3,19 +3,14 @@ package tests
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"runtime"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
-	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/google/uuid"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
 )
@@ -76,28 +71,6 @@ func (t *ContainerTestSuite) createContainerPostgres() {
 	_ = os.Setenv("DB_PORT", mappedPort.Port())
 
 	t.PgClient = postgres.FromEnv(t.Ctx, t.Logger)
-	_, err = t.PgClient.Exec(fmt.Sprintf(`CREATE SCHEMA IF NOT EXISTS "%s";`, schema))
-	t.Require().Nil(err)
-
-	driver, err := migratepostgres.WithInstance(t.PgClient.GetDb(), &migratepostgres.Config{
-		SchemaName:      schema,
-		MigrationsTable: env.GetAsString("DB_MIGRATIONS_TABLE", "migrations"),
-		DatabaseName:    testValue,
-	})
-	t.Require().Nil(err)
-
-	_, file, _, _ := runtime.Caller(0)
-	basePath := filepath.Join(filepath.Dir(file), "..")
-
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://"+basePath+"/migrations",
-		"postgres",
-		driver,
-	)
-	t.Require().Nil(err)
-
-	err = m.Up()
-	t.Require().Nil(err)
 }
 
 func (t *ContainerTestSuite) createContainerRedis() {

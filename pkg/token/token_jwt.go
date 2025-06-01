@@ -7,7 +7,7 @@ import (
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type Jwt struct {
@@ -22,7 +22,7 @@ func NewJwt(secretKey []byte) *Jwt {
 func JwtFromEnv() *Jwt {
 	return &Jwt{
 		secretKey: []byte(env.GetAsString("JWT_SECRET_KEY")),
-		expiresIn: time.Duration(env.GetAsInt("JWT_EXPIRES_IN_SECONDS", "86400")),
+		expiresIn: time.Duration(env.GetAsInt("JWT_EXPIRES_IN_SECONDS", "86400")) * time.Second,
 	}
 }
 
@@ -36,7 +36,7 @@ func (j *Jwt) Encode(input *Input) (*Output, error) {
 	}
 
 	if input.ExpiresAt.IsZero() {
-		input.ExpiresAt = time.Now().Add(time.Second * j.expiresIn)
+		input.ExpiresAt = time.Now().Add(j.expiresIn)
 	}
 
 	claims := jwt.MapClaims{
@@ -55,7 +55,7 @@ func (j *Jwt) Encode(input *Input) (*Output, error) {
 		claims["aud"] = input.Audience
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signedString, err := token.SignedString(j.secretKey)
 
 	return &Output{Input: *input, Token: signedString}, err
@@ -79,16 +79,12 @@ func (j *Jwt) Decode(token string) (*Output, error) {
 		return nil, errors.New("parse jwt claims error")
 	}
 
-	if err = claims.Valid(); err != nil {
-		return nil, err
-	}
-
 	output := &Output{
 		Token: token,
 		Input: Input{
-			Subject:   claims["sub"].(string),
 			IssuedAt:  time.Unix(int64(claims["iat"].(float64)), 0),
 			ExpiresAt: time.Unix(int64(claims["exp"].(float64)), 0),
+			Subject:   claims["sub"].(string),
 		},
 	}
 

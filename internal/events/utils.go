@@ -17,7 +17,7 @@ func FromCtx(c context.Context) *EventManager {
 	value, exists := c.Value(CtxKey).(*EventManager)
 
 	if !exists {
-		panic(fmt.Sprintf(`context key "%s" does not exist`, CtxKey))
+		panic(fmt.Errorf(`context key "%s" does not exist`, CtxKey))
 	}
 
 	return value

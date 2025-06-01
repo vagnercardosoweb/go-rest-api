@@ -13,7 +13,6 @@ import (
 
 func New(input Input) *Input {
 	input.build()
-	input.makeStack()
 	return &input
 }
 
@@ -25,7 +24,7 @@ func FromSql(err error, args ...any) *Input {
 	appError := New(Input{OriginalError: err})
 
 	if Is(err, sql.ErrNoRows) {
-		appError.Message = "Resource not found"
+		appError.Message = "errors.sqlNoRows"
 		appError.StatusCode = http.StatusNotFound
 		appError.SendToSlack = Bool(false)
 	}
@@ -47,7 +46,7 @@ func FromTranslator(err error, translator *ut.Translator) *Input {
 	})
 
 	if Is(err, io.EOF) {
-		appError.Message = "Error retrieving the request body"
+		appError.Message = "errors.ioEOF"
 		appError.OriginalError = err.Error()
 	}
 
@@ -59,7 +58,7 @@ func FromTranslator(err error, translator *ut.Translator) *Input {
 	if errors.As(err, &errs) {
 		validations := make([]map[string]any, 0)
 
-		appError.Message = "Some fields are invalid"
+		appError.Message = "validators.default"
 		appError.Code = "VALIDATION_ERROR"
 
 		for _, e := range errs {
@@ -90,7 +89,7 @@ func (e *Input) makeStack() {
 	}
 
 	if len(e.Stack) == 0 {
-		e.Stack = GetCallerStack(3)
+		e.Stack = GetStack(4)
 	}
 }
 
@@ -115,9 +114,10 @@ func (e *Input) checkInputValues() {
 func (e *Input) build() {
 	e.makeMetadata()
 	e.checkInputValues()
-	e.checkSendToSlack()
 	e.checkOriginalError()
+	e.checkSendToSlack()
 	e.makeMessage()
+	e.makeStack()
 }
 
 func (e *Input) checkSendToSlack() {
@@ -140,6 +140,7 @@ func (e *Input) checkSendToSlack() {
 
 func (e *Input) makeMessage() {
 	e.Message = fmt.Sprintf(e.Message, e.Arguments...)
+
 	if e.Message == "" {
 		e.Message = http.StatusText(e.StatusCode)
 	}
@@ -147,6 +148,12 @@ func (e *Input) makeMessage() {
 
 func (e *Input) checkOriginalError() {
 	if _, ok := e.OriginalError.(*Input); ok {
+		e.Stack = e.OriginalError.(*Input).Stack
+
+		e.OriginalError.(*Input).Stack = nil
+		e.OriginalError.(*Input).SendToSlack = nil
+		e.OriginalError.(*Input).Logging = nil
+
 		return
 	}
 

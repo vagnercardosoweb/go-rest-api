@@ -69,19 +69,19 @@ func (s *Scheduler) Run() {
 	}
 }
 
-func (s *Scheduler) notifySlackOfError(err any, panic bool) {
+func (s *Scheduler) notifySlackOfError(err any, isPanic bool) {
 	_, file, line, _ := runtime.Caller(3)
 	caller := fmt.Sprintf("%s:%d", file, line)
 
 	var trackId string
 	if v, ok := err.(*errors.Input); ok {
-		trackId = v.ErrorId
+		trackId = v.RequestId
 	} else {
 		trackId = uuid.NewString()
 	}
 
 	var message string
-	if panic {
+	if isPanic {
 		message = "A panic error was received when executing job processing"
 	} else {
 		message = "An error was received when executing job processing"

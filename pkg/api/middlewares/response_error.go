@@ -33,51 +33,33 @@ func ResponseError(c *gin.Context) {
 		statusCode = http.StatusInternalServerError
 	}
 
+	logger := apicontext.Logger(c)
 	var metadata = make(map[string]any)
 
 	metadata["ip"] = c.ClientIP()
 	metadata["time"] = time.Since(apicontext.StartTime(c)).String()
-	metadata["path"] = path
+	metadata["statusCode"] = statusCode
+	metadata["path"] = fmt.Sprintf("%s %s", method, path)
 
 	if routePath := c.FullPath(); routePath != "" {
 		metadata["routePath"] = routePath
 	}
 
-	params := make(map[string]string)
-	for _, param := range c.Params {
-		params[param.Key] = param.Value
-	}
-	metadata["params"] = params
-
-	headers := make(map[string]string)
-	for key, value := range c.Request.Header {
-		headers[strings.ToLower(key)] = value[0]
-	}
-	metadata["headers"] = headers
-
-	metadata["method"] = method
-	metadata["query"] = c.Request.URL.Query()
-	metadata["version"] = c.Request.Proto
-	metadata["body"] = apirequest.BodyAsJson(c)
-
-	if forwardedUser := c.GetHeader("X-Forwarded-User"); forwardedUser != "" {
-		metadata["forwardedUser"] = forwardedUser
-	}
-
-	if forwardedEmail := c.GetHeader("X-Forwarded-Email"); forwardedEmail != "" {
-		metadata["forwardedEmail"] = forwardedEmail
-	}
-
-	var appError *errors.Input
-	logger := apicontext.Logger(c)
-	requestId := logger.GetId()
+	metadata["params"] = getParams(c)
+	metadata["queryParams"] = getQueryParams(c)
+	metadata["headers"] = getHeaders(c)
+	metadata["body"] = apirequest.GetBodyAsRedacted(c)
 
 	if !hasRequestError {
-		logger.WithMetadata(metadata).Error("HTTP_REQUEST_ERROR")
+		logger.
+			WithMetadata(metadata).
+			Error("HTTP_REQUEST_ERROR")
 		return
 	}
 
+	var appError *errors.Input
 	originalError := requestErrors[0].Err
+
 	if valueAsAppError, ok := originalError.(*errors.Input); ok {
 		appError = valueAsAppError
 	} else {
@@ -87,11 +69,13 @@ func ResponseError(c *gin.Context) {
 		})
 	}
 
-	appError.ErrorId = requestId
+	appError.RequestId = logger.GetId()
 	metadata["error"] = appError
 
 	if *appError.Logging {
-		logger.WithMetadata(metadata).Error("HTTP_REQUEST_ERROR")
+		logger.
+			WithMetadata(metadata).
+			Error("HTTP_REQUEST_ERROR")
 	}
 
 	if env.IsLocal() {
@@ -100,17 +84,19 @@ func ResponseError(c *gin.Context) {
 	}
 
 	if *appError.SendToSlack {
-		go slack.
-			NewAlert().
-			WithRequestError(method, path, appError).
-			Send()
+		go func() {
+			_ = slack.
+				NewAlert().
+				WithRequestError(method, path, appError).
+				Send()
+		}()
 	}
 
 	errorMessage := appError.Message
 	if appError.StatusCode == http.StatusInternalServerError {
 		errorMessage = fmt.Sprintf(
 			`An internal error occurred, contact the developers and enter the code "%s".`,
-			appError.ErrorId,
+			appError.RequestId,
 		)
 	}
 
@@ -122,11 +108,35 @@ func ResponseError(c *gin.Context) {
 	c.JSON(appError.StatusCode, &response{
 		Code:        appError.Code,
 		Name:        appError.Name,
-		RequestId:   requestId,
+		RequestId:   appError.RequestId,
 		StatusCode:  appError.StatusCode,
 		Validations: validations,
 		Message:     errorMessage,
 	})
+}
+
+func getParams(c *gin.Context) map[string]string {
+	params := make(map[string]string)
+	for _, param := range c.Params {
+		params[param.Key] = param.Value
+	}
+	return params
+}
+
+func getQueryParams(c *gin.Context) map[string]string {
+	queryParams := make(map[string]string)
+	for key, value := range c.Request.URL.Query() {
+		queryParams[key] = value[0]
+	}
+	return queryParams
+}
+
+func getHeaders(c *gin.Context) map[string]string {
+	headers := make(map[string]string)
+	for key, value := range c.Request.Header {
+		headers[strings.ToLower(key)] = value[0]
+	}
+	return headers
 }
 
 type response struct {

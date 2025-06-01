@@ -16,7 +16,7 @@ func FromCtx(c context.Context) PasswordHasher {
 	value, exists := c.Value(CtxKey).(PasswordHasher)
 
 	if !exists {
-		panic(fmt.Sprintf(`context key "%s" does not exist`, CtxKey))
+		panic(fmt.Errorf(`context key "%s" does not exist`, CtxKey))
 	}
 
 	return value

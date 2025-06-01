@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
@@ -33,7 +32,7 @@ func NewClient(ctx context.Context, logger *logger.Logger, config *Config) *Clie
 	)
 
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed to connect to postgres: %v", err))
 	}
 
 	db.SetMaxOpenConns(config.MaxOpenConn)
@@ -41,14 +40,18 @@ func NewClient(ctx context.Context, logger *logger.Logger, config *Config) *Clie
 	db.SetConnMaxLifetime(config.MaxLifetimeConn)
 	db.SetMaxIdleConns(config.MaxIdleConn)
 
-	return &Client{
+	client := &Client{
 		db:          db,
 		ctx:         ctx,
-		afterCommit: make([]func(client *Client) error, 0),
+		afterCommit: make([]func(c *Client) error, 0),
 		logger:      logger,
 		config:      config,
 		tx:          nil,
 	}
+
+	client.runMigrations()
+
+	return client
 }
 
 func FromEnv(ctx context.Context, logger *logger.Logger) *Client {
@@ -64,13 +67,15 @@ func FromEnv(ctx context.Context, logger *logger.Logger) *Client {
 			Timezone:        env.GetAsString("DB_TIMEZONE", "UTC"),
 			Schema:          env.GetAsString("DB_SCHEMA", "public"),
 			AppName:         env.GetAsString("DB_APP_NAME", "app"),
-			EnabledSSL:      env.GetAsString("DB_ENABLED_SSL", "false") == "true",
+			EnabledSSL:      env.GetAsBool("DB_ENABLED_SSL", "false"),
+			MigrationDir:    env.GetAsString("DB_MIGRATION_DIR", "migrations"),
+			AutoMigrate:     env.GetAsBool("DB_AUTO_MIGRATE", "false"),
 			QueryTimeout:    time.Millisecond * time.Duration(env.GetAsInt("DB_QUERY_TIMEOUT", "7000")),
 			MaxIdleTimeConn: time.Millisecond * time.Duration(env.GetAsInt("DB_MAX_IDLE_TIME_CONN", "15000")),
 			MaxLifetimeConn: time.Millisecond * time.Duration(env.GetAsInt("DB_MAX_LIFETIME_CONN", "60000")),
 			MaxOpenConn:     env.GetAsInt("DB_MAX_OPEN_CONN", "35"),
 			MaxIdleConn:     env.GetAsInt("DB_MAX_IDLE_CONN", "0"),
-			Logging:         env.GetAsString("DB_LOGGING", "false") == "true",
+			Logging:         env.GetAsBool("DB_LOGGING", "false"),
 		},
 	)
 }
@@ -92,13 +97,12 @@ func (c *Client) Exec(query string, bind ...any) (sql.Result, error) {
 	defer cancel()
 
 	var err error
-	log := &Log{Query: query, Bind: bind}
+	log := &Log{Query: query, Bind: bind, StartedAt: time.Now()}
 
 	defer func() {
 		c.log(log)
 	}()
 
-	log.StartedAt = time.Now()
 	var result sql.Result
 
 	if c.tx != nil {
@@ -121,13 +125,11 @@ func (c *Client) Query(dest any, query string, bind ...any) error {
 	defer cancel()
 
 	var err error
-	log := &Log{Query: query, Bind: bind}
+	log := &Log{Query: query, Bind: bind, StartedAt: time.Now()}
 
 	defer func() {
 		c.log(log)
 	}()
-
-	log.StartedAt = time.Now()
 
 	if c.tx != nil {
 		err = c.tx.SelectContext(ctx, dest, query, bind...)
@@ -149,13 +151,11 @@ func (c *Client) QueryOne(dest any, query string, bind ...any) error {
 	defer cancel()
 
 	var err error
-	log := &Log{Query: query, Bind: bind}
+	log := &Log{Query: query, Bind: bind, StartedAt: time.Now()}
 
 	defer func() {
 		c.log(log)
 	}()
-
-	log.StartedAt = time.Now()
 
 	if c.tx != nil {
 		err = c.tx.GetContext(ctx, dest, query, bind...)
@@ -189,9 +189,10 @@ func (c *Client) AfterCommit(fn func(client *Client) error) {
 
 		if err != nil {
 			_ = slack.NewAlert().
-				AddField("App Name", c.config.AppName, false).
-				AddField("Request Id", c.logger.GetId(), false).
+				AddField("AppName", c.config.AppName, false).
+				AddField("RequestId", c.logger.GetId(), false).
 				AddError(fmt.Sprintf("ExecuteAfterCommitError[%d]", size), err).
+				WithColor(slack.ColorError).
 				Send()
 		}
 
@@ -206,9 +207,11 @@ func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
 	}
 
 	// prevents database lock in case of panic error
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
-	client := c.Clone()
+	client := c.Copy()
 	client.tx = tx
 
 	result, err := fn(client)
@@ -216,8 +219,8 @@ func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
 	if err != nil {
 		if txError := tx.Rollback(); txError != nil {
 			return nil, errors.New(errors.Input{
-				Message:    "Rollback Transaction Error",
-				StatusCode: http.StatusInternalServerError,
+				RequestId: c.logger.GetId(),
+				Message:   "DB_ROLLBACK_TRANSACTION_ERROR",
 				Metadata: errors.Metadata{
 					"txError": txError.Error(),
 					"fnError": err.Error(),
@@ -241,18 +244,18 @@ func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
 	return result, nil
 }
 
+func (c *Client) GetLogger() *logger.Logger {
+	return c.logger
+}
+
 func (c *Client) WithLogger(logger *logger.Logger) *Client {
-	client := c.Clone()
+	client := c.Copy()
 	client.logger = logger
 
 	return client
 }
 
-func (c *Client) GetLogger() *logger.Logger {
-	return c.logger
-}
-
-func (c *Client) Clone() *Client {
+func (c *Client) Copy() *Client {
 	return &Client{
 		db:          c.db,
 		ctx:         c.ctx,

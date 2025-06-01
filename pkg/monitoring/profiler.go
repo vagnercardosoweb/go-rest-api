@@ -18,7 +18,6 @@ func runProfiler(logger *logger.Logger) {
 
 		logger.
 			WithId("MONITORING").
-			WithoutRedact().
 			AddMetadata("memoryUsed", fmt.Sprintf("%vmb", m.Alloc/megaBytes)).
 			AddMetadata("memoryAcquired", fmt.Sprintf("%vmb", m.Sys/megaBytes)).
 			AddMetadata("numGoroutine", runtime.NumGoroutine()).
