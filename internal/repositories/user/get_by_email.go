@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
 type GetByEmailOutput struct {
@@ -28,12 +29,12 @@ const getByEmailQuery = `
 `
 
 func (r *instance) GetByEmail(email string) (*GetByEmailOutput, error) {
-	var output GetByEmailOutput
+	output := new(GetByEmailOutput)
 
-	err := r.pgClient.QueryOne(&output, getByEmailQuery, email)
+	err := r.pgClient.QueryRow(output, getByEmailQuery, email)
 	if err != nil {
-		return nil, err
+		return nil, errors.FromSql(err, "user.notFoundByEmail", email)
 	}
 
-	return &output, nil
+	return output, nil
 }

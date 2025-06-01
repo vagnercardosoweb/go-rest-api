@@ -112,7 +112,7 @@ func (t *LoginTest) TestInvalidPassword() {
 
 func (t *LoginTest) TestBlockedUntil() {
 	_, _ = t.PgClient.Exec(
-		"UPDATE users SET login_blocked_until = NOW() + INTERVAL '1 HOUR' WHERE email = $1",
+		`UPDATE "users" SET "login_blocked_until" = NOW() + INTERVAL '1 HOUR' WHERE "email" = $1;`,
 		t.validInput.Email,
 	)
 

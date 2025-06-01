@@ -21,7 +21,7 @@ func (c *Client) runMigrations() {
 		panic(fmt.Errorf("failed to create schema: %v", err))
 	}
 
-	driver, err := postgres.WithInstance(c.db.DB, &postgres.Config{})
+	driver, err := postgres.WithInstance(c.DB(), &postgres.Config{})
 	if err != nil {
 		panic(fmt.Errorf("failed to create postgres driver: %v", err))
 	}

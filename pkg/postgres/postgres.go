@@ -22,7 +22,7 @@ func NewClient(ctx context.Context, logger *logger.Logger, config *Config) *Clie
 		sslMode = "require"
 	}
 
-	db, err := sqlx.ConnectContext(
+	dbx, err := sqlx.ConnectContext(
 		ctx,
 		"postgres",
 		fmt.Sprintf(
@@ -35,13 +35,13 @@ func NewClient(ctx context.Context, logger *logger.Logger, config *Config) *Clie
 		panic(fmt.Errorf("failed to connect to postgres: %v", err))
 	}
 
-	db.SetMaxOpenConns(config.MaxOpenConn)
-	db.SetConnMaxIdleTime(config.MaxIdleTimeConn)
-	db.SetConnMaxLifetime(config.MaxLifetimeConn)
-	db.SetMaxIdleConns(config.MaxIdleConn)
+	dbx.SetMaxOpenConns(config.MaxOpenConn)
+	dbx.SetConnMaxIdleTime(config.MaxIdleTimeConn)
+	dbx.SetConnMaxLifetime(config.MaxLifetimeConn)
+	dbx.SetMaxIdleConns(config.MaxIdleConn)
 
 	client := &Client{
-		db:          db,
+		dbx:         dbx,
 		ctx:         ctx,
 		afterCommit: make([]func(c *Client) error, 0),
 		logger:      logger,
@@ -88,8 +88,12 @@ func (c *Client) withQueryTimeoutCtx() (context.Context, context.CancelFunc) {
 	return c.ctx, func() {}
 }
 
-func (c *Client) GetDb() *sql.DB {
-	return c.db.DB
+func (c *Client) DB() *sql.DB {
+	return c.dbx.DB
+}
+
+func (c *Client) DBX() *sqlx.DB {
+	return c.dbx
 }
 
 func (c *Client) Exec(query string, bind ...any) (sql.Result, error) {
@@ -108,7 +112,7 @@ func (c *Client) Exec(query string, bind ...any) (sql.Result, error) {
 	if c.tx != nil {
 		result, err = c.tx.ExecContext(ctx, query, bind...)
 	} else {
-		result, err = c.db.ExecContext(ctx, query, bind...)
+		result, err = c.dbx.ExecContext(ctx, query, bind...)
 	}
 
 	log.FinishedAt = time.Now()
@@ -134,7 +138,7 @@ func (c *Client) Query(dest any, query string, bind ...any) error {
 	if c.tx != nil {
 		err = c.tx.SelectContext(ctx, dest, query, bind...)
 	} else {
-		err = c.db.SelectContext(ctx, dest, query, bind...)
+		err = c.dbx.SelectContext(ctx, dest, query, bind...)
 	}
 
 	log.FinishedAt = time.Now()
@@ -146,7 +150,7 @@ func (c *Client) Query(dest any, query string, bind ...any) error {
 	return err
 }
 
-func (c *Client) QueryOne(dest any, query string, bind ...any) error {
+func (c *Client) QueryRow(dest any, query string, bind ...any) error {
 	ctx, cancel := c.withQueryTimeoutCtx()
 	defer cancel()
 
@@ -160,7 +164,7 @@ func (c *Client) QueryOne(dest any, query string, bind ...any) error {
 	if c.tx != nil {
 		err = c.tx.GetContext(ctx, dest, query, bind...)
 	} else {
-		err = c.db.GetContext(ctx, dest, query, bind...)
+		err = c.dbx.GetContext(ctx, dest, query, bind...)
 	}
 
 	log.FinishedAt = time.Now()
@@ -201,7 +205,7 @@ func (c *Client) AfterCommit(fn func(client *Client) error) {
 }
 
 func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
-	tx, err := c.db.BeginTxx(c.ctx, nil)
+	tx, err := c.dbx.BeginTxx(c.ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +248,7 @@ func (c *Client) WithTx(fn func(*Client) (any, error)) (any, error) {
 	return result, nil
 }
 
-func (c *Client) GetLogger() *logger.Logger {
+func (c *Client) Logger() *logger.Logger {
 	return c.logger
 }
 
@@ -257,7 +261,7 @@ func (c *Client) WithLogger(logger *logger.Logger) *Client {
 
 func (c *Client) Copy() *Client {
 	return &Client{
-		db:          c.db,
+		dbx:         c.dbx,
 		ctx:         c.ctx,
 		afterCommit: make([]func(client *Client) error, 0),
 		logger:      c.logger,
@@ -266,13 +270,13 @@ func (c *Client) Copy() *Client {
 }
 
 func (c *Client) Close() error {
-	return c.db.Close()
+	return c.dbx.Close()
 }
 
-func (c *Client) GetLastLog() *Log {
+func (c *Client) LastLog() *Log {
 	return c.lastLog
 }
 
 func (c *Client) Ping() error {
-	return c.db.PingContext(c.ctx)
+	return c.dbx.PingContext(c.ctx)
 }

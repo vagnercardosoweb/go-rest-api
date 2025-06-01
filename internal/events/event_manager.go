@@ -16,7 +16,7 @@ type EventManager struct {
 
 func NewManager(pgClient *postgres.Client, redisClient *redis.Client) *EventManager {
 	e := &EventManager{
-		logger:      pgClient.GetLogger(),
+		logger:      pgClient.Logger(),
 		dispatcher:  events.NewDispatcher(),
 		redisClient: redisClient,
 		pgClient:    pgClient,

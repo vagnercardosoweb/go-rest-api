@@ -32,7 +32,7 @@ type Config struct {
 }
 
 type Client struct {
-	db          *sqlx.DB
+	dbx         *sqlx.DB
 	tx          *sqlx.Tx
 	config      *Config
 	afterCommit []func(client *Client) error
