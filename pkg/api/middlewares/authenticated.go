@@ -12,11 +12,10 @@ import (
 )
 
 var unauthorized = errors.New(errors.Input{
-	Name:        "UnauthorizedWithLogoutError",
-	StatusCode:  http.StatusUnauthorized,
-	SendToSlack: errors.Bool(false),
-	Message:     "Missing token in request.",
-	Code:        "INVALID_JWT_TOKEN",
+	Name:       "UnauthorizedWithLogoutError",
+	StatusCode: http.StatusUnauthorized,
+	Message:    "Missing token in request.",
+	Code:       "INVALID_JWT_TOKEN",
 })
 
 func Authenticated(c *gin.Context) {
