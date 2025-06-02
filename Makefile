@@ -26,10 +26,10 @@ ifdef DB_HOST
 endif
 
 define run_migration_docker
-  @if [ -z "${DB_HOST}" ]; then \
-    echo "DB_URL is not set"; \
-    exit 1; \
-  fi
+	@if [ -z "${DB_HOST}" ]; then \
+		echo "DB_URL is not set"; \
+		exit 1; \
+	fi
 
 	docker run --rm -v $(shell pwd)/${DB_MIGRATION_FOLDER}:/migrations migrate/migrate -path /migrations/ -database "${DB_URL}" $(1)
 endef
