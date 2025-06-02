@@ -133,7 +133,7 @@ func (api *Api) Run() {
 
 	go func() {
 		if err := api.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			api.logger.AddMetadata("error", err).Error("server listen error")
+			api.logger.AddField("error", err).Error("server listen error")
 			os.Exit(1)
 		}
 	}()
@@ -195,7 +195,7 @@ func (api *Api) shutdown() {
 
 	if err := api.server.Shutdown(ctx); err != nil {
 		api.logger.
-			AddMetadata("error", err).
+			AddField("error", err).
 			Error("shutdown server error")
 	}
 
@@ -255,12 +255,12 @@ func (api *Api) setupGin() {
 	})
 
 	api.gin.Use(middlewares.RequestLog)
-	api.gin.Use(middlewares.ValidatorTranslator)
+	api.gin.Use(middlewares.Translator)
 
 	api.gin.Use(gin.CustomRecovery(middlewares.Recovery))
 	api.gin.Use(middlewares.ResponseError)
 
-	api.gin.GET("/healthy", apiresponse.Wrapper(handlers.Healthy))
+	api.gin.GET("/healthy", handlers.Healthy)
 	api.gin.GET("/favicon.ico", handlers.Favicon)
 	api.gin.GET("/timestamp", handlers.Timestamp)
 

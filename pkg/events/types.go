@@ -5,14 +5,14 @@ import (
 )
 
 type Event struct {
-	Name          string    `json:"name"`
-	CreatedAt     time.Time `json:"createdAt"`
-	CorrelationId string    `json:"correlationId"`
-	Input         any       `json:"input"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"-"`
+	RequestId string    `json:"-"`
+	Input     any       `json:"input"`
 }
 
 type Handler interface {
-	Handle(event *Event)
+	Handle(event *Event) error
 }
 
 type DispatcherInterface interface {

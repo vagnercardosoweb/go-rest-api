@@ -16,6 +16,7 @@ const (
 	StartTimeKey           = "StartTimeKey"
 	BearerTokenKey         = "BearerTokenKey"
 	ValidatorTranslatorKey = "ValidatorTranslatorKey"
+	AcceptLanguageKey      = "AcceptLanguageKey"
 	RequestIdKey           = "RequestIdKey"
 )
 
@@ -53,6 +54,10 @@ func Logger(c *gin.Context) *logger.Logger {
 
 func RequestId(c *gin.Context) string {
 	return c.GetString(RequestIdKey)
+}
+
+func AcceptLanguage(c *gin.Context) string {
+	return c.GetString(AcceptLanguageKey)
 }
 
 func StartTime(c *gin.Context) time.Time {

@@ -15,7 +15,6 @@ var skipPaths = []string{
 	"/healthy",
 	"/favicon.ico",
 	"/timestamp",
-	"/",
 }
 
 func RequestLog(c *gin.Context) {
@@ -28,17 +27,20 @@ func RequestLog(c *gin.Context) {
 
 	method := c.Request.Method
 	requestLogger := apicontext.Logger(c)
-	clientIP := c.ClientIP()
-	metadata := map[string]any{
-		"ip":          clientIP,
-		"request":     fmt.Sprintf("%s %s", method, path),
-		"queryParams": c.Request.URL.Query(),
-		"userAgent":   c.Request.UserAgent(),
-		"time":        time.Since(apicontext.StartTime(c)).String(),
+	logData := make(map[string]any)
+
+	if routePath := c.FullPath(); routePath != "" {
+		logData["routePath"] = routePath
 	}
 
+	logData["ip"] = c.ClientIP()
+	logData["request"] = fmt.Sprintf("%s %s", method, path)
+	logData["queryParams"] = c.Request.URL.Query()
+	logData["userAgent"] = c.Request.UserAgent()
+	logData["time"] = time.Since(apicontext.StartTime(c)).String()
+
 	requestLogger.
-		WithMetadata(metadata).
+		WithFields(logData).
 		Info("HTTP_REQUEST_STARTED")
 
 	// Process request
@@ -46,8 +48,8 @@ func RequestLog(c *gin.Context) {
 
 	status := c.Writer.Status()
 
-	metadata["statusCode"] = status
-	metadata["time"] = c.Writer.Header().Get("X-Response-Time")
+	logData["statusCode"] = status
+	logData["time"] = c.Writer.Header().Get("X-Response-Time")
 
 	level := logger.LevelInfo
 	if status < http.StatusOK || status >= http.StatusBadRequest {
@@ -55,6 +57,6 @@ func RequestLog(c *gin.Context) {
 	}
 
 	requestLogger.
-		WithMetadata(metadata).
+		WithFields(logData).
 		Log(level, "HTTP_REQUEST_COMPLETED")
 }

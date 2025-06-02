@@ -12,22 +12,25 @@ import (
 	en_translation "github.com/go-playground/validator/v10/translations/en"
 	pt_br_translation "github.com/go-playground/validator/v10/translations/pt_BR"
 	apicontext "github.com/vagnercardosoweb/go-rest-api/pkg/api/context"
+	apirequest "github.com/vagnercardosoweb/go-rest-api/pkg/api/request"
 	"golang.org/x/text/language"
 )
 
 var universalTranslator *ut.UniversalTranslator
 
-func ValidatorTranslator(c *gin.Context) {
-	acceptLanguage := c.GetHeader("Accept-Language")
-	if acceptLanguage == "" {
-		acceptLanguage = "en;q=1.0"
-	}
+func Translator(c *gin.Context) {
+	acceptLanguage := apirequest.GetAcceptLanguage(c)
 
-	parseAcceptLanguage, _, _ := language.ParseAcceptLanguage(acceptLanguage)
-	acceptLanguage = strings.Replace(parseAcceptLanguage[0].String(), "-", "_", -1)
+	languageTags, _, _ := language.ParseAcceptLanguage(acceptLanguage)
+	acceptLanguage = strings.Replace(strings.ToLower(languageTags[0].String()), "-", "_", -1)
 
+	// I18n Translator
+	c.Set(apicontext.AcceptLanguageKey, acceptLanguage)
+	// TODO: Implement I18n Translator
+
+	// Validator Translator
 	translator, _ := universalTranslator.GetTranslator(acceptLanguage)
-	c.Set(apicontext.ValidatorTranslatorKey, translator)
+	c.Set(apicontext.ValidatorTranslatorKey, &translator)
 
 	c.Next()
 }

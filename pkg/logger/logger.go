@@ -20,18 +20,22 @@ var logger = log.New(os.Stdout, "", 0)
 func New() *Logger {
 	return &Logger{
 		id:         "APP",
-		metadata:   make(map[string]any),
+		fields:     make(map[string]any),
 		redactKeys: strings.Split(env.GetAsString("REDACT_KEYS", ""), ","),
 		enabled:    env.GetAsBool("LOGGER_ENABLED", "true"),
 		mu:         new(sync.Mutex),
 	}
 }
 
-func (*Logger) WithId(id string) *Logger {
-	l := New()
-	l.id = id
+func (l *Logger) WithId(id string) *Logger {
+	if l.id == id || id == "" {
+		return l
+	}
 
-	return l
+	ln := New()
+	ln.id = id
+
+	return ln
 }
 
 func (l *Logger) GetId() string {
@@ -39,18 +43,32 @@ func (l *Logger) GetId() string {
 }
 
 func (l *Logger) WithRedact() *Logger {
-	return l.AddMetadata("withRedact", "true")
+	return l.AddField("withRedact", "true")
 }
 
-func (l *Logger) WithMetadata(metadata map[string]any) *Logger {
-	for key, value := range metadata {
-		l.AddMetadata(key, value)
+func (l *Logger) WithStruct(s any) *Logger {
+	if s == nil {
+		return l
+	}
+
+	var fields map[string]any
+	data, _ := json.Marshal(s)
+	_ = json.Unmarshal(data, &fields)
+
+	l.WithFields(fields)
+
+	return l
+}
+
+func (l *Logger) WithFields(fields map[string]any) *Logger {
+	for key, value := range fields {
+		l.AddField(key, value)
 	}
 
 	return l
 }
 
-func (l *Logger) AddMetadata(key string, value any) *Logger {
+func (l *Logger) AddField(key string, value any) *Logger {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -60,7 +78,7 @@ func (l *Logger) AddMetadata(key string, value any) *Logger {
 		}
 	}
 
-	l.metadata[key] = value
+	l.fields[key] = value
 	return l
 }
 
@@ -80,7 +98,7 @@ func (l *Logger) Log(level level, message string, args ...any) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	l.redactMetadata()
+	l.redactFields()
 
 	if len(args) > 0 {
 		message = fmt.Sprintf(message, args...)
@@ -93,20 +111,20 @@ func (l *Logger) Log(level level, message string, args ...any) {
 		Message:     message,
 		Environment: env.GetAppEnv(),
 		Timestamp:   time.Now().UTC(),
-		Metadata:    l.metadata,
+		Metadata:    l.fields,
 	})
 
-	l.metadata = make(map[string]any)
+	l.fields = make(map[string]any)
 	logger.Println(string(logAsJson))
 }
 
-func (l *Logger) redactMetadata() {
-	if _, ok := l.metadata["withRedact"]; !ok {
+func (l *Logger) redactFields() {
+	if _, ok := l.fields["withRedact"]; !ok {
 		return
 	}
 
-	delete(l.metadata, "withRedact")
-	l.metadata = utils.RedactKeys(l.metadata, l.redactKeys)
+	delete(l.fields, "withRedact")
+	l.fields = utils.RedactKeys(l.fields, l.redactKeys)
 }
 
 const CtxKey = "LoggerKey"

@@ -41,7 +41,7 @@ func (c *Client) log(log *Log) {
 	}
 
 	c.logger.
-		WithMetadata(metadata).
+		WithFields(metadata).
 		Log(logLevel, "DB_QUERY")
 }
 

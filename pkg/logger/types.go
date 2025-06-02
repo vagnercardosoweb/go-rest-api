@@ -16,7 +16,7 @@ type Logger struct {
 	id         string
 	enabled    bool
 	redactKeys []string
-	metadata   map[string]any
+	fields     map[string]any
 	mu         *sync.Mutex
 }
 

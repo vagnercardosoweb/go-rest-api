@@ -1,5 +1,5 @@
 package events
 
 const (
-	AfterLoginName = "AFTER_LOGIN"
+	OnUserLoginName = "ON_USER_LOGIN"
 )

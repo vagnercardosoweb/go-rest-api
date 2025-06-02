@@ -34,3 +34,13 @@ func GetBodyAsMap(c *gin.Context) map[string]any {
 func GetBodyAsRedacted(c *gin.Context) map[string]any {
 	return utils.RedactKeys(GetBodyAsMap(c), nil)
 }
+
+func GetAcceptLanguage(c *gin.Context) string {
+	acceptLanguage := c.GetHeader("Accept-Language")
+
+	if acceptLanguage == "" {
+		acceptLanguage = "en;q=1.0"
+	}
+
+	return acceptLanguage
+}

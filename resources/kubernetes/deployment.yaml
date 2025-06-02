@@ -28,17 +28,46 @@ spec:
           imagePullPolicy: Always
           ports:
             - name: go-rest-api
-              containerPort: 3001
+              containerPort: 3000
               protocol: TCP
           envFrom:
             - configMapRef:
                 name: go-rest-api
             - secretRef:
                 name: go-rest-api
+          securityContext:
+            runAsUser: 65534
+            runAsNonRoot: true
+            runAsGroup: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           resources:
             limits:
-              memory: 256Mi
-              cpu: 250m
+              cpu: 500m
+              memory: 512Mi
             requests:
-              memory: 128Mi
               cpu: 100m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /healthy
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+            successThreshold: 1

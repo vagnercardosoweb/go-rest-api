@@ -9,26 +9,29 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/internal/types"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/password"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/token"
 )
 
 type LoginSvc struct {
-	tokenClient    token.Client
-	passwordHash   password.PasswordHasher
+	pgClient       *postgres.Client
+	eventManager   *events.Manager
 	userRepository user.Repository
-	eventManager   *events.EventManager
+	passwordHash   password.PasswordHasher
+	tokenClient    token.Client
 }
 
 func NewLoginSvc(
+	pgClient *postgres.Client,
 	tokenClient token.Client,
 	passwordHash password.PasswordHasher,
-	userRepository user.Repository,
-	eventManager *events.EventManager,
+	eventManager *events.Manager,
 ) *LoginSvc {
 	return &LoginSvc{
+		pgClient:       pgClient,
 		tokenClient:    tokenClient,
+		userRepository: user.New(pgClient),
 		passwordHash:   passwordHash,
-		userRepository: userRepository,
 		eventManager:   eventManager,
 	}
 }
@@ -45,9 +48,9 @@ func (s *LoginSvc) Execute(input *types.UserLoginInput) (*token.Output, error) {
 
 	if user.LoginBlockedUntil.Time.After(time.Now()) {
 		return nil, errors.New(errors.Input{
+			StatusCode: http.StatusUnauthorized,
 			Message:    `Your access is blocked until "%s". Try again later.`,
 			Arguments:  []any{user.LoginBlockedUntil.Time.Format("02/01/2006 at 15:04")},
-			StatusCode: http.StatusUnauthorized,
 		})
 	}
 
@@ -58,8 +61,11 @@ func (s *LoginSvc) Execute(input *types.UserLoginInput) (*token.Output, error) {
 		return nil, err
 	}
 
-	s.eventManager.AfterLogin(events.AfterLoginInput{
-		UserId: user.Id.String(),
+	s.eventManager.SendOnUserLogin(events.OnUserLoginInput{
+		UserId:    user.Id.String(),
+		RequestId: s.pgClient.Logger().GetId(),
+		UserAgent: input.UserAgent,
+		IpAddress: input.IpAddress,
 	})
 
 	return outputToken, nil
@@ -67,8 +73,8 @@ func (s *LoginSvc) Execute(input *types.UserLoginInput) (*token.Output, error) {
 
 func (s *LoginSvc) invalidCredentialsError(originalError error) error {
 	return errors.New(errors.Input{
-		Message:       "Email/Password invalid",
 		StatusCode:    http.StatusUnauthorized,
+		Message:       "user.invalidCredentials",
 		OriginalError: originalError,
 	})
 }

@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS
     "password_hash" VARCHAR(72) NOT NULL,
     "confirmed_email_at" TIMESTAMPTZ NULL DEFAULT NULL,
     "login_blocked_until" TIMESTAMPTZ NULL DEFAULT NULL,
+    "last_login_at" TIMESTAMPTZ NULL DEFAULT NULL,
+    "last_login_agent" TEXT NULL DEFAULT NULL,
+    "last_login_ip" INET NULL DEFAULT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC'),
     "deleted_at" TIMESTAMPTZ NULL DEFAULT NULL

@@ -253,6 +253,10 @@ func (c *Client) Logger() *logger.Logger {
 }
 
 func (c *Client) WithLogger(logger *logger.Logger) *Client {
+	if logger.GetId() == c.logger.GetId() {
+		return c
+	}
+
 	client := c.Copy()
 	client.logger = logger
 

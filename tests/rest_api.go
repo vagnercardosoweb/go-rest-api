@@ -21,22 +21,17 @@ type RestApiSuite struct {
 func (r *RestApiSuite) SetupSuite() {
 	r.ContainerTestSuite.SetupSuite()
 
-	r.RestApi = api.New(r.Ctx, r.Logger)
-	r.RestApi.WithEnv(env.Test)
+	r.RestApi = api.New(r.Ctx, r.Logger).
+		WithEnv(env.Test).
+		WithValue(redis.CtxKey, r.RedisClient).
+		WithValue(token.CtxClientKey, token.JwtFromEnv()).
+		WithValue(events.CtxKey, events.NewManager(r.PgClient, r.RedisClient)).
+		WithValue(password.CtxKey, password.NewBcrypt()).
+		WithValue(postgres.CtxKey, func(c *gin.Context) any {
+			return r.PgClient.WithLogger(apicontext.Logger(c))
+		})
 
-	r.RestApi.WithValue(password.CtxKey, password.NewBcrypt())
-	r.RestApi.WithValue(token.CtxClientKey, token.JwtFromEnv())
-	r.RestApi.WithValue(redis.CtxKey, r.RedisClient)
-
-	r.RestApi.WithValue(postgres.CtxKey, func(c *gin.Context) any {
-		return r.PgClient.WithLogger(apicontext.Logger(c))
-	})
-
-	eventManager := events.NewManager(r.PgClient, r.RedisClient)
-	r.RestApi.WithValue(events.CtxKey, func(c *gin.Context) any {
-		return eventManager.WithLogger(apicontext.Logger(c))
-	})
-
+	// Make handlers
 	user.MakeHandlers(r.RestApi)
 
 	r.RestApi.Start()

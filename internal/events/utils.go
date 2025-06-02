@@ -9,12 +9,12 @@ import (
 
 const CtxKey = "EventManagerKey"
 
-func FromGin(c *gin.Context) *EventManager {
-	return c.MustGet(CtxKey).(*EventManager)
+func FromGin(c *gin.Context) *Manager {
+	return c.MustGet(CtxKey).(*Manager)
 }
 
-func FromCtx(c context.Context) *EventManager {
-	value, exists := c.Value(CtxKey).(*EventManager)
+func FromCtx(c context.Context) *Manager {
+	value, exists := c.Value(CtxKey).(*Manager)
 
 	if !exists {
 		panic(fmt.Errorf(`context key "%s" does not exist`, CtxKey))

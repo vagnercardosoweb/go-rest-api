@@ -12,7 +12,6 @@ import (
 	apicontext "github.com/vagnercardosoweb/go-rest-api/pkg/api/context"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/logger"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/monitoring"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/password"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
@@ -32,17 +31,14 @@ func main() {
 	pgClient := postgres.FromEnv(ctx, appLogger)
 	defer pgClient.Close()
 
-	eventManager := events.NewManager(pgClient, redisClient)
 	restApi := api.New(ctx, appLogger).
 		WithEnv(env.GetAppEnv()).
 		WithValue(redis.CtxKey, redisClient).
 		WithValue(token.CtxClientKey, token.JwtFromEnv()).
+		WithValue(events.CtxKey, events.NewManager(pgClient, redisClient)).
 		WithValue(password.CtxKey, password.NewBcrypt()).
 		WithValue(postgres.CtxKey, func(c *gin.Context) any {
 			return pgClient.WithLogger(apicontext.Logger(c))
-		}).
-		WithValue(events.CtxKey, func(c *gin.Context) any {
-			return eventManager.WithLogger(apicontext.Logger(c))
 		}).
 		OnStart(func(api *api.Api) {
 			go func() {
@@ -68,11 +64,7 @@ func main() {
 	user.MakeHandlers(restApi)
 
 	if env.IsSchedulerEnabled() {
-		go schedules.New(pgClient, redisClient, appLogger).Run()
-	}
-
-	if env.GetAsBool("PROFILER_ENABLED") {
-		monitoring.RunProfiler(appLogger)
+		schedules.New(pgClient, redisClient).Run()
 	}
 
 	restApi.Run()

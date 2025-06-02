@@ -37,8 +37,8 @@ func GetSqsClient(ctx context.Context, logger *logger.Logger) *SqsClient {
 func (s *SqsClient) SendMessage(queueUrl *string, input any) error {
 	if env.IsLocal() {
 		s.logger.
-			AddMetadata("url", queueUrl).
-			AddMetadata("input", input).
+			AddField("url", queueUrl).
+			AddField("input", input).
 			Info("SQS_SEND_MESSAGE_LOCAL")
 
 		return nil
@@ -46,8 +46,8 @@ func (s *SqsClient) SendMessage(queueUrl *string, input any) error {
 
 	inputAsBytes, _ := json.Marshal(input)
 	s.logger.
-		AddMetadata("url", queueUrl).
-		AddMetadata("input", input).
+		AddField("url", queueUrl).
+		AddField("input", input).
 		Info("SQS_SEND_MESSAGE_INPUT")
 
 	sendMessageInput := &sqs.SendMessageInput{
@@ -68,14 +68,14 @@ func (s *SqsClient) SendMessage(queueUrl *string, input any) error {
 	output, err := s.client.SendMessage(s.ctx, sendMessageInput)
 	if err != nil {
 		s.logger.
-			AddMetadata("error", err.Error()).
+			AddField("error", err.Error()).
 			Info("SQS_SEND_MESSAGE_ERROR")
 
 		return err
 	}
 
 	s.logger.
-		AddMetadata("messageId", output.MessageId).
+		AddField("messageId", output.MessageId).
 		Info("SQS_SEND_MESSAGE_COMPLETED")
 
 	return nil

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 func NewDispatcher() DispatcherInterface {
@@ -37,30 +37,27 @@ func (d *Dispatcher) Register(name string, handler Handler) error {
 
 func (d *Dispatcher) Dispatch(event *Event) error {
 	if handlers, ok := d.handlers[event.Name]; ok {
-		wg := &sync.WaitGroup{}
-		wg.Add(len(handlers))
+		eg := new(errgroup.Group)
 
-		for i, handler := range handlers {
-			go func() {
-				defer wg.Done()
-
+		for i, h := range handlers {
+			eg.Go(func() error {
 				if event.CreatedAt.IsZero() {
 					event.CreatedAt = time.Now()
 				}
 
-				if event.CorrelationId == "" {
-					event.CorrelationId = fmt.Sprintf(
+				if event.RequestId == "" {
+					event.RequestId = fmt.Sprintf(
 						"%s_HANDLER_%d",
 						strings.ToUpper(event.Name),
 						i+1,
 					)
 				}
 
-				handler.Handle(event)
-			}()
+				return h.Handle(event)
+			})
 		}
 
-		wg.Wait()
+		return eg.Wait()
 	}
 
 	return nil

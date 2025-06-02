@@ -78,7 +78,7 @@ func GetAppEnv() string {
 }
 
 func GetSchedulerSleep() time.Duration {
-	return time.Duration(GetAsInt("SCHEDULER_SLEEP", "60"))
+	return time.Duration(GetAsInt("SCHEDULER_SLEEP", "60")) * time.Second
 }
 
 func GetRedactKeys() []string {

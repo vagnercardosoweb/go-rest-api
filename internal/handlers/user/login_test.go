@@ -43,7 +43,7 @@ func (t *LoginTest) SetupSuite() {
 	t.userRepository = user.New(t.PgClient)
 
 	t.validInput = types.UserLoginInput{
-		Email:    "test@local.dev",
+		Email:    "test@test.local",
 		Password: "12345678",
 	}
 }
@@ -67,26 +67,40 @@ func (t *LoginTest) TearDownTest() {
 	_ = t.PgClient.TruncateTable("users")
 }
 
+func (t *LoginTest) checkLastLogin() {
+	lastLogin := new(struct {
+		LastLoginAt    *time.Time `db:"last_login_at"`
+		LastLoginAgent *string    `db:"last_login_agent"`
+		LastLoginIp    *string    `db:"last_login_ip"`
+	})
+
+	query := `SELECT "last_login_at", "last_login_agent", "last_login_ip" FROM "users" WHERE LOWER("email") = LOWER($1);`
+	err := t.PgClient.QueryRow(lastLogin, query, t.validInput.Email)
+	t.Require().Nil(err)
+
+	t.Require().NotNil(lastLogin.LastLoginAt, "Last login time should not be nil")
+	t.Require().NotNil(lastLogin.LastLoginAgent, "Last login agent should not be nil")
+	t.Require().NotNil(lastLogin.LastLoginIp, "Last login IP should not be nil")
+}
+
 func (t *LoginTest) TestSuccess() {
 	rr := t.createRecorder(t.validInput)
 	t.Require().Equal(http.StatusOK, rr.Code)
 
-	var output struct {
-		Data types.UserLoginOutput `json:"data"`
-	}
-
+	var output types.UserLoginOutput
 	_ = json.NewDecoder(rr.Body).Decode(&output)
 
-	t.Require().NotEmpty(output.Data.AccessToken)
-	t.Require().True(len(strings.Split(output.Data.AccessToken, ".")) == 3)
-	t.Require().Equal(output.Data.TokenType, "Bearer")
-	t.Require().NotEmpty(output.Data.ExpiresIn)
+	t.Require().NotEmpty(output.AccessToken)
+	t.Require().True(len(strings.Split(output.AccessToken, ".")) == 3)
+	t.Require().Equal(output.TokenType, "Bearer")
+	t.Require().NotEmpty(output.ExpiresIn)
 
+	t.checkLastLogin()
 }
 
 func (t *LoginTest) TestNotFound() {
 	rr := t.createRecorder(types.UserLoginInput{
-		Email:    "not_found@local.dev",
+		Email:    "not_found@test.local",
 		Password: t.validInput.Password,
 	})
 
@@ -94,7 +108,7 @@ func (t *LoginTest) TestNotFound() {
 	_ = json.NewDecoder(rr.Body).Decode(&e)
 
 	t.Require().Equal(http.StatusUnauthorized, rr.Code)
-	t.Require().Equal(e.Message, "Email/Password invalid")
+	t.Require().Equal(e.Message, "user.invalidCredentials")
 }
 
 func (t *LoginTest) TestInvalidPassword() {
@@ -107,7 +121,7 @@ func (t *LoginTest) TestInvalidPassword() {
 	_ = json.NewDecoder(rr.Body).Decode(&e)
 
 	t.Require().Equal(http.StatusUnauthorized, rr.Code)
-	t.Require().Equal(e.Message, "Email/Password invalid")
+	t.Require().Equal(e.Message, "user.invalidCredentials")
 }
 
 func (t *LoginTest) TestBlockedUntil() {

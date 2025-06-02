@@ -2,28 +2,29 @@ package user
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 	"github.com/vagnercardosoweb/go-rest-api/internal/events"
-	userRepository "github.com/vagnercardosoweb/go-rest-api/internal/repositories/user"
-	userService "github.com/vagnercardosoweb/go-rest-api/internal/services/user"
+	"github.com/vagnercardosoweb/go-rest-api/internal/services/user"
 	"github.com/vagnercardosoweb/go-rest-api/internal/types"
 	apicontext "github.com/vagnercardosoweb/go-rest-api/pkg/api/context"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/errors"
 )
 
 func Login(c *gin.Context) any {
-	var input *types.UserLoginInput
+	input := new(types.UserLoginInput)
 
-	if err := c.ShouldBindBodyWith(&input, binding.JSON); err != nil {
+	if err := c.ShouldBindBodyWithJSON(input); err != nil {
 		return errors.FromTranslator(err, apicontext.ValidatorTranslator(c))
 	}
 
-	loginSvc := userService.NewLoginSvc(
+	loginSvc := user.NewLoginSvc(
+		apicontext.PgClient(c),
 		apicontext.TokenClient(c),
 		apicontext.PasswordHasher(c),
-		userRepository.New(apicontext.PgClient(c)),
 		events.FromGin(c),
 	)
+
+	input.IpAddress = c.ClientIP()
+	input.UserAgent = c.GetHeader("User-Agent")
 
 	result, err := loginSvc.Execute(input)
 	if err != nil {

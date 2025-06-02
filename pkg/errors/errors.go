@@ -6,13 +6,21 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
+	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 )
 
 func New(input Input) *Input {
-	input.build()
+	input.makeMetadata()
+	input.checkInputValues()
+	input.checkOriginalError()
+	input.checkSendToSlack()
+	input.makeMessage()
+	input.makeStack()
+
 	return &input
 }
 
@@ -21,12 +29,14 @@ func FromMessage(message string, args ...any) *Input {
 }
 
 func FromSql(err error, args ...any) *Input {
-	appError := New(Input{OriginalError: err})
+	appError := new(Input)
 
 	if Is(err, sql.ErrNoRows) {
 		appError.Message = "errors.sqlNoRows"
 		appError.StatusCode = http.StatusNotFound
 		appError.SendToSlack = Bool(false)
+	} else {
+		appError.OriginalError = err
 	}
 
 	if len(args) > 0 {
@@ -46,7 +56,7 @@ func FromTranslator(err error, translator *ut.Translator) *Input {
 	})
 
 	if Is(err, io.EOF) {
-		appError.Message = "errors.ioEOF"
+		appError.Message = "errors.bodyIsRequired"
 		appError.OriginalError = err.Error()
 	}
 
@@ -107,17 +117,8 @@ func (e *Input) checkInputValues() {
 	}
 
 	if e.Logging == nil {
-		e.Logging = Bool(true)
+		e.Logging = Bool(!env.IsLocal())
 	}
-}
-
-func (e *Input) build() {
-	e.makeMetadata()
-	e.checkInputValues()
-	e.checkOriginalError()
-	e.checkSendToSlack()
-	e.makeMessage()
-	e.makeStack()
 }
 
 func (e *Input) checkSendToSlack() {
@@ -139,7 +140,9 @@ func (e *Input) checkSendToSlack() {
 }
 
 func (e *Input) makeMessage() {
-	e.Message = fmt.Sprintf(e.Message, e.Arguments...)
+	if strings.Contains(e.Message, "%") {
+		e.Message = fmt.Sprintf(e.Message, e.Arguments...)
+	}
 
 	if e.Message == "" {
 		e.Message = http.StatusText(e.StatusCode)
@@ -148,11 +151,21 @@ func (e *Input) makeMessage() {
 
 func (e *Input) checkOriginalError() {
 	if _, ok := e.OriginalError.(*Input); ok {
+		e.Code = e.OriginalError.(*Input).Code
 		e.Stack = e.OriginalError.(*Input).Stack
 
+		e.OriginalError.(*Input).Code = ""
 		e.OriginalError.(*Input).Stack = nil
 		e.OriginalError.(*Input).SendToSlack = nil
 		e.OriginalError.(*Input).Logging = nil
+
+		if e.OriginalError.(*Input).Name == e.Name {
+			e.OriginalError.(*Input).Name = ""
+		}
+
+		if e.OriginalError.(*Input).StatusCode == e.StatusCode {
+			e.OriginalError.(*Input).StatusCode = 0
+		}
 
 		return
 	}

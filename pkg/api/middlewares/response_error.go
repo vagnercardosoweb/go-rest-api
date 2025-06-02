@@ -34,47 +34,47 @@ func ResponseError(c *gin.Context) {
 	}
 
 	logger := apicontext.Logger(c)
-	var metadata = make(map[string]any)
+	var logData = make(map[string]any)
 
-	metadata["ip"] = c.ClientIP()
-	metadata["time"] = time.Since(apicontext.StartTime(c)).String()
-	metadata["statusCode"] = statusCode
-	metadata["path"] = fmt.Sprintf("%s %s", method, path)
+	logData["ip"] = c.ClientIP()
+	logData["request"] = fmt.Sprintf("%s %s", method, path)
+	logData["time"] = time.Since(apicontext.StartTime(c)).String()
 
 	if routePath := c.FullPath(); routePath != "" {
-		metadata["routePath"] = routePath
+		logData["routePath"] = routePath
 	}
 
-	metadata["params"] = getParams(c)
-	metadata["queryParams"] = getQueryParams(c)
-	metadata["headers"] = getHeaders(c)
-	metadata["body"] = apirequest.GetBodyAsRedacted(c)
+	logData["statusCode"] = statusCode
+	logData["params"] = getParams(c)
+	logData["queryParams"] = getQueryParams(c)
+	logData["headers"] = getHeaders(c)
+	logData["body"] = apirequest.GetBodyAsRedacted(c)
 
 	if !hasRequestError {
 		logger.
-			WithMetadata(metadata).
+			WithFields(logData).
 			Error("HTTP_REQUEST_ERROR")
 		return
 	}
 
 	var appError *errors.Input
-	originalError := requestErrors[0].Err
+	firstRequestError := requestErrors[0].Err
 
-	if valueAsAppError, ok := originalError.(*errors.Input); ok {
+	if valueAsAppError, ok := firstRequestError.(*errors.Input); ok {
 		appError = valueAsAppError
 	} else {
 		appError = errors.New(errors.Input{
-			Message:    originalError.Error(),
+			Message:    firstRequestError.Error(),
 			StatusCode: statusCode,
 		})
 	}
 
 	appError.RequestId = logger.GetId()
-	metadata["error"] = appError
+	logData["error"] = appError
 
 	if *appError.Logging {
 		logger.
-			WithMetadata(metadata).
+			WithFields(logData).
 			Error("HTTP_REQUEST_ERROR")
 	}
 

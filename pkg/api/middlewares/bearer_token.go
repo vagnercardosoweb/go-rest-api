@@ -19,6 +19,6 @@ func BearerToken(c *gin.Context) {
 		}
 	}
 
-	c.Set(apicontext.BearerTokenKey, token)
+	c.Set(apicontext.BearerTokenKey, strings.TrimSpace(token))
 	c.Next()
 }
