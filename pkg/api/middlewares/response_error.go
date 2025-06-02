@@ -72,15 +72,15 @@ func ResponseError(c *gin.Context) {
 	appError.RequestId = logger.GetId()
 	logData["error"] = appError
 
+	if env.IsLocal() {
+		c.JSON(appError.StatusCode, appError)
+		return
+	}
+
 	if *appError.Logging {
 		logger.
 			WithFields(logData).
 			Error("HTTP_REQUEST_ERROR")
-	}
-
-	if env.IsLocal() {
-		c.JSON(appError.StatusCode, appError)
-		return
 	}
 
 	if *appError.SendToSlack {

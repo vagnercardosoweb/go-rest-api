@@ -10,7 +10,6 @@ import (
 
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
-	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 )
 
 func New(input Input) *Input {
@@ -117,7 +116,7 @@ func (e *Input) checkInputValues() {
 	}
 
 	if e.Logging == nil {
-		e.Logging = Bool(!env.IsLocal())
+		e.Logging = Bool(true)
 	}
 }
 
