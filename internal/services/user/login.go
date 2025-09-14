@@ -61,9 +61,9 @@ func (s *LoginSvc) Execute(input *types.UserLoginInput) (*token.Output, error) {
 		return nil, err
 	}
 
-	s.eventManager.SendOnUserLogin(events.OnUserLoginInput{
+	s.eventManager.OnUserLogin(events.OnUserLoginInput{
 		UserId:    user.Id.String(),
-		RequestId: s.pgClient.Logger().GetId(),
+		TraceId:   s.pgClient.Logger().GetId(),
 		UserAgent: input.UserAgent,
 		IpAddress: input.IpAddress,
 	})

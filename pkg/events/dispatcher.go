@@ -45,8 +45,8 @@ func (d *Dispatcher) Dispatch(event *Event) error {
 					event.CreatedAt = time.Now()
 				}
 
-				if event.RequestId == "" {
-					event.RequestId = fmt.Sprintf(
+				if event.TraceId == "" {
+					event.TraceId = fmt.Sprintf(
 						"%s_HANDLER_%d",
 						strings.ToUpper(event.Name),
 						i+1,

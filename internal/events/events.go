@@ -28,8 +28,12 @@ func NewManager(pgClient *postgres.Client, redisClient *redis.Client) *Manager {
 	return m
 }
 
-func (m *Manager) Clone(requestId string) *Manager {
-	l := m.logger.WithId(requestId)
+func (m *Manager) Clone(traceId string) *Manager {
+	if m.logger.GetId() == traceId {
+		return m
+	}
+
+	l := m.logger.WithId(traceId)
 
 	return &Manager{
 		dispatcher:  m.dispatcher,
@@ -40,7 +44,7 @@ func (m *Manager) Clone(requestId string) *Manager {
 }
 
 func (m *Manager) Dispatch(event *events.Event) {
-	l := m.logger.WithId(event.RequestId)
+	l := m.logger.WithId(event.TraceId)
 
 	l.
 		WithStruct(event).
@@ -55,7 +59,7 @@ func (m *Manager) Dispatch(event *events.Event) {
 			_ = slack.NewAlert().
 				WithColor(slack.ColorError).
 				AddField("eventName", event.Name, false).
-				AddField("requestId", event.RequestId, false).
+				AddField("traceId", event.TraceId, false).
 				AddField("message", err.Error(), false).
 				Send()
 		}()

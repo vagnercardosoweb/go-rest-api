@@ -7,7 +7,7 @@ type (
 		Name          string   `json:"name,omitempty"`
 		Message       string   `json:"message,omitempty"`
 		StatusCode    int      `json:"statusCode,omitempty"`
-		SendToSlack   *bool    `json:"-"`
+		SendAlert     *bool    `json:"-"`
 		RequestId     string   `json:"-"`
 		Logging       *bool    `json:"-"`
 		Metadata      Metadata `json:"metadata,omitempty"`

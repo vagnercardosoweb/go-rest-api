@@ -83,7 +83,7 @@ func ResponseError(c *gin.Context) {
 			Error("HTTP_REQUEST_ERROR")
 	}
 
-	if *appError.SendToSlack {
+	if *appError.SendAlert {
 		go func() {
 			_ = slack.
 				NewAlert().

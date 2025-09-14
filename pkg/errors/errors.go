@@ -33,7 +33,7 @@ func FromSql(err error, args ...any) *Input {
 	if Is(err, sql.ErrNoRows) {
 		appError.Message = "errors.sqlNoRows"
 		appError.StatusCode = http.StatusNotFound
-		appError.SendToSlack = Bool(false)
+		appError.SendAlert = Bool(false)
 	} else {
 		appError.OriginalError = err
 	}
@@ -121,7 +121,7 @@ func (e *Input) checkInputValues() {
 }
 
 func (e *Input) checkSendToSlack() {
-	if e.SendToSlack != nil {
+	if e.SendAlert != nil {
 		return
 	}
 
@@ -132,9 +132,9 @@ func (e *Input) checkSendToSlack() {
 		http.StatusUnprocessableEntity,
 		http.StatusBadRequest,
 		http.StatusUnauthorized:
-		e.SendToSlack = Bool(false)
+		e.SendAlert = Bool(false)
 	default:
-		e.SendToSlack = Bool(true)
+		e.SendAlert = Bool(true)
 	}
 }
 
@@ -155,7 +155,7 @@ func (e *Input) checkOriginalError() {
 
 		e.OriginalError.(*Input).Code = ""
 		e.OriginalError.(*Input).Stack = nil
-		e.OriginalError.(*Input).SendToSlack = nil
+		e.OriginalError.(*Input).SendAlert = nil
 		e.OriginalError.(*Input).Logging = nil
 
 		if e.OriginalError.(*Input).Name == e.Name {

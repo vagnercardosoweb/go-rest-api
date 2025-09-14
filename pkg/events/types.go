@@ -7,7 +7,7 @@ import (
 type Event struct {
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"-"`
-	RequestId string    `json:"-"`
+	TraceId   string    `json:"-"`
 	Input     any       `json:"input"`
 }
 

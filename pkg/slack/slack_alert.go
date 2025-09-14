@@ -139,9 +139,9 @@ func (sa *Client) Send() error {
 
 	if err != nil {
 		return errors.New(errors.Input{
-			Code:        "SLACK_CREATE_REQUEST_ERROR",
-			SendToSlack: errors.Bool(false),
-			Message:     err.Error(),
+			Code:      "SLACK_CREATE_REQUEST_ERROR",
+			SendAlert: errors.Bool(false),
+			Message:   err.Error(),
 		})
 	}
 
@@ -151,9 +151,9 @@ func (sa *Client) Send() error {
 	_, err = http.DefaultClient.Do(request)
 	if err != nil {
 		return errors.New(errors.Input{
-			Code:        "SLACK_SEND_REQUEST_ERROR",
-			SendToSlack: errors.Bool(false),
-			Message:     err.Error(),
+			Code:      "SLACK_SEND_REQUEST_ERROR",
+			SendAlert: errors.Bool(false),
+			Message:   err.Error(),
 		})
 	}
 

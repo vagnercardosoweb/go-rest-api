@@ -11,36 +11,38 @@ func NewOnUserLoginEvent(m *Manager) *OnUserLoginEvent {
 }
 
 func (e *OnUserLoginEvent) Handle(event *events.Event) error {
-	m := e.Manager.Clone(event.RequestId)
+	m := e.Manager.Clone(event.TraceId)
 	input := event.Input.(OnUserLoginInput)
 
-	_, err := m.pgClient.Exec(updateLastLoginQuery, input.UserId, input.IpAddress, input.UserAgent)
+	_, err := m.pgClient.Exec(
+		`
+			UPDATE "users"
+			SET
+				"last_login_at" = NOW(),
+				"last_login_agent" = $3,
+				"last_login_ip" = $2
+			WHERE
+				"id" = $1;
+		`,
+		input.UserId,
+		input.IpAddress,
+		input.UserAgent,
+	)
+
 	return err
 }
-
-var updateLastLoginQuery = `
-	UPDATE "users"
-	SET
-		"last_login_at" = NOW(),
-		"last_login_agent" = $3,
-		"last_login_ip" = $2
-	WHERE
-		"id" = $1;
-`
 
 type OnUserLoginInput struct {
 	UserId    string `json:"userId"`
 	IpAddress string `json:"-"`
 	UserAgent string `json:"-"`
-	RequestId string `json:"-"`
+	TraceId   string `json:"-"`
 }
 
-func (m *Manager) SendOnUserLogin(input OnUserLoginInput) {
-	event := &events.Event{
-		Name:      OnUserLoginName,
-		RequestId: input.RequestId,
-		Input:     input,
-	}
-
-	m.Dispatch(event)
+func (m *Manager) OnUserLogin(input OnUserLoginInput) {
+	m.Dispatch(&events.Event{
+		Name:    OnUserLoginName,
+		TraceId: input.TraceId,
+		Input:   input,
+	})
 }

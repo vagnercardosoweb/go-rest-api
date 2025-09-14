@@ -20,12 +20,11 @@ var universalTranslator *ut.UniversalTranslator
 
 func Translator(c *gin.Context) {
 	acceptLanguage := apirequest.GetAcceptLanguage(c)
-
 	languageTags, _, _ := language.ParseAcceptLanguage(acceptLanguage)
-	acceptLanguage = strings.Replace(strings.ToLower(languageTags[0].String()), "-", "_", -1)
 
-	// I18n Translator
+	acceptLanguage = strings.ReplaceAll(strings.ToLower(languageTags[0].String()), "-", "_")
 	c.Set(apicontext.AcceptLanguageKey, acceptLanguage)
+
 	// TODO: Implement I18n Translator
 
 	// Validator Translator
@@ -45,11 +44,11 @@ func init() {
 		ptBRLocale,
 	)
 
-	enTranslator, _ := universalTranslator.GetTranslator(enLocale.Locale())
-	ptBRTranslator, _ := universalTranslator.GetTranslator(ptBRLocale.Locale())
-
 	if val, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		enTranslator, _ := universalTranslator.GetTranslator(enLocale.Locale())
 		_ = en_translation.RegisterDefaultTranslations(val, enTranslator)
+
+		ptBRTranslator, _ := universalTranslator.GetTranslator(ptBRLocale.Locale())
 		_ = pt_br_translation.RegisterDefaultTranslations(val, ptBRTranslator)
 	}
 }

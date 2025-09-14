@@ -1,6 +1,6 @@
 # arguments
 ARG PORT=3000
-ARG GO_VERSION=1.24.3
+ARG GO_VERSION=1.25.1
 
 # base image
 FROM golang:${GO_VERSION}-alpine AS base
