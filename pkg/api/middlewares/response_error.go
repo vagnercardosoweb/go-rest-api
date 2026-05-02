@@ -3,7 +3,6 @@ package middlewares
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -46,8 +45,8 @@ func ResponseError(c *gin.Context) {
 
 	logData["statusCode"] = statusCode
 	logData["params"] = getParams(c)
-	logData["queryParams"] = getQueryParams(c)
-	logData["headers"] = getHeaders(c)
+	logData["queryParams"] = redactedQueryParams(c)
+	logData["headers"] = redactedHeaders(c)
 	logData["body"] = apirequest.GetBodyAsRedacted(c)
 
 	if !hasRequestError {
@@ -121,22 +120,6 @@ func getParams(c *gin.Context) map[string]string {
 		params[param.Key] = param.Value
 	}
 	return params
-}
-
-func getQueryParams(c *gin.Context) map[string]string {
-	queryParams := make(map[string]string)
-	for key, value := range c.Request.URL.Query() {
-		queryParams[key] = value[0]
-	}
-	return queryParams
-}
-
-func getHeaders(c *gin.Context) map[string]string {
-	headers := make(map[string]string)
-	for key, value := range c.Request.Header {
-		headers[strings.ToLower(key)] = value[0]
-	}
-	return headers
 }
 
 type response struct {

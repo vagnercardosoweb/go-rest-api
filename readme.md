@@ -4,7 +4,7 @@ Uma API REST robusta e escalável desenvolvida em Golang, seguindo boas prática
 
 ## 🚀 Tecnologias Utilizadas
 
-- **Go 1.24+**: Linguagem de programação principal
+- **Go 1.26**: Linguagem de programação principal
 - **Gin**: Framework web para construção de APIs REST
 - **PostgreSQL**: Banco de dados relacional
 - **Redis**: Cache e gerenciamento de filas
@@ -19,7 +19,7 @@ Uma API REST robusta e escalável desenvolvida em Golang, seguindo boas prática
 
 ## 📋 Pré-requisitos
 
-- Go 1.24 ou superior
+- Go 1.26 ou superior
 - Docker e Docker Compose
 - Make (opcional, para facilitar o uso dos comandos)
 

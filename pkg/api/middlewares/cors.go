@@ -22,7 +22,7 @@ func Cors(c *gin.Context) {
 
 	c.Header("Access-Control-Allow-Methods", getAllowedMethods())
 	c.Header("Access-Control-Max-Age", env.GetAsString("CORS_MAX_AGE", "84600"))
-	c.Header("Access-Control-Allow-Credentials", env.GetAsString("CORS_ALLOW_CREDENTIALS", "true"))
+	c.Header("Access-Control-Allow-Credentials", env.GetAsString("CORS_ALLOW_CREDENTIALS", "false"))
 	c.Header("Access-Control-Allow-Headers", getAllowedHeaders())
 
 	if c.Request.Method == http.MethodOptions {

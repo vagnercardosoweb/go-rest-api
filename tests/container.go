@@ -30,7 +30,7 @@ func (t *ContainerTestSuite) createContainerPostgres() {
 	_ = os.Setenv("DB_SCHEMA", schema)
 
 	_ = os.Setenv("DB_PASSWORD", testValue)
-	_ = os.Setenv("DB_MAX_OPEN_CONN", "100")
+	_ = os.Setenv("DB_CONN_MAX_OPEN", "100")
 	_ = os.Setenv("DB_USERNAME", testValue)
 
 	port := "5432/tcp"

@@ -8,13 +8,13 @@ import (
 )
 
 func BearerToken(c *gin.Context) {
-	token := c.Query("bearerToken")
+	token := ""
 	authorization := c.GetHeader("Authorization")
 
 	if authorization != "" {
-		tokenParts := strings.Split(authorization, " ")
+		tokenParts := strings.Fields(authorization)
 
-		if len(tokenParts) == 2 {
+		if len(tokenParts) == 2 && strings.EqualFold(tokenParts[0], "Bearer") {
 			token = tokenParts[1]
 		}
 	}

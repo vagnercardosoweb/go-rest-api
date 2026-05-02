@@ -76,10 +76,10 @@ func configFromEnv() *Config {
 		MigrationDir:    env.GetAsString("DB_MIGRATION_DIR", "migrations"),
 		AutoMigrate:     env.GetAsBool("DB_AUTO_MIGRATE", "false"),
 		QueryTimeout:    time.Millisecond * time.Duration(env.GetAsInt("DB_QUERY_TIMEOUT", "7000")),
-		MaxIdleTimeConn: time.Millisecond * time.Duration(env.GetAsInt("DB_MAX_IDLE_TIME_CONN", "15000")),
-		MaxLifetimeConn: time.Millisecond * time.Duration(env.GetAsInt("DB_MAX_LIFETIME_CONN", "60000")),
-		MaxOpenConn:     env.GetAsInt("DB_MAX_OPEN_CONN", "35"),
-		MaxIdleConn:     env.GetAsInt("DB_MAX_IDLE_CONN", "0"),
+		MaxIdleTimeConn: time.Millisecond * time.Duration(env.GetAsInt("DB_CONN_MAX_IDLE_TIME", "15000")),
+		MaxLifetimeConn: time.Millisecond * time.Duration(env.GetAsInt("DB_CONN_MAX_LIFETIME", "60000")),
+		MaxOpenConn:     env.GetAsInt("DB_CONN_MAX_OPEN", "35"),
+		MaxIdleConn:     env.GetAsInt("DB_CONN_MAX_IDLE", "0"),
 		Logging:         env.GetAsBool("DB_LOGGING", "false"),
 	}
 }

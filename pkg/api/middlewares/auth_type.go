@@ -12,9 +12,9 @@ import (
 func AuthType(authType string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		decoded := apicontext.TokenOutput(c)
-		tokenType := decoded.Meta["type"].(string)
+		tokenType, ok := decoded.Meta["type"].(string)
 
-		if tokenType != authType {
+		if !ok || tokenType != authType {
 			apiresponse.Error(c, errors.New(errors.Input{
 				Name:       "UnauthorizedWithLogoutError",
 				Message:    "Access token is not valid, please login again",

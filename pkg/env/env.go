@@ -81,11 +81,42 @@ func GetSchedulerSleep() time.Duration {
 	return time.Duration(GetAsInt("SCHEDULER_SLEEP", "60")) * time.Second
 }
 
+func defaultRedactKeys() []string {
+	return []string{
+		"password",
+		"passwordConfirm",
+		"authorization",
+		"set-cookie",
+		"bearerToken",
+		"accessToken",
+		"refreshToken",
+		"x-internal-key",
+		"x-refresh-token",
+		"x-api-key",
+		"x-id-token",
+		"idToken",
+		"cookie",
+	}
+}
+
 func GetRedactKeys() []string {
-	keys := strings.Split(GetAsString("REDACT_KEYS", ""), ",")
+	rawKeys := strings.TrimSpace(GetAsString("REDACT_KEYS", ""))
+
+	if rawKeys == "" {
+		return defaultRedactKeys()
+	}
+
+	keys := make([]string, 0)
+	for _, key := range strings.Split(rawKeys, ",") {
+		key = strings.TrimSpace(key)
+
+		if key != "" {
+			keys = append(keys, key)
+		}
+	}
 
 	if len(keys) == 0 {
-		keys = []string{"password", "passwordConfirm", "x-internal-key", "x-api-key", "authorization"}
+		return defaultRedactKeys()
 	}
 
 	return keys

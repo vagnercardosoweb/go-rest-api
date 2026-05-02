@@ -35,7 +35,7 @@ func RequestLog(c *gin.Context) {
 
 	logData["ip"] = c.ClientIP()
 	logData["request"] = fmt.Sprintf("%s %s", method, path)
-	logData["queryParams"] = c.Request.URL.Query()
+	logData["queryParams"] = redactedQueryParams(c)
 	logData["userAgent"] = c.Request.UserAgent()
 	logData["time"] = time.Since(apicontext.StartTime(c)).String()
 

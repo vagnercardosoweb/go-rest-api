@@ -11,7 +11,7 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
 )
 
-const redactText = "[Redacted]"
+const RedactedValue = "[Redacted]"
 
 func RedactKeys(data map[string]any, keys []string) map[string]any {
 	return redact(copyData(data), mergeKeys(keys), "")
@@ -63,18 +63,18 @@ func redact(data map[string]any, keys []string, previousKey string) map[string]a
 		valueKind := reflect.TypeOf(value).Kind()
 		isRedacted := slices.Contains(keys, nextKey) ||
 			(valueKind == reflect.String && isBase64(value.(string))) ||
-			slices.Contains(keys, key)
+			slices.Contains(keys, strings.ToLower(key))
 
 		if isRedacted {
 			if valueKind == reflect.Slice {
 				for i := range value.([]any) {
-					data[key].([]any)[i] = redactText
+					data[key].([]any)[i] = RedactedValue
 				}
 
 				continue
 			}
 
-			data[key] = redactText
+			data[key] = RedactedValue
 			continue
 		}
 
@@ -84,7 +84,7 @@ func redact(data map[string]any, keys []string, previousKey string) map[string]a
 				checkKey := fmt.Sprintf("%s.%d", nextKey, i)
 
 				if str, ok := v.(string); ok && isBase64(str) || slices.Contains(keys, checkKey) {
-					v = redactText
+					v = RedactedValue
 				}
 
 				if valueAsMap, ok := v.(map[string]any); ok {

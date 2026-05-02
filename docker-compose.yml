@@ -33,7 +33,7 @@ services:
       - APP_ENV=${APP_ENV:-development}
       - RUN_IN_DOCKER=true
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/healthy"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -64,7 +64,7 @@ services:
       - POSTGRES_DB=${DB_NAME:-development}
       - PGDATA=/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-root}"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\""]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -98,7 +98,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis}
       - ALLOW_EMPTY_PASSWORD=no
     healthcheck:
-      test: ["CMD", "redis-cli", "ping", "|", "grep", "-q", "PONG"]
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 5

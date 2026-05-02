@@ -2,7 +2,7 @@ package token
 
 import (
 	"errors"
-	"fmt"
+	"strings"
 	"time"
 
 	"github.com/vagnercardosoweb/go-rest-api/pkg/env"
@@ -15,14 +15,28 @@ type Jwt struct {
 	secretKey []byte
 }
 
+type jwtClaims struct {
+	Meta map[string]any `json:"meta,omitempty"`
+	jwt.RegisteredClaims
+}
+
+const minJWTSecretKeyLength = 32
+
 func NewJwt(secretKey []byte) *Jwt {
 	return &Jwt{secretKey: secretKey, expiresIn: time.Hour * 24}
 }
 
 func JwtFromEnv() *Jwt {
+	secretKey := strings.TrimSpace(env.Required("JWT_SECRET_KEY"))
+	expiresIn := env.GetAsInt("JWT_EXPIRES_IN_SECONDS", "86400")
+
+	if len(secretKey) < minJWTSecretKeyLength {
+		panic(errors.New("environment \"JWT_SECRET_KEY\" must have at least 32 characters"))
+	}
+
 	return &Jwt{
-		secretKey: []byte(env.GetAsString("JWT_SECRET_KEY")),
-		expiresIn: time.Duration(env.GetAsInt("JWT_EXPIRES_IN_SECONDS", "86400")) * time.Second,
+		secretKey: []byte(secretKey),
+		expiresIn: time.Duration(expiresIn) * time.Second,
 	}
 }
 
@@ -39,20 +53,22 @@ func (j *Jwt) Encode(input *Input) (*Output, error) {
 		input.ExpiresAt = time.Now().Add(j.expiresIn)
 	}
 
-	claims := jwt.MapClaims{
-		"sub":  input.Subject,
-		"iat":  input.IssuedAt.Unix(),
-		"exp":  input.ExpiresAt.Unix(),
-		"meta": input.Meta,
-		"iss":  "go",
+	if input.Issuer == "" {
+		input.Issuer = "go"
 	}
 
-	if input.Issuer != "" {
-		claims["iss"] = input.Issuer
+	claims := &jwtClaims{
+		Meta: input.Meta,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject:   input.Subject,
+			IssuedAt:  jwt.NewNumericDate(input.IssuedAt),
+			ExpiresAt: jwt.NewNumericDate(input.ExpiresAt),
+			Issuer:    input.Issuer,
+		},
 	}
 
 	if input.Audience != "" {
-		claims["aud"] = input.Audience
+		claims.Audience = jwt.ClaimStrings{input.Audience}
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -62,42 +78,47 @@ func (j *Jwt) Encode(input *Input) (*Output, error) {
 }
 
 func (j *Jwt) Decode(token string) (*Output, error) {
-	jwtToken, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-		}
+	claims := new(jwtClaims)
 
+	jwtToken, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (any, error) {
 		return j.secretKey, nil
-	})
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
 
 	if err != nil {
 		return nil, err
 	}
 
-	claims, ok := jwtToken.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, errors.New("parse jwt claims error")
+	if !jwtToken.Valid {
+		return nil, errors.New("invalid jwt token")
+	}
+
+	if claims.Subject == "" {
+		return nil, errors.New("missing jwt subject")
+	}
+
+	if claims.IssuedAt == nil {
+		return nil, errors.New("missing jwt issued at")
+	}
+
+	if claims.ExpiresAt == nil {
+		return nil, errors.New("missing jwt expires at")
+	}
+
+	audience := ""
+	if len(claims.Audience) > 0 {
+		audience = claims.Audience[0]
 	}
 
 	output := &Output{
 		Token: token,
 		Input: Input{
-			IssuedAt:  time.Unix(int64(claims["iat"].(float64)), 0),
-			ExpiresAt: time.Unix(int64(claims["exp"].(float64)), 0),
-			Subject:   claims["sub"].(string),
+			IssuedAt:  claims.IssuedAt.Time,
+			ExpiresAt: claims.ExpiresAt.Time,
+			Subject:   claims.Subject,
+			Audience:  audience,
+			Issuer:    claims.Issuer,
+			Meta:      claims.Meta,
 		},
-	}
-
-	if _, ok := claims["meta"].(map[string]any); ok {
-		output.Meta = claims["meta"].(map[string]any)
-	}
-
-	if _, ok := claims["iss"].(string); ok {
-		output.Issuer = claims["iss"].(string)
-	}
-
-	if _, ok := claims["aud"].(string); ok {
-		output.Audience = claims["aud"].(string)
 	}
 
 	return output, nil

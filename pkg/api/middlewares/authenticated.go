@@ -11,38 +11,35 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/pkg/token"
 )
 
-var unauthorized = errors.New(errors.Input{
-	Name:       "UnauthorizedWithLogoutError",
-	StatusCode: http.StatusUnauthorized,
-	Message:    "Missing token in request.",
-	Code:       "INVALID_JWT_TOKEN",
-})
+func buildUnauthorizedError(message string) error {
+	return errors.New(errors.Input{
+		Name:       "UnauthorizedWithLogoutError",
+		StatusCode: http.StatusUnauthorized,
+		Message:    message,
+		Code:       "INVALID_JWT_TOKEN",
+	})
+}
 
 func Authenticated(c *gin.Context) {
 	bearerToken := apicontext.BearerToken(c)
 	if bearerToken == "" {
-		apiresponse.Error(c, unauthorized)
+		unauthorizedError := buildUnauthorizedError("Missing token in request.")
+		apiresponse.Error(c, unauthorizedError)
 		return
 	}
 
 	if len(strings.Split(bearerToken, ".")) != 3 {
-		unauthorized.Message = "The token is badly formatted."
-		apiresponse.Error(c, unauthorized)
+		unauthorizedError := buildUnauthorizedError("The token is badly formatted.")
+		apiresponse.Error(c, unauthorizedError)
 		return
 	}
 
 	tokenClient := apicontext.TokenClient(c)
-	unauthorized.Message = "Your access token is not valid, please login again."
 	decoded, err := tokenClient.Decode(bearerToken)
 
 	if err != nil {
-		unauthorized.OriginalError = err.Error()
-		apiresponse.Error(c, unauthorized)
-		return
-	}
-
-	if _, ok := decoded.Meta["type"]; !ok {
-		apiresponse.Error(c, unauthorized)
+		unauthorizedError := buildUnauthorizedError("Your access token is not valid, please login again.")
+		apiresponse.Error(c, unauthorizedError)
 		return
 	}
 

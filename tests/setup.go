@@ -12,6 +12,7 @@ var environments = map[string]string{
 	"APP_ENV":          "test",
 	"DB_LOGGING":       "false",
 	"DB_AUTO_MIGRATE":  "true",
+	"JWT_SECRET_KEY":   "test-jwt-secret-key-with-at-least-32-chars",
 	"PROFILER_ENABLED": "false",
 	"LOGGER_ENABLED":   "false",
 	"TZ":               "UTC",

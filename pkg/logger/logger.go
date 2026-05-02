@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -21,7 +20,7 @@ func New() *Logger {
 	return &Logger{
 		id:         "APP",
 		fields:     make(map[string]any),
-		redactKeys: strings.Split(env.GetAsString("REDACT_KEYS", ""), ","),
+		redactKeys: env.GetRedactKeys(),
 		enabled:    env.GetAsBool("LOGGER_ENABLED", "true"),
 		mu:         new(sync.Mutex),
 	}

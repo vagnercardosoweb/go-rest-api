@@ -67,33 +67,33 @@ var originalMap = map[string]any{
 var expectedMap = map[string]any{
 	"age":               28,
 	"name":              "John Doe",
-	"document":          redactText,
-	"email":             redactText,
-	"password":          redactText,
-	"passwordConfirm":   redactText,
-	"techs":             []string{redactText, redactText, redactText},
+	"document":          RedactedValue,
+	"email":             RedactedValue,
+	"password":          RedactedValue,
+	"passwordConfirm":   RedactedValue,
+	"techs":             []string{RedactedValue, RedactedValue, RedactedValue},
 	"nilValue":          nil,
 	"pointerValue":      "pointer",
-	"fileBase64":        redactText,
-	"fileBase64AsArray": [3]string{redactText, redactText, redactText},
+	"fileBase64":        RedactedValue,
+	"fileBase64AsArray": [3]string{RedactedValue, RedactedValue, RedactedValue},
 	"sliceInt":          []int{1, 2, 3},
-	"sliceString":       []string{"a", redactText, "c"},
+	"sliceString":       []string{"a", RedactedValue, "c"},
 	"headers": map[string]any{
-		"Authorization": "Bearer {token}",
-		"x-api-key":     redactText,
+		"Authorization": RedactedValue,
+		"x-api-key":     RedactedValue,
 	},
 	"nested": map[string]any{
 		"age":  29,
 		"name": "John Doe",
 		"nested": map[string]any{
-			"x-api-key": "x-api-key-2",
-			"password":  redactText,
+			"x-api-key": RedactedValue,
+			"password":  RedactedValue,
 		},
 	},
 	"sliceNested": []map[string]any{
 		{
 			"name":      "John Doe",
-			"sensitive": redactText,
+			"sensitive": RedactedValue,
 			"otherArray": []map[string]any{
 				{
 					"test": "test",
@@ -102,11 +102,11 @@ var expectedMap = map[string]any{
 			"age": 29,
 		},
 		{
-			"name":      redactText,
+			"name":      RedactedValue,
 			"sensitive": "12345678-4",
 			"otherArray": []map[string]any{
 				{
-					"test": redactText,
+					"test": RedactedValue,
 				},
 			},
 			"age": 29,
