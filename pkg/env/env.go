@@ -85,7 +85,7 @@ func GetRedactKeys() []string {
 	keys := strings.Split(GetAsString("REDACT_KEYS", ""), ",")
 
 	if len(keys) == 0 {
-		keys = []string{"password", "passwordConfirm", "x-internal-key", "x-api-key"}
+		keys = []string{"password", "passwordConfirm", "x-internal-key", "x-api-key", "authorization"}
 	}
 
 	return keys

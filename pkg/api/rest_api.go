@@ -154,7 +154,7 @@ func (api *Api) Start() {
 
 func (api *Api) setupHandlers() {
 	for _, route := range api.routes {
-		handlers := make([]gin.HandlerFunc, len(api.routes))
+		handlers := make([]gin.HandlerFunc, len(route.Handlers))
 
 		for i, handler := range route.Handlers {
 			switch h := handler.(type) {
