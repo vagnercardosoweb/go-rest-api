@@ -4,20 +4,14 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/google/uuid"
+	"github.com/moby/moby/api/types/container"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/postgres"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/redis"
-)
-
-const (
-	waitForLogPg    = "database system is ready to accept connections"
-	waitForLogRedis = "Ready to accept connections tcp"
 )
 
 type ContainerTestSuite struct {
@@ -43,15 +37,14 @@ func (t *ContainerTestSuite) createContainerPostgres() {
 	postgresContainer, err := testcontainers.GenericContainer(t.Ctx, testcontainers.GenericContainerRequest{
 		Started: true,
 		ContainerRequest: testcontainers.ContainerRequest{
-			Name:         fmt.Sprintf("postgres-test-%s", schema),
-			Image:        "bitnami/postgresql:16",
 			ExposedPorts: []string{port},
-			WaitingFor:   wait.ForLog(waitForLogPg),
+			Image:        "postgres:18-alpine",
+			Name:         fmt.Sprintf("postgres-test-%s", schema),
+			WaitingFor:   wait.ForListeningPort(port),
 			Env: map[string]string{
-				"POSTGRESQL_PASSWORD":                 testValue,
-				"POSTGRESQL_USERNAME":                 testValue,
-				"POSTGRESQL_REPLICATION_USE_PASSFILE": "no",
-				"POSTGRESQL_DATABASE":                 testValue,
+				"POSTGRES_USER":     testValue,
+				"POSTGRES_PASSWORD": testValue,
+				"POSTGRES_DB":       testValue,
 			},
 			HostConfigModifier: func(config *container.HostConfig) {
 				config.AutoRemove = true
@@ -66,7 +59,7 @@ func (t *ContainerTestSuite) createContainerPostgres() {
 	t.Require().Nil(err)
 	_ = os.Setenv("DB_HOST", host)
 
-	mappedPort, err := postgresContainer.MappedPort(t.Ctx, nat.Port(port))
+	mappedPort, err := postgresContainer.MappedPort(t.Ctx, port)
 	t.Require().Nil(err)
 	_ = os.Setenv("DB_PORT", mappedPort.Port())
 
@@ -84,7 +77,7 @@ func (t *ContainerTestSuite) createContainerRedis() {
 			Name:         fmt.Sprintf("redis-test-%s", uuid.NewString()),
 			Image:        "bitnami/redis:latest",
 			ExposedPorts: []string{port},
-			WaitingFor:   wait.ForLog(waitForLogRedis),
+			WaitingFor:   wait.ForListeningPort(port),
 			Env: map[string]string{
 				"ALLOW_EMPTY_PASSWORD": "no",
 				"REDIS_PASSWORD":       password,
@@ -102,7 +95,7 @@ func (t *ContainerTestSuite) createContainerRedis() {
 	t.Require().Nil(err)
 	_ = os.Setenv("REDIS_HOST", host)
 
-	mappedPort, err := redisContainer.MappedPort(t.Ctx, nat.Port(port))
+	mappedPort, err := redisContainer.MappedPort(t.Ctx, port)
 	t.Require().Nil(err)
 	_ = os.Setenv("REDIS_PORT", mappedPort.Port())
 

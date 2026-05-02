@@ -23,9 +23,9 @@ type Logger struct {
 type Output struct {
 	Id          string         `json:"id"`
 	Level       level          `json:"level"`
-	Timestamp   time.Time      `json:"timestamp"`
-	Message     string         `json:"message"`
-	Environment string         `json:"environment"`
 	Hostname    string         `json:"hostname"`
+	Timestamp   time.Time      `json:"timestamp"`
+	Environment string         `json:"environment"`
+	Message     string         `json:"message"`
 	Metadata    map[string]any `json:"metadata,omitempty"`
 }

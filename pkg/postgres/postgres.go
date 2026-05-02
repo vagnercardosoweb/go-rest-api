@@ -17,6 +17,14 @@ import (
 )
 
 func NewClient(ctx context.Context, logger *logger.Logger, config *Config) *Client {
+	client, err := newClient(ctx, logger, config)
+	if err != nil {
+		panic(err)
+	}
+	return client
+}
+
+func newClient(ctx context.Context, logger *logger.Logger, config *Config) (*Client, error) {
 	sslMode := "disable"
 	if config.EnabledSSL {
 		sslMode = "require"
@@ -26,13 +34,13 @@ func NewClient(ctx context.Context, logger *logger.Logger, config *Config) *Clie
 		ctx,
 		"postgres",
 		fmt.Sprintf(
-			"host=%s port=%d user=%s password=%s dbname=%s TimeZone=%s application_name=%s sslmode=%s search_path=%s",
+			`host=%s port=%d user=%s password=%s dbname=%s TimeZone=%s application_name=%s sslmode=%s search_path="%s"`,
 			config.Host, config.Port, config.Username, config.Password, config.Database, config.Timezone, config.AppName, sslMode, config.Schema,
 		),
 	)
 
 	if err != nil {
-		panic(fmt.Errorf("failed to connect to postgres: %v", err))
+		return nil, fmt.Errorf("failed to connect to postgres: %w", err)
 	}
 
 	dbx.SetMaxOpenConns(config.MaxOpenConn)
@@ -51,33 +59,37 @@ func NewClient(ctx context.Context, logger *logger.Logger, config *Config) *Clie
 
 	client.runMigrations()
 
-	return client
+	return client, nil
+}
+
+func configFromEnv() *Config {
+	return &Config{
+		Port:            env.GetAsInt("DB_PORT", "5432"),
+		Host:            env.GetAsString("DB_HOST", "localhost"),
+		Database:        env.GetAsString("DB_NAME", "development"),
+		Username:        env.GetAsString("DB_USERNAME", "postgres"),
+		Password:        env.GetAsString("DB_PASSWORD", "postgres"),
+		Timezone:        env.GetAsString("DB_TIMEZONE", "UTC"),
+		Schema:          env.GetAsString("DB_SCHEMA", "public"),
+		AppName:         env.GetAsString("DB_APP_NAME", "app"),
+		EnabledSSL:      env.GetAsBool("DB_ENABLED_SSL", "false"),
+		MigrationDir:    env.GetAsString("DB_MIGRATION_DIR", "migrations"),
+		AutoMigrate:     env.GetAsBool("DB_AUTO_MIGRATE", "false"),
+		QueryTimeout:    time.Millisecond * time.Duration(env.GetAsInt("DB_QUERY_TIMEOUT", "7000")),
+		MaxIdleTimeConn: time.Millisecond * time.Duration(env.GetAsInt("DB_MAX_IDLE_TIME_CONN", "15000")),
+		MaxLifetimeConn: time.Millisecond * time.Duration(env.GetAsInt("DB_MAX_LIFETIME_CONN", "60000")),
+		MaxOpenConn:     env.GetAsInt("DB_MAX_OPEN_CONN", "35"),
+		MaxIdleConn:     env.GetAsInt("DB_MAX_IDLE_CONN", "0"),
+		Logging:         env.GetAsBool("DB_LOGGING", "false"),
+	}
 }
 
 func FromEnv(ctx context.Context, logger *logger.Logger) *Client {
-	return NewClient(
-		ctx,
-		logger,
-		&Config{
-			Port:            env.GetAsInt("DB_PORT", "5432"),
-			Host:            env.GetAsString("DB_HOST", "localhost"),
-			Database:        env.GetAsString("DB_NAME", "development"),
-			Username:        env.GetAsString("DB_USERNAME", "postgres"),
-			Password:        env.GetAsString("DB_PASSWORD", "postgres"),
-			Timezone:        env.GetAsString("DB_TIMEZONE", "UTC"),
-			Schema:          env.GetAsString("DB_SCHEMA", "public"),
-			AppName:         env.GetAsString("DB_APP_NAME", "app"),
-			EnabledSSL:      env.GetAsBool("DB_ENABLED_SSL", "false"),
-			MigrationDir:    env.GetAsString("DB_MIGRATION_DIR", "migrations"),
-			AutoMigrate:     env.GetAsBool("DB_AUTO_MIGRATE", "false"),
-			QueryTimeout:    time.Millisecond * time.Duration(env.GetAsInt("DB_QUERY_TIMEOUT", "7000")),
-			MaxIdleTimeConn: time.Millisecond * time.Duration(env.GetAsInt("DB_MAX_IDLE_TIME_CONN", "15000")),
-			MaxLifetimeConn: time.Millisecond * time.Duration(env.GetAsInt("DB_MAX_LIFETIME_CONN", "60000")),
-			MaxOpenConn:     env.GetAsInt("DB_MAX_OPEN_CONN", "35"),
-			MaxIdleConn:     env.GetAsInt("DB_MAX_IDLE_CONN", "0"),
-			Logging:         env.GetAsBool("DB_LOGGING", "false"),
-		},
-	)
+	return NewClient(ctx, logger, configFromEnv())
+}
+
+func TryFromEnv(ctx context.Context, logger *logger.Logger) (*Client, error) {
+	return newClient(ctx, logger, configFromEnv())
 }
 
 func (c *Client) withQueryTimeoutCtx() (context.Context, context.CancelFunc) {

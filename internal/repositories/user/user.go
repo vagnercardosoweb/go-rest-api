@@ -10,6 +10,7 @@ type instance struct {
 
 type Repository interface {
 	GetByEmail(email string) (*GetByEmailOutput, error)
+	UpdateLastLogin(input *UpdateLastLoginInput) error
 	Create(input *CreateInput) (*CreateOutput, error)
 }
 

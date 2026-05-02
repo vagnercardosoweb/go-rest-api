@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE TABLE IF NOT EXISTS
   "users" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid (),
+    "id" UUID NOT NULL DEFAULT uuidv7 (),
     "name" VARCHAR(70) NOT NULL,
     "email" VARCHAR(254) NOT NULL,
     "birth_date" DATE NOT NULL,

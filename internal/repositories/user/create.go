@@ -20,19 +20,17 @@ type CreateOutput struct {
 	Id uuid.UUID
 }
 
-const createQuery = `
-	INSERT INTO
-		users (
-			"id",
-			"name",
-			"email",
-			"password_hash",
-			"code_to_invite",
-			"birth_date"
-		)
-	VALUES
-		($1, $2, $3, $4, $5, $6);
-`
+const createQuery = `INSERT INTO
+	users (
+		"id",
+		"name",
+		"email",
+		"password_hash",
+		"code_to_invite",
+		"birth_date"
+	)
+VALUES
+	($1, $2, $3, $4, $5, $6);`
 
 func (r *instance) Create(input *CreateInput) (*CreateOutput, error) {
 	id := uuid.New()

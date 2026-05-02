@@ -13,7 +13,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: dev
-    restart: always
+    restart: unless-stopped
     container_name: go-rest-api-api
     env_file: .env.development
     security_opt:
@@ -48,22 +48,23 @@ services:
 
   postgres:
     tty: true
-    image: bitnami/postgresql:16
+    image: postgres:18-alpine
+    restart: unless-stopped
     container_name: go-rest-api-postgres
     env_file: .env.development
     volumes:
-      - go-rest-api-postgres-vl:/bitnami/postgresql
+      - go-rest-api-postgres-vl:/var/lib/postgresql/data
     networks:
       - go-rest-api-network
     ports:
       - "${DB_PORT:-5432}:5432"
     environment:
-      - POSTGRESQL_USERNAME=${DB_USERNAME:-root}
-      - POSTGRESQL_PASSWORD=${DB_PASSWORD:-root}
-      - POSTGRESQL_DATABASE=${DB_NAME:-development}
-      - POSTGRESQL_REPLICATION_USE_PASSFILE=no
+      - POSTGRES_USER=${DB_USERNAME:-root}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-root}
+      - POSTGRES_DB=${DB_NAME:-development}
+      - PGDATA=/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${DB_USERNAME:-root}"]
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-root}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -84,6 +85,7 @@ services:
   redis:
     tty: true
     image: bitnami/redis:latest
+    restart: unless-stopped
     container_name: go-rest-api-redis
     env_file: .env.development
     volumes:

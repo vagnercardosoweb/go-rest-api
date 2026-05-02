@@ -58,8 +58,8 @@ func (m *Manager) Dispatch(event *events.Event) {
 		go func() {
 			_ = slack.NewAlert().
 				WithColor(slack.ColorError).
-				AddField("eventName", event.Name, false).
 				AddField("traceId", event.TraceId, false).
+				AddField("eventName", event.Name, false).
 				AddField("message", err.Error(), false).
 				Send()
 		}()

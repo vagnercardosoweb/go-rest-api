@@ -108,9 +108,9 @@ func (l *Logger) Log(level level, message string, args ...any) {
 		Id:          l.id,
 		Level:       level,
 		Hostname:    utils.Hostname,
-		Message:     message,
-		Environment: env.GetAppEnv(),
 		Timestamp:   time.Now().UTC(),
+		Environment: env.GetAppEnv(),
+		Message:     message,
 		Metadata:    l.fields,
 	})
 

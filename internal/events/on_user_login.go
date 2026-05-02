@@ -1,6 +1,7 @@
 package events
 
 import (
+	"github.com/vagnercardosoweb/go-rest-api/internal/repositories/user"
 	"github.com/vagnercardosoweb/go-rest-api/pkg/events"
 )
 
@@ -12,31 +13,24 @@ func NewOnUserLoginEvent(m *Manager) *OnUserLoginEvent {
 
 func (e *OnUserLoginEvent) Handle(event *events.Event) error {
 	m := e.Manager.Clone(event.TraceId)
+
+	repo := user.New(m.pgClient)
 	input := event.Input.(OnUserLoginInput)
 
-	_, err := m.pgClient.Exec(
-		`
-			UPDATE "users"
-			SET
-				"last_login_at" = NOW(),
-				"last_login_agent" = $3,
-				"last_login_ip" = $2
-			WHERE
-				"id" = $1;
-		`,
-		input.UserId,
-		input.IpAddress,
-		input.UserAgent,
-	)
+	err := repo.UpdateLastLogin(&user.UpdateLastLoginInput{
+		UserId:    input.UserId,
+		IpAddress: input.IpAddress,
+		UserAgent: input.UserAgent,
+	})
 
 	return err
 }
 
 type OnUserLoginInput struct {
-	UserId    string `json:"userId"`
-	IpAddress string `json:"-"`
-	UserAgent string `json:"-"`
-	TraceId   string `json:"-"`
+	UserId    string
+	IpAddress string
+	UserAgent string
+	TraceId   string
 }
 
 func (m *Manager) OnUserLogin(input OnUserLoginInput) {
