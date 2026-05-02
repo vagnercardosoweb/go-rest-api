@@ -3,9 +3,9 @@
 set -e
 
 if [ -z "$1" ]; then
-  echo "Please provide a name for the migration"
-  echo "Example: ./create-migration-file.sh migration_name"
-  exit 1
+	echo "Please provide a name for the migration"
+	echo "Example: ./create-migration-file.sh migration_name"
+	exit 1
 fi
 
 prefix=$(date +%Y%m%d%H%M%S)
