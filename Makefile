@@ -150,6 +150,14 @@ test:
 	@echo "🧪 Running test without coverage..."
 	APP_ENV=test go test -v ./...
 
+test_integration:
+	@echo "🧪 Running integration tests..."
+	APP_ENV=test go test -v -tags=integration ./... 
+
+test_unit:
+	@echo "🧪 Running unit tests..."
+	APP_ENV=test go test -v -short ./... 
+
 test_race:
 	@echo "🧪 Running tests with race detection..."
 	APP_ENV=test go test -v --race ./...

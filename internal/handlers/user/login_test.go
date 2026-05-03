@@ -19,14 +19,14 @@ import (
 	"github.com/vagnercardosoweb/go-rest-api/tests"
 )
 
-type LoginTest struct {
+type LoginTestSuite struct {
 	tests.RestApiSuite
 	passwordHash   password.PasswordHasher
 	userRepository user.Repository
 	validInput     types.UserLoginInput
 }
 
-func (t *LoginTest) createRecorder(input any) *httptest.ResponseRecorder {
+func (t *LoginTestSuite) createRecorder(input any) *httptest.ResponseRecorder {
 	body := new(bytes.Buffer)
 	_ = json.NewEncoder(body).Encode(input)
 
@@ -36,7 +36,7 @@ func (t *LoginTest) createRecorder(input any) *httptest.ResponseRecorder {
 	return rr
 }
 
-func (t *LoginTest) SetupSuite() {
+func (t *LoginTestSuite) SetupSuite() {
 	t.RestApiSuite.SetupSuite()
 
 	t.passwordHash = password.NewBcrypt()
@@ -48,7 +48,11 @@ func (t *LoginTest) SetupSuite() {
 	}
 }
 
-func (t *LoginTest) SetupTest() {
+func (t *LoginTestSuite) TearDownSuite() {
+	t.RestApiSuite.TearDownSuite()
+}
+
+func (t *LoginTestSuite) SetupTest() {
 	passwordHash, err := t.passwordHash.Create(t.validInput.Password)
 	t.Require().Nil(err)
 
@@ -63,11 +67,11 @@ func (t *LoginTest) SetupTest() {
 	t.Require().Nil(err)
 }
 
-func (t *LoginTest) TearDownTest() {
+func (t *LoginTestSuite) TearDownTest() {
 	_ = t.PgClient.TruncateTable("users")
 }
 
-func (t *LoginTest) checkLastLogin() {
+func (t *LoginTestSuite) checkLastLogin() {
 	lastLogin := new(struct {
 		LastLoginAt    *time.Time `db:"last_login_at"`
 		LastLoginAgent *string    `db:"last_login_agent"`
@@ -83,7 +87,7 @@ func (t *LoginTest) checkLastLogin() {
 	t.Require().NotNil(lastLogin.LastLoginIp, "Last login IP should not be nil")
 }
 
-func (t *LoginTest) TestSuccess() {
+func (t *LoginTestSuite) TestSuccess() {
 	rr := t.createRecorder(t.validInput)
 	t.Require().Equal(http.StatusOK, rr.Code)
 
@@ -98,7 +102,7 @@ func (t *LoginTest) TestSuccess() {
 	t.checkLastLogin()
 }
 
-func (t *LoginTest) TestNotFound() {
+func (t *LoginTestSuite) TestNotFound() {
 	rr := t.createRecorder(types.UserLoginInput{
 		Email:    "not_found@test.local",
 		Password: t.validInput.Password,
@@ -111,7 +115,7 @@ func (t *LoginTest) TestNotFound() {
 	t.Require().Equal(e.Message, "user.invalidCredentials")
 }
 
-func (t *LoginTest) TestInvalidPassword() {
+func (t *LoginTestSuite) TestInvalidPassword() {
 	rr := t.createRecorder(types.UserLoginInput{
 		Email:    t.validInput.Email,
 		Password: "invalid_password",
@@ -124,7 +128,7 @@ func (t *LoginTest) TestInvalidPassword() {
 	t.Require().Equal(e.Message, "user.invalidCredentials")
 }
 
-func (t *LoginTest) TestBlockedUntil() {
+func (t *LoginTestSuite) TestBlockedUntil() {
 	_, _ = t.PgClient.Exec(
 		`UPDATE "users" SET "login_blocked_until" = NOW() + INTERVAL '1 HOUR' WHERE "email" = $1;`,
 		t.validInput.Email,
@@ -145,10 +149,10 @@ func (t *LoginTest) TestBlockedUntil() {
 	)
 }
 
-func TestUserLogin(t *testing.T) {
+func TestUserLoginSuite(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	}
 
-	suite.Run(t, new(LoginTest))
+	suite.Run(t, new(LoginTestSuite))
 }

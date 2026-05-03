@@ -22,6 +22,9 @@ type ContainerTestSuite struct {
 	PgContainer    testcontainers.Container
 }
 
+var postgresContainer testcontainers.Container
+var redisContainer testcontainers.Container
+
 func (t *ContainerTestSuite) createContainerPostgres() {
 	testValue := "test"
 	_ = os.Setenv("DB_NAME", testValue)
@@ -34,25 +37,32 @@ func (t *ContainerTestSuite) createContainerPostgres() {
 	_ = os.Setenv("DB_USERNAME", testValue)
 
 	port := "5432/tcp"
-	postgresContainer, err := testcontainers.GenericContainer(t.Ctx, testcontainers.GenericContainerRequest{
-		Started: true,
-		ContainerRequest: testcontainers.ContainerRequest{
-			ExposedPorts: []string{port},
-			Image:        "postgres:18-alpine",
-			Name:         fmt.Sprintf("postgres-test-%s", schema),
-			WaitingFor:   wait.ForListeningPort(port),
-			Env: map[string]string{
-				"POSTGRES_USER":     testValue,
-				"POSTGRES_PASSWORD": testValue,
-				"POSTGRES_DB":       testValue,
-			},
-			HostConfigModifier: func(config *container.HostConfig) {
-				config.AutoRemove = true
-			},
-		},
-	})
 
-	t.Require().Nil(err)
+	if postgresContainer == nil {
+		var err error
+
+		postgresContainer, err = testcontainers.GenericContainer(t.Ctx, testcontainers.GenericContainerRequest{
+			Started: true,
+			Reuse:   true,
+			ContainerRequest: testcontainers.ContainerRequest{
+				ExposedPorts: []string{port},
+				Image:        "postgres:18-alpine",
+				Name:         fmt.Sprintf("postgres-test-%s", schema),
+				WaitingFor:   wait.ForListeningPort(port),
+				Env: map[string]string{
+					"POSTGRES_USER":     testValue,
+					"POSTGRES_PASSWORD": testValue,
+					"POSTGRES_DB":       testValue,
+				},
+				HostConfigModifier: func(config *container.HostConfig) {
+					config.AutoRemove = true
+				},
+			},
+		})
+
+		t.Require().Nil(err)
+	}
+
 	t.PgContainer = postgresContainer
 
 	host, err := postgresContainer.Host(t.Ctx)
@@ -71,24 +81,30 @@ func (t *ContainerTestSuite) createContainerRedis() {
 	_ = os.Setenv("REDIS_PASSWORD", password)
 	port := "6379/tcp"
 
-	redisContainer, err := testcontainers.GenericContainer(t.Ctx, testcontainers.GenericContainerRequest{
-		Started: true,
-		ContainerRequest: testcontainers.ContainerRequest{
-			Name:         fmt.Sprintf("redis-test-%s", uuid.NewString()),
-			Image:        "bitnami/redis:latest",
-			ExposedPorts: []string{port},
-			WaitingFor:   wait.ForListeningPort(port),
-			Env: map[string]string{
-				"ALLOW_EMPTY_PASSWORD": "no",
-				"REDIS_PASSWORD":       password,
-			},
-			HostConfigModifier: func(config *container.HostConfig) {
-				config.AutoRemove = true
-			},
-		},
-	})
+	if redisContainer == nil {
+		var err error
 
-	t.Require().Nil(err)
+		redisContainer, err = testcontainers.GenericContainer(t.Ctx, testcontainers.GenericContainerRequest{
+			Reuse:   true,
+			Started: true,
+			ContainerRequest: testcontainers.ContainerRequest{
+				Name:         fmt.Sprintf("redis-test-%s", uuid.NewString()),
+				Image:        "bitnami/redis:latest",
+				ExposedPorts: []string{port},
+				WaitingFor:   wait.ForListeningPort(port),
+				Env: map[string]string{
+					"ALLOW_EMPTY_PASSWORD": "no",
+					"REDIS_PASSWORD":       password,
+				},
+				HostConfigModifier: func(config *container.HostConfig) {
+					config.AutoRemove = true
+				},
+			},
+		})
+
+		t.Require().Nil(err)
+	}
+
 	t.RedisContainer = redisContainer
 
 	host, err := redisContainer.Host(t.Ctx)
@@ -109,9 +125,9 @@ func (t *ContainerTestSuite) SetupSuite() {
 }
 
 func (t *ContainerTestSuite) TearDownSuite() {
-	t.Require().Nil(t.PgClient.Close())
-	_ = t.PgContainer.Terminate(t.Ctx)
+	// t.Require().Nil(t.PgClient.Close())
+	// _ = t.PgContainer.Terminate(t.Ctx)
 
-	t.Require().Nil(t.RedisClient.Close())
-	_ = t.RedisContainer.Terminate(t.Ctx)
+	// t.Require().Nil(t.RedisClient.Close())
+	// _ = t.RedisContainer.Terminate(t.Ctx)
 }
